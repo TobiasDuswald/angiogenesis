@@ -1,0 +1,92 @@
+## -----------------------------------------------------------------------------
+##
+## Copyright (C) 2022 CERN, TUM, and UT Austin. All Rights Reserved.
+##
+## Licensed under the Apache License, Version 2.0 (the "License");
+## you may not use this file except in compliance with the License.
+##
+## See the LICENSE file distributed with this work for details.
+## See the NOTICE file distributed with this work for additional information
+## regarding copyright ownership.
+##
+## Authored by: Tobias Duswald, CERN, TUM
+##
+## -----------------------------------------------------------------------------
+
+name: ubuntu-ci
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  build:
+    name: Build simulation, run it, and run unit tests
+    strategy:
+      matrix:
+        os: [ubuntu-20.04]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+
+    steps:
+
+    - name: Checkout this repository
+      uses: actions/checkout@v2
+    
+    - name: Install BioDynaMo dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libopenmpi-dev libomp5 libomp-dev libnuma-dev freeglut3-dev \
+          libreadline-dev libsqlite3-dev tk-dev python-openssl ninja-build
+        curl -L -O https://github.com/Kitware/CMake/releases/download/v3.19.3/cmake-3.19.3-Linux-x86_64.sh
+        chmod +x cmake-3.19.3-Linux-x86_64.sh
+        sudo ./cmake-3.19.3-Linux-x86_64.sh --skip-license --prefix=/usr/local
+        sudo apt-get install -y libssl-dev zlib1g-dev libbz2-dev libreadline-dev \
+          libsqlite3-dev xz-utils tk-dev libffi-dev liblzma-dev python-openssl libblas-dev liblapack-dev
+    
+    - name: Start Xvfb
+      run: |
+        set -e
+        sudo apt update
+        sudo apt-get -y install xvfb
+        XVFBARGS=":99 -ac -screen 0 2560x1440x24"
+        /usr/bin/Xvfb $XVFBARGS >> /tmp/Xvfb.out 2>&1 &
+        disown -ar
+        sleep 3
+
+    - name: Install BioDynaMo
+      run: |
+        if [ ! -f "$HOME/.pyenv/bin/pyenv" ]; then
+          curl https://pyenv.run | bash
+        fi
+        export PATH="$HOME/.pyenv/bin:$PATH"
+        eval "$(pyenv init --path)"
+        eval "$(pyenv init -)"
+        PYTHON_CONFIGURE_OPTS="--enable-shared" pyenv install 3.9.1
+        pyenv shell 3.9.1
+        cd ..
+        git clone https://github.com/BioDynaMo/biodynamo.git
+        cd biodynamo
+        cmake -G Ninja \
+          -Dparaview=off \
+          -Dbenchmark=off \
+          -Dnotebooks=off \
+          -Dvalgrind=off \
+          -DCMAKE_BUILD_TYPE=Release \
+          -B build
+        cmake --build build --parallel --config Release
+
+    - name: Build angiogenesis simulation and run small simulation
+      run: |
+        . ../biodynamo/build/bin/thisbdm.sh
+        export DISPLAY=:99.0
+        bdm run
+
+    - name: Test angiogenesis simulation with unit tests
+      run: |
+        . ../biodynamo/build/bin/thisbdm.sh
+        export DISPLAY=:99.0
+        bdm test
