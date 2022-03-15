@@ -10,29 +10,26 @@
 // regarding copyright ownership.
 //
 // -----------------------------------------------------------------------------
-#ifndef ANGIOGENESIS_H_
-#define ANGIOGENESIS_H_
+
+#ifndef ANGIOGENESIS_SIMULATION_H_
+#define ANGIOGENESIS_SIMULATION_H_
 
 #include "biodynamo.h"
 
 namespace bdm {
 
-inline int Simulate(int argc, const char** argv) {
-  Simulation simulation(argc, argv);
+// Function to create a TumorCell with random properties. This function is
+// passed on to the ModelInitializer creating random positions according to some
+// distribution.
+auto CreateTumorCell(const Double3& position);
 
-  // Define initial model - in this example: single cell at origin with a
-  // diameter of 30.0 (no unit associated).
-  auto* rm = simulation.GetResourceManager();
-  auto* cell = new Cell(30.0);
-  rm->AddAgent(cell);
+// Wrapper to multiple call to CreateTumorCell.
+void PlaceTumorCells();
 
-  // Run simulation for one timestep
-  simulation.GetScheduler()->Simulate(1);
-
-  std::cout << "Simulation completed successfully!" << std::endl;
-  return 0;
-}
+// This function contains the core simulation code. It creates the agents in
+// an environment and simulates the system for multiple timesteps.
+int Simulate(int argc, const char** argv);
 
 }  // namespace bdm
 
-#endif  // ANGIOGENESIS_H_
+#endif  // ANGIOGENESIS_SIMULATION_H_
