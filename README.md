@@ -1,4 +1,4 @@
-# Neuronal Growth Simulation
+# Angiogenesis
 
 ## Project description
 
@@ -58,7 +58,7 @@ simulation. Further ways to feed parameters to the simulation are the following:
     ```
 2. We can use BioDynaMo's CLI, e.g. 
    ```
-   ./build/neuronal_growth --inline-config '{ "bdm::SimParam": { "x": 6.28 } }'
+   ./build/angiogenesis --inline-config '{ "bdm::SimParam": { "x": 6.28 } }'
    ```
 
 The output of the simulation is, by default, available in 
