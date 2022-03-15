@@ -10,6 +10,7 @@
 // regarding copyright ownership.
 //
 // -----------------------------------------------------------------------------
-#include "angiogenesis.h"
+
+#include "angiogenesis_simulation.h"
 
 int main(int argc, const char** argv) { return bdm::Simulate(argc, argv); }

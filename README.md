@@ -1,74 +1,83 @@
-# angiogenesis
+# Angiogenesis
 
-This repository contains a template for a BioDynaMo simulation. It consists of 
-the two folders `src/` and `test/`. The `src/` folder contains the simulation. 
-All custom classes and functions that users create to simulate a system 
-should ideally end up here. The `test/` folder contains examples for unit tests.
-We strongly encourage our users to follow a test driven development process, 
-i.e. create unit tests for all fundamental building blocks of their simulation.
-By doing so, you can always be sure that a certain function or a class behaves 
-as you expect it to. The `.cc` files in `test/` are automatically linked against 
-the GoogleTest framework. For more information, please consult the appropriate
-[GitHub](https://github.com/google/googletest) page or the 
-[Googletest primer](https://google.github.io/googletest/primer.html).
+## Project description
 
-Whenever you interact with this repository, make sure you have sourced BioDynaMo
-correctly. If it's sourced, you'll see a `[bdm-1.X.YY]` in your terminal 
-(be aware that some terminals might not show it explicitly). 
-Anytime that you open a new terminal, you have to source it again. 
+* Goal: simulate cancer and the related phenomenon angiogenesis with a hybrid
+  (ABM+PDE) model.
+* Stages: 
+  1) Scenario: few hypoxic cancer cells surrounding a vessel. Cells secrete VEGF
+     to trigger sprouting and apical growth. The vessel then grows towards the 
+     cells and if the nutrient concentration at the hypoxic cells is beyond a 
+     threshold (or they are simply close to a vessel), then the cell become 
+     quiescent. Vessels are supposed to follow the gradient.
+  2) Possible extensions:
+     * Include growth of primary tumor
+     * Possibly include complicated initial vessel configurations from image 
+       data
+     * Use more complicated continuum models
+* Data: yet to be defined
+* Metrics: yet to be defined
+
+## Software stack
+
+*  BioDynaMo. To install, consult the 
+  [BDM dev-guide](https://biodynamo.org/docs/devguide/build/). Install the 
+  latest master as described in the link. Following the dev-guide allows us to
+  easily upgrade and extend BioDynaMo if necessary.
+
+## Running the simulation
+
+BioDynaMo needs to be installed and sourced, e.g.
 ```bash
-. <path_to_biodynamo>/build/bin/thisbdm.sh
+source <path_to_biodynamo>/biodynamo/build/bin/thisbdm.sh
 ```
-
-You can verify that BioDynaMo has been sourced correctly by running 
-`biodynamo demo`. In the following, we want to explain how to build, run, and 
-test your simulation.
-
-## 1. Building the simulation and the tests
-
-Option 1:
+The simulation can then be executed by simply running 
 ```bash
-biodynamo build
+bdm run
 ```
-
-Option 2:
+in your project directory. You can verify component of the model by running a 
+very similar command
 ```bash
-mkdir build && cd build
-cmake ..
-make -j <number_of_processes_for_build>
-```
+bdm test
+``` 
+We outsourced all parameters steering the simulation to `src/sim_param.h` and 
+one can modify the parameters in `bdm.json` without the need to recompile the 
+simulation. Further ways to feed parameters to the simulation are the following:
 
-## 2. Running the simulation
+1. ```cpp
+    // Define parameters
+    auto set_param = [&](Param* param) {
+      auto* sparam = param->Get<SimParam>();
+      param->statistics = true;
+      param->calculate_gradients = false;
+      sparam->some_value = some_value
+    };
 
-Before running the simulation, you need to build it. If you haven't done so, 
-please go back to step 1.
+    // Initialize the simulation
+    Simulation simulation(argc, argv, set_param);
+    ```
+2. We can use BioDynaMo's CLI, e.g. 
+   ```
+   ./build/angiogenesis --inline-config '{ "bdm::SimParam": { "x": 6.28 } }'
+   ```
 
-Option 1:
+The output of the simulation is, by default, available in 
+`output/angiogenesis`.
+
+## Visualization
+
+Assuming that one has successfully sourced and executed the simulation, the user
+simply follows up with the paraview command"
 ```bash
-biodynamo run
+source <path>/thisbdm.sh
+bdm run
+paraview
 ```
-
-Option 2:
+The place where we call `paraview` is indeed important. This opens a ParaView
+window. Follow with
 ```
-./build/angiogenesis
+File >> Load State... >> "output/angiogenesis/angiogenesis.pvsm" >> \
+Use File Name from States
 ```
-
-## 3. Execute the unit tests
-
-Before running the unit tests, you need to build them. If you haven't done so, 
-please go back to step 1.
-
-Option 1:
-```bash
-biodynamo test
-```
-
-Option 2:
-```bash
-./build/angiogenesis-test
-```
-
-Option 2:
-```bash
-cd build && ctest && cd ..
-```
+and the simulation output is ready to view. Click `VEGF-concentration`, and 
+select `Substance Concentration` and `Points` in the top row. 

@@ -1,0 +1,37 @@
+{
+  "bdm::Param": {
+    "bound_space": 1,
+    "diffusion_boundary_condition": "closed",
+    "diffusion_method": "euler",
+    "environment": "uniform_grid",
+    "export_visualization": true,
+    "min_bound": -100,
+    "max_bound": 100,
+    "remove_output_dir_contents": true,
+    "statistics": true,
+    "unschedule_default_operations": [],
+    "use_progress_bar": true,
+    "visualize_agents": {
+      "TumorCell": [
+        "cell_state_",
+        "diameter_",
+        "radius_",
+        "volume_"
+      ],
+      "_typename": "map<string,set<string> >"
+    },
+    "visualize_diffusion": [
+      {
+        "_typename": "bdm::Param::VisualizeDiffusion",
+        "concentration": true,
+        "gradient": true,
+        "name": "VEGF"
+      }
+    ]
+  },
+  "bdm::SimParam": {
+    "_typename": "bdm::SimParam",
+    "total_sim_time": 30,
+    "visualization_interval": 1
+  }
+}
