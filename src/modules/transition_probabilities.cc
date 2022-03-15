@@ -11,22 +11,25 @@
 //
 // -----------------------------------------------------------------------------
 
-#include "sim_param.h"
+#include "transition_probabilities.h"
 #include <cmath>
 
 namespace bdm {
 
-double SimParam::ComputeProbabilityDeath(const double sigma,
-                                         const double delta_t) const {
-  double intensity{apoptosis_rate};
-  intensity += gamma * 1 / (1 + std::exp(2 * k * (sigma - hypoxic_threshold)));
+double ComputeProbabilityDeath(const double sigma, const double delta_t,
+                               const SimParam* sparam) {
+  double intensity{sparam->apoptosis_rate};
+  intensity +=
+      sparam->gamma * 1 /
+      (1 + std::exp(2 * sparam->k * (sigma - sparam->hypoxic_threshold)));
   return 1 - std::exp(-intensity * delta_t);
 }
 
-double SimParam::ComputeProbabilityProliferative(const double sigma,
-                                                 const double delta_t) const {
-  double intensity = std::max(qp_transition_rate * (sigma - hypoxic_threshold) /
-                                  (1 - hypoxic_threshold),
+double ComputeProbabilityProliferative(const double sigma, const double delta_t,
+                                       const SimParam* sparam) {
+  double intensity = std::max(sparam->qp_transition_rate *
+                                  (sigma - sparam->hypoxic_threshold) /
+                                  (1 - sparam->hypoxic_threshold),
                               0.0);
   return 1 - std::exp(-intensity * delta_t);
 }

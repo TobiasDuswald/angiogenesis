@@ -136,16 +136,6 @@ struct SimParam : public ParamGroup {
   // Parameter to decide if dead cells decrease in size and are removed or if we
   // keep them in the simulation.
   bool keep_dead_cells{false};
-
-  // Compute the probability for transitioning from quiescent to dead
-  // (numeric parameter \alpha_{D}(\sigma))
-  double ComputeProbabilityDeath(const double sigma,
-                                 const double delta_t) const;
-
-  // Compute the probability for transitioning from quiescent to
-  // proliferative (numeric parameter \alpha_{P}(\sigma))
-  double ComputeProbabilityProliferative(const double sigma,
-                                         const double delta_t) const;
 };
 
 }  // namespace bdm
