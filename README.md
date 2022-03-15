@@ -63,3 +63,21 @@ simulation. Further ways to feed parameters to the simulation are the following:
 
 The output of the simulation is, by default, available in 
 `output/angiogenesis`.
+
+## Visualization
+
+Assuming that one has successfully sourced and executed the simulation, the user
+simply follows up with the paraview command"
+```bash
+source <path>/thisbdm.sh
+bdm run
+paraview
+```
+The place where we call `paraview` is indeed important. This opens a ParaView
+window. Follow with
+```
+File >> Load State... >> "output/angiogenesis/angiogenesis.pvsm" >> \
+Use File Name from States
+```
+and the simulation output is ready to view. Click `VEGF-concentration`, and 
+select `Substance Concentration` and `Points` in the top row. 
