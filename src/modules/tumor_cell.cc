@@ -286,6 +286,40 @@ void ProgressInCellCycle::Run(Agent* agent) {
   }
 }
 
+void UpdateHypoxic::Run(Agent* agent) {
+  auto* tumor_cell = bdm_static_cast<TumorCell*>(agent);
+  if (tumor_cell) {
+    auto* sparam = Simulation::GetActive()->GetParam()->Get<SimParam>();
+    auto* diffusion_grid =
+        Simulation::GetActive()->GetResourceManager()->GetDiffusionGrid(
+            substance_id_);
+    auto sigma = diffusion_grid->GetConcentration(tumor_cell->GetPosition());
+    if (sigma < sparam->hypoxic_threshold) {
+      tumor_cell->SetCellState(CellState::kHypoxic);
+    } else {
+      tumor_cell->SetCellState(CellState::kQuiescent);
+    }
+  } else {
+    Log::Warning("UpdateHypoxic::Run", "Not assigned to tumor cell");
+  }
+}
+
+void HypoxicSecretion::Initialize(const NewAgentEvent& event) {
+  Base::Initialize(event);
+  auto* other = bdm_static_cast<HypoxicSecretion*>(event.existing_behavior);
+  substance_ = other->substance_;
+  dgrid_ = other->dgrid_;
+  quantity_ = other->quantity_;
+}
+
+void HypoxicSecretion::Run(Agent* agent) {
+  auto* tumor_cell = dynamic_cast<TumorCell*>(agent);
+  if (tumor_cell && tumor_cell->GetCellState() == CellState::kHypoxic) {
+    auto& secretion_position = agent->GetPosition();
+    dgrid_->ChangeConcentrationBy(secretion_position, quantity_);
+  }
+}
+
 void Death::Run(Agent* agent) {
   auto* tumor_cell = bdm_static_cast<TumorCell*>(agent);
   if (tumor_cell->GetCellState() == CellState::kDead &&
