@@ -158,4 +158,87 @@ TEST(AgentTest, ApoptosisVolumeDecrease) {
             tumor_cell_ptr->GetVolume());
 }
 
+// Test UpdateHypoxic behavior.
+TEST(AgentTest, HypoxicTransition) {
+  Param::RegisterParamGroup(new SimParam());
+  auto set_param = [&](Param* param) {
+    param->simulation_time_step = 0.01;
+    param->Get<SimParam>()->hypoxic_threshold = 0.3;
+  };
+  // Create simulation
+  Simulation simulation(TEST_NAME, set_param);
+
+  // Define substance
+  int substance_id = 0;
+  std::string substance_name = "VEGF";
+  ModelInitializer::DefineSubstance(substance_id, substance_name, 0, 0, 20);
+  auto SetInitialValuesGridVEGF = [&](double x, double y, double z) {
+    if (z > 5) {
+      return 0.5;
+    } else {
+      return 0.0;
+    }
+  };
+  ModelInitializer::InitializeSubstance(substance_id, SetInitialValuesGridVEGF);
+
+  // Add cells
+  Double3 pos_hypoxic = {0, 0, 0};
+  Double3 pos_quiescent = {0, 0, 10};
+  auto* rm = simulation.GetResourceManager();
+  auto* tumor_cell_1 = new TumorCell(pos_hypoxic, CellState::kQuiescent);
+  tumor_cell_1->AddBehavior(new UpdateHypoxic(substance_id));
+  auto* tumor_cell_2 = new TumorCell(pos_quiescent, CellState::kHypoxic);
+  tumor_cell_2->AddBehavior(new UpdateHypoxic(substance_id));
+  rm->AddAgent(tumor_cell_1);
+  rm->AddAgent(tumor_cell_2);
+
+  // Simulate 1 iterations
+  auto* scheduler = simulation.GetScheduler();
+  scheduler->UnscheduleOp(scheduler->GetOps("mechanical forces")[0]);
+  scheduler->FinalizeInitialization();
+  scheduler->Simulate(1);
+
+  EXPECT_EQ(CellState::kHypoxic, tumor_cell_1->GetCellState());
+  EXPECT_EQ(CellState::kQuiescent, tumor_cell_2->GetCellState());
+}
+
+// Test if Cells only secrete if they are hypoxic
+TEST(AgentTest, HypoxicSecretion) {
+  auto set_param = [&](Param* param) { param->simulation_time_step = 0.01; };
+  // Create simulation
+  Simulation simulation(TEST_NAME, set_param);
+
+  // Define substance
+  std::string substance_name = "VEGF";
+  ModelInitializer::DefineSubstance(0, substance_name, 0, 0, 20);
+  auto SetInitialValuesGridVEGF = [&](double x, double y, double z) {
+    return 0.0;
+  };
+  ModelInitializer::InitializeSubstance(0, SetInitialValuesGridVEGF);
+
+  // Add cells
+  Double3 pos_hypoxic = {0, 0, 0};
+  Double3 pos_quiescent = {0, 0, 10};
+  auto* rm = simulation.GetResourceManager();
+  auto* tumor_cell_1 = new TumorCell(pos_hypoxic, CellState::kHypoxic);
+  tumor_cell_1->AddBehavior(new HypoxicSecretion(substance_name, 1.0));
+  auto* tumor_cell_2 = new TumorCell(pos_quiescent, CellState::kQuiescent);
+  tumor_cell_2->AddBehavior(new HypoxicSecretion(substance_name, 1.0));
+  rm->AddAgent(tumor_cell_1);
+  rm->AddAgent(tumor_cell_2);
+
+  // Simulate 10 iterations
+  auto* scheduler = simulation.GetScheduler();
+  scheduler->UnscheduleOp(scheduler->GetOps("mechanical forces")[0]);
+  scheduler->FinalizeInitialization();
+  scheduler->Simulate(10);
+
+  auto* dgrid = Simulation::GetActive()->GetResourceManager()->GetDiffusionGrid(
+      substance_name);
+  auto value_hypoxic = dgrid->GetConcentration(pos_hypoxic);
+  auto value_quiescent = dgrid->GetConcentration(pos_quiescent);
+  EXPECT_EQ(10, value_hypoxic);
+  EXPECT_EQ(0, value_quiescent);
+}
+
 }  // namespace bdm
