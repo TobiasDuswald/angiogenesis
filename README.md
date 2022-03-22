@@ -79,5 +79,4 @@ window. Follow with
 File >> Load State... >> "output/angiogenesis/angiogenesis.pvsm" >> \
 Use File Name from States
 ```
-and the simulation output is ready to view. Click `VEGF-concentration`, and 
-select `Substance Concentration` and `Points` in the top row. 
+and the simulation output is ready to view. Simply click play.
