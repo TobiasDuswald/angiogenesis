@@ -68,8 +68,12 @@ Double4 MechanicalInteractionForce::Calculate(const Agent* lhs,
         "cannot compute forces between an object and itself.");
   }
   // Cast Agents to TumorCells
-  const TumorCell* lhs_tumor_cell = bdm_static_cast<const TumorCell*>(lhs);
-  const TumorCell* rhs_tumor_cell = bdm_static_cast<const TumorCell*>(rhs);
+  const TumorCell* lhs_tumor_cell = dynamic_cast<const TumorCell*>(lhs);
+  const TumorCell* rhs_tumor_cell = dynamic_cast<const TumorCell*>(rhs);
+  if (!lhs_tumor_cell or !rhs_tumor_cell) {
+    // If neighbor is not a TumorCell, do not't calculate a force.
+    return {0, 0, 0, 0};
+  }
 
   // Initialize arrays for results
   Double3 result{0.0, 0.0, 0.0};

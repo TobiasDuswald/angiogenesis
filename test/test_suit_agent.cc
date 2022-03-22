@@ -66,7 +66,7 @@ TEST(AgentTest, CellDivision) {
   // Test if volumes of the split up cells add up.
   double total_volume{0.0};
   rm->ForEachAgent([&](Agent* agent) {
-    TumorCell* tc = bdm_static_cast<TumorCell*>(agent);
+    TumorCell* tc = dynamic_cast<TumorCell*>(agent);
     total_volume += tc->GetVolume();
   });
   EXPECT_FLOAT_EQ(volume, total_volume);
@@ -74,7 +74,7 @@ TEST(AgentTest, CellDivision) {
   // Test if cells are no longer located at origin but also not too far off.
   // More precise, if their center is on the right shell on a sphere.
   rm->ForEachAgent([&](Agent* agent) {
-    TumorCell* tc = bdm_static_cast<TumorCell*>(agent);
+    TumorCell* tc = dynamic_cast<TumorCell*>(agent);
     double displacement = tc->GetPosition().Norm();
     EXPECT_LT(radius / displacement_scale_factor / (1 + volume_ratio_max) + eps,
               displacement);
@@ -86,7 +86,7 @@ TEST(AgentTest, CellDivision) {
 
   // Test if radius and diameter are correctly coupled
   rm->ForEachAgent([&](Agent* agent) {
-    TumorCell* tc = bdm_static_cast<TumorCell*>(agent);
+    TumorCell* tc = dynamic_cast<TumorCell*>(agent);
     EXPECT_FLOAT_EQ(tc->GetRadius() * 2, tc->GetDiameter());
     EXPECT_NE(tc->GetActionRadius() * 2, tc->GetDiameter());
   });

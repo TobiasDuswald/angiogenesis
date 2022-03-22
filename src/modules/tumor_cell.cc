@@ -36,7 +36,7 @@ void TumorCell::Initialize(const NewAgentEvent& event) {
 
     // First we get the pointers to the new and old TumorCell objects.
     const auto& cdevent = static_cast<const CellDivisionEvent&>(event);
-    auto* mother_cell = bdm_static_cast<TumorCell*>(event.existing_agent);
+    auto* mother_cell = dynamic_cast<TumorCell*>(event.existing_agent);
     auto* daughter = this;
 
     // Inherit displacement scale factor
@@ -164,7 +164,7 @@ Double3 TumorCell::CalculateDisplacement(const InteractionForce* force,
 
   // 2. Cast the force to our custom force
   const MechanicalInteractionForce* interaction_force =
-      bdm_static_cast<const MechanicalInteractionForce*>(force);
+      dynamic_cast<const MechanicalInteractionForce*>(force);
 
   // 3. Iterate over all neighbours and compute forces onto this agent.
   auto calculate_neighbor_forces =
@@ -280,14 +280,14 @@ void TumorCell::ChangeVolume(double speed) {
 }
 
 void ProgressInCellCycle::Run(Agent* agent) {
-  auto* tumor_cell = bdm_static_cast<TumorCell*>(agent);
+  auto* tumor_cell = dynamic_cast<TumorCell*>(agent);
   if (tumor_cell != nullptr) {
     tumor_cell->UpdateCellCycle();
   }
 }
 
 void UpdateHypoxic::Run(Agent* agent) {
-  auto* tumor_cell = bdm_static_cast<TumorCell*>(agent);
+  auto* tumor_cell = dynamic_cast<TumorCell*>(agent);
   if (tumor_cell) {
     auto* sparam = Simulation::GetActive()->GetParam()->Get<SimParam>();
     auto* diffusion_grid =
@@ -306,7 +306,7 @@ void UpdateHypoxic::Run(Agent* agent) {
 
 void HypoxicSecretion::Initialize(const NewAgentEvent& event) {
   Base::Initialize(event);
-  auto* other = bdm_static_cast<HypoxicSecretion*>(event.existing_behavior);
+  auto* other = dynamic_cast<HypoxicSecretion*>(event.existing_behavior);
   substance_ = other->substance_;
   dgrid_ = other->dgrid_;
   quantity_ = other->quantity_;
@@ -321,7 +321,7 @@ void HypoxicSecretion::Run(Agent* agent) {
 }
 
 void Death::Run(Agent* agent) {
-  auto* tumor_cell = bdm_static_cast<TumorCell*>(agent);
+  auto* tumor_cell = dynamic_cast<TumorCell*>(agent);
   if (tumor_cell->GetCellState() == CellState::kDead &&
       tumor_cell->GetRadius() < tumor_cell->GetNuclearRadius()) {
     tumor_cell->RemoveFromSimulation();
