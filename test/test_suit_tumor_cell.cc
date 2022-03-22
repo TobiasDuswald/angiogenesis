@@ -24,7 +24,7 @@ namespace bdm {
 // This test targets the TumorCell::Divide() member. We test if it actually
 // creates a second cell and if the radii are correctly computed for the two
 // daughter cells.
-TEST(AgentTest, CellDivision) {
+TEST(TumorCellTest, CellDivision) {
   // Register the simulation parameter
   Param::RegisterParamGroup(new SimParam());
 
@@ -94,7 +94,7 @@ TEST(AgentTest, CellDivision) {
 
 // This test targets TumorCell::ChangeVolume(double) to see if it changes
 // the volume and the radius correctly.
-TEST(AgentTest, ChangeVolume) {
+TEST(TumorCellTest, ChangeVolume) {
   // Create simulation
   Simulation simulation(TEST_NAME);
 
@@ -124,7 +124,7 @@ TEST(AgentTest, ChangeVolume) {
 
 // Test if Apoptosis decreases the cell volume correctly. The decrease depends
 // on the targeted size, the current size, and the apoptosis_duration.
-TEST(AgentTest, ApoptosisVolumeDecrease) {
+TEST(TumorCellTest, ApoptosisVolumeDecrease) {
   auto set_param = [&](Param* param) { param->simulation_time_step = 0.01; };
   // Create simulation
   Simulation simulation(TEST_NAME, set_param);
@@ -159,7 +159,7 @@ TEST(AgentTest, ApoptosisVolumeDecrease) {
 }
 
 // Test UpdateHypoxic behavior.
-TEST(AgentTest, HypoxicTransition) {
+TEST(TumorCellTest, HypoxicTransition) {
   Param::RegisterParamGroup(new SimParam());
   auto set_param = [&](Param* param) {
     param->simulation_time_step = 0.01;
@@ -203,7 +203,7 @@ TEST(AgentTest, HypoxicTransition) {
 }
 
 // Test if Cells only secrete if they are hypoxic
-TEST(AgentTest, HypoxicSecretion) {
+TEST(TumorCellTest, HypoxicSecretion) {
   auto set_param = [&](Param* param) { param->simulation_time_step = 0.01; };
   // Create simulation
   Simulation simulation(TEST_NAME, set_param);
