@@ -53,7 +53,7 @@ auto CreateTumorCell(const Double3& position) {
                        (sparam->duration_growth_phase);
   tumor_cell->SetGrowthRate(growth_rate);
   // Add a Secretion behaviour to the TumorCell such that it can secrete VEGF.
-  tumor_cell->AddBehavior(new Secretion(
+  tumor_cell->AddBehavior(new HypoxicSecretion(
       "VEGF", sparam->secretion_rate_vegf * param->simulation_time_step));
   return tumor_cell;
 }
@@ -136,7 +136,7 @@ int Simulate(int argc, const char** argv) {
   // ---------------------------------------------------------------------------
   auto set_param = [&](Param* param) {
     param->statistics = true;
-    param->calculate_gradients = false;
+    param->calculate_gradients = true;
     param->visualization_interval =
         param->Get<SimParam>()->visualization_interval /
         param->simulation_time_step;
