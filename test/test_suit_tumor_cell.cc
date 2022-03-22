@@ -95,8 +95,9 @@ TEST(TumorCellTest, CellDivision) {
 // This test targets TumorCell::ChangeVolume(double) to see if it changes
 // the volume and the radius correctly.
 TEST(TumorCellTest, ChangeVolume) {
+  auto set_param = [&](Param* param) { param->simulation_time_step = 0.01; };
   // Create simulation
-  Simulation simulation(TEST_NAME);
+  Simulation simulation(TEST_NAME, set_param);
 
   // Add one growing cell to the simulation
   auto* rm = simulation.GetResourceManager();
