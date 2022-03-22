@@ -11,6 +11,7 @@
     "statistics": true,
     "unschedule_default_operations": [],
     "use_progress_bar": true,
+    "simulation_time_step": 0.1,
     "visualize_agents": {
       "TumorCell": [
         "cell_state_",
@@ -32,8 +33,10 @@
   },
   "bdm::SimParam": {
     "_typename": "bdm::SimParam",
-    "total_sim_time": 2,
-    "visualization_interval": 1,
-    "default_vessel_length": 30
+    "total_sim_time": 1200,
+    "visualization_interval": 5,
+    "default_vessel_length": 30,
+    "secretion_rate_vegf": 0.03,
+    "diffusion_vegf": 2.0
   }
 }
