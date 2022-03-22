@@ -18,6 +18,7 @@
         "radius_",
         "volume_"
       ],
+      "Vessel": [],
       "_typename": "map<string,set<string> >"
     },
     "visualize_diffusion": [
@@ -31,7 +32,8 @@
   },
   "bdm::SimParam": {
     "_typename": "bdm::SimParam",
-    "total_sim_time": 30,
-    "visualization_interval": 1
+    "total_sim_time": 2,
+    "visualization_interval": 1,
+    "default_vessel_length": 30
   }
 }
