@@ -89,20 +89,21 @@ void inline PlaceVessel(Double3 start, Double3 end, double compartment_length) {
   rm->AddAgent(soma);
 
   // Define a first neurite
-  auto* vessel_compartment_1 = soma->ExtendNewNeurite(direction);
+  Vessel v;  // Used for prototype argument (virtual+template not supported c++)
+  auto* vessel_compartment_1 = soma->ExtendNewNeurite(direction, &v);
   vessel_compartment_1->SetPosition(start +
                                     direction * compartment_length * 0.5);
   vessel_compartment_1->SetMassLocation(start + direction * compartment_length);
   vessel_compartment_1->SetActualLength(compartment_length);
   vessel_compartment_1->SetDiameter(15);
   for (int i = 1; i < n_compartments; i++) {
-    // Compute location of next neurite element
+    // Compute location of next vessel element
     Double3 agent_position =
         start + direction * compartment_length * (static_cast<double>(i) + 0.5);
     Double3 agent_end_position =
         start + direction * compartment_length * (static_cast<double>(i) + 1.0);
-    // Create new NeuriteElement
-    auto* vessel_compartment_2 = new NeuriteElement();
+    // Create new vessel
+    auto* vessel_compartment_2 = new Vessel();
     // Set position an length
     vessel_compartment_2->SetPosition(agent_position);
     vessel_compartment_2->SetMassLocation(agent_end_position);
@@ -110,12 +111,13 @@ void inline PlaceVessel(Double3 start, Double3 end, double compartment_length) {
     vessel_compartment_2->SetRestingLength(compartment_length);
     vessel_compartment_2->SetSpringAxis(direction);
     vessel_compartment_2->SetDiameter(15);
-    // Connect neurons
+    // Connect vessels (AgentPtr API is currently bounded to base classes but
+    // this is a 'cosmetic' problem)
     vessel_compartment_1->SetDaughterLeft(
         vessel_compartment_2->GetAgentPtr<neuroscience::NeuriteElement>());
     vessel_compartment_2->SetMother(
         vessel_compartment_1->GetAgentPtr<neuroscience::NeuronOrNeurite>());
-    // Add Agent to RM
+    // Add Agent to the resource manager
     rm->AddAgent(vessel_compartment_2);
     vessel_compartment_1 = vessel_compartment_2;
   }
@@ -202,6 +204,8 @@ int Simulate(int argc, const char** argv) {
   // ---------------------------------------------------------------------------
 
   // Use custom force module implemented in MechanicalInteractionForce
+  // Note that the force module currently does not support any forces between
+  // vessels and cells.
   auto* custom_force = new MechanicalInteractionForce(
       sparam->adhesion_scale_parameter, sparam->repulsive_scale_parameter);
   auto* op = scheduler->GetOps("mechanical forces")[0];
