@@ -19,6 +19,8 @@
 #include "math.h"
 #include "modules/mechanical_forces.h"
 #include "modules/tumor_cell.h"
+#include "modules/vessel.h"
+#include "neuroscience/neuroscience.h"
 #include "sim_param.h"
 #include "util/timeseries_counters.h"
 #include "util/visualize.h"
@@ -57,13 +59,66 @@ auto CreateTumorCell(const Double3& position) {
 }
 
 void PlaceTumorCells() {
-  auto* tumor_cell1 = CreateTumorCell({0, 5, 0});
-  auto* tumor_cell2 = CreateTumorCell({0, 3, 2});
-  auto* tumor_cell3 = CreateTumorCell({0, 7, 5});
+  auto* tumor_cell1 = CreateTumorCell({0, 50, 0});
+  auto* tumor_cell2 = CreateTumorCell({0, 30, 20});
+  auto* tumor_cell3 = CreateTumorCell({0, 70, 50});
   auto* rm = Simulation::GetActive()->GetResourceManager();
   rm->AddAgent(tumor_cell1);
   rm->AddAgent(tumor_cell2);
   rm->AddAgent(tumor_cell3);
+}
+
+void inline PlaceVessel(Double3 start, Double3 end, double compartment_length) {
+  auto* rm = Simulation::GetActive()->GetResourceManager();
+
+  // Compute parameters for straight line between start and end.
+  Double3 direction = end - start;
+  double distance = direction.Norm();
+  direction.Normalize();
+  int n_compartments = std::floor(distance / compartment_length);
+
+  // Warn if chosen parameters are not selected ideally
+  if (abs(n_compartments * compartment_length - distance) > 1e-2) {
+    Log::Warning("PlaceVessel", "Vessel will be shorter than expected.");
+  }
+
+  // The setup requires us to define a NeuronSoma, which is kind of a left over
+  // from the neuroscience module.
+  const Double3 tmp = start;
+  auto* soma = new neuroscience::NeuronSoma(tmp);
+  rm->AddAgent(soma);
+
+  // Define a first neurite
+  auto* vessel_compartment_1 = soma->ExtendNewNeurite(direction);
+  vessel_compartment_1->SetPosition(start +
+                                    direction * compartment_length * 0.5);
+  vessel_compartment_1->SetMassLocation(start + direction * compartment_length);
+  vessel_compartment_1->SetActualLength(compartment_length);
+  vessel_compartment_1->SetDiameter(15);
+  for (int i = 1; i < n_compartments; i++) {
+    // Compute location of next neurite element
+    Double3 agent_position =
+        start + direction * compartment_length * (static_cast<double>(i) + 0.5);
+    Double3 agent_end_position =
+        start + direction * compartment_length * (static_cast<double>(i) + 1.0);
+    // Create new NeuriteElement
+    auto* vessel_compartment_2 = new NeuriteElement();
+    // Set position an length
+    vessel_compartment_2->SetPosition(agent_position);
+    vessel_compartment_2->SetMassLocation(agent_end_position);
+    vessel_compartment_2->SetActualLength(compartment_length);
+    vessel_compartment_2->SetRestingLength(compartment_length);
+    vessel_compartment_2->SetSpringAxis(direction);
+    vessel_compartment_2->SetDiameter(15);
+    // Connect neurons
+    vessel_compartment_1->SetDaughterLeft(
+        vessel_compartment_2->GetAgentPtr<neuroscience::NeuriteElement>());
+    vessel_compartment_2->SetMother(
+        vessel_compartment_1->GetAgentPtr<neuroscience::NeuronOrNeurite>());
+    // Add Agent to RM
+    rm->AddAgent(vessel_compartment_2);
+    vessel_compartment_1 = vessel_compartment_2;
+  }
 }
 
 // -----------------------------------------------------------------------------
@@ -72,6 +127,7 @@ void PlaceTumorCells() {
 int Simulate(int argc, const char** argv) {
   // Register the simulation parameter
   Param::RegisterParamGroup(new SimParam());
+  neuroscience::InitModule();
 
   // ---------------------------------------------------------------------------
   // 1. Define parameters and initialize simulation
@@ -87,7 +143,7 @@ int Simulate(int argc, const char** argv) {
   // Initialize the simulation
   Simulation simulation(argc, argv, set_param);
   // Get a pointer to the resource manager
-  const auto* rm = simulation.GetResourceManager();
+  auto* rm = simulation.GetResourceManager();
   // Get a pointer to the param object
   const auto* param = simulation.GetParam();
   // Get a pointer to an instance of SimParam
@@ -127,6 +183,7 @@ int Simulate(int argc, const char** argv) {
   // ---------------------------------------------------------------------------
 
   PlaceTumorCells();
+  PlaceVessel({-200, 0, -400}, {-200, 0, 400}, sparam->default_vessel_length);
 
   // ---------------------------------------------------------------------------
   // 4. Track simulation results over time with timeseries objects
