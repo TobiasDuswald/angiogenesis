@@ -58,14 +58,12 @@ auto CreateTumorCell(const Double3& position) {
   return tumor_cell;
 }
 
-void PlaceTumorCells() {
-  auto* tumor_cell1 = CreateTumorCell({0, 50, 0});
-  auto* tumor_cell2 = CreateTumorCell({0, 30, 20});
-  auto* tumor_cell3 = CreateTumorCell({0, 70, 50});
+void PlaceTumorCells(std::vector<Double3>& positions) {
   auto* rm = Simulation::GetActive()->GetResourceManager();
-  rm->AddAgent(tumor_cell1);
-  rm->AddAgent(tumor_cell2);
-  rm->AddAgent(tumor_cell3);
+  for (auto pos : positions) {
+    auto* tumor_cell = CreateTumorCell(pos);
+    rm->AddAgent(tumor_cell);
+  }
 }
 
 void inline PlaceVessel(Double3 start, Double3 end, double compartment_length) {
@@ -186,8 +184,10 @@ int Simulate(int argc, const char** argv) {
   // ---------------------------------------------------------------------------
   // 3. Define initial configurations of agents
   // ---------------------------------------------------------------------------
-
-  PlaceTumorCells();
+  std::vector<Double3> cell_positions = {{0, 50, 0},       {0, 30, 20},
+                                         {0, 70, 50},      {-200, -160, 300},
+                                         {-400, -100, 60}, {-300, 100, -200}};
+  PlaceTumorCells(cell_positions);
   PlaceVessel({-200, 0, -400}, {-200, 0, 400}, sparam->default_vessel_length);
 
   // ---------------------------------------------------------------------------
