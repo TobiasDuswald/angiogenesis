@@ -90,12 +90,14 @@ void inline PlaceVessel(Double3 start, Double3 end, double compartment_length) {
 
   // Define a first neurite
   Vessel v;  // Used for prototype argument (virtual+template not supported c++)
-  auto* vessel_compartment_1 = soma->ExtendNewNeurite(direction, &v);
+  auto* vessel_compartment_1 =
+      dynamic_cast<Vessel*>(soma->ExtendNewNeurite(direction, &v));
   vessel_compartment_1->SetPosition(start +
                                     direction * compartment_length * 0.5);
   vessel_compartment_1->SetMassLocation(start + direction * compartment_length);
   vessel_compartment_1->SetActualLength(compartment_length);
   vessel_compartment_1->SetDiameter(15);
+  vessel_compartment_1->ProhibitGrowth();
   for (int i = 1; i < n_compartments; i++) {
     // Compute location of next vessel element
     Double3 agent_position =
@@ -111,8 +113,9 @@ void inline PlaceVessel(Double3 start, Double3 end, double compartment_length) {
     vessel_compartment_2->SetRestingLength(compartment_length);
     vessel_compartment_2->SetSpringAxis(direction);
     vessel_compartment_2->SetDiameter(15);
-    // Connect vessels (AgentPtr API is currently bounded to base classes but
-    // this is a 'cosmetic' problem)
+    vessel_compartment_2->ProhibitGrowth();
+    // Connect vessels (AgentPtr API is currently bounded to base
+    // classes but this is a 'cosmetic' problem)
     vessel_compartment_1->SetDaughterLeft(
         vessel_compartment_2->GetAgentPtr<neuroscience::NeuriteElement>());
     vessel_compartment_2->SetMother(

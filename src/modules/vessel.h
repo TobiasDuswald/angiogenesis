@@ -24,7 +24,15 @@ class Vessel : public NeuriteElement {
   BDM_AGENT_HEADER(Vessel, NeuriteElement, 1);
 
  public:
-  Vessel(){};
+  Vessel() : can_grow_(true){};
+
+  void AllowGrowth() { can_grow_ = true; }
+  void ProhibitGrowth() { can_grow_ = false; }
+
+ protected:
+  /// Parameter to decide if a vessel compartment can grow towards a higher VEGF
+  /// concentration (used to fix initial vessel configuration)
+  bool can_grow_;
 };
 
 }  // namespace bdm
