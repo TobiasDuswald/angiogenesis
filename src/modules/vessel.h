@@ -64,16 +64,6 @@ class SproutingAngiogenesis : public Behavior {
     // Downcast agent to NeuriteElement
     auto* dendrite = dynamic_cast<NeuriteElement*>(agent);
 
-    // /// Check if vessel can branch
-    // if (dendrite->GetDaughterLeft() && !dendrite->GetDaughterRight()) {
-    //   return;
-    // }
-
-    // // Terminal vessels do not sprout but grow in a different behaviour
-    // if (dendrite->IsTerminal()) {
-    //   return;
-    // }
-
     /// Check if vessel can branch
     if (dendrite->GetDaughterLeft() == nullptr ||
         dendrite->GetDaughterRight() != nullptr) {
