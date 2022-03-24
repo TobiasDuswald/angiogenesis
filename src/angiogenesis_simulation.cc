@@ -87,15 +87,18 @@ void inline PlaceVessel(Double3 start, Double3 end, double compartment_length) {
   rm->AddAgent(soma);
 
   // Define a first neurite
-  Vessel v;  // Used for prototype argument (virtual+template not supported c++)
+  NeuriteElement
+      v;  // Used for prototype argument (virtual+template not supported c++)
   auto* vessel_compartment_1 =
-      dynamic_cast<Vessel*>(soma->ExtendNewNeurite(direction, &v));
+      dynamic_cast<NeuriteElement*>(soma->ExtendNewNeurite(direction, &v));
   vessel_compartment_1->SetPosition(start +
                                     direction * compartment_length * 0.5);
   vessel_compartment_1->SetMassLocation(start + direction * compartment_length);
   vessel_compartment_1->SetActualLength(compartment_length);
   vessel_compartment_1->SetDiameter(15);
-  vessel_compartment_1->ProhibitGrowth();
+  // vessel_compartment_1->ProhibitGrowth();
+
+  NeuriteElement* vessel_compartment_2{nullptr};
   for (int i = 1; i < n_compartments; i++) {
     // Compute location of next vessel element
     Double3 agent_position =
@@ -103,7 +106,7 @@ void inline PlaceVessel(Double3 start, Double3 end, double compartment_length) {
     Double3 agent_end_position =
         start + direction * compartment_length * (static_cast<double>(i) + 1.0);
     // Create new vessel
-    auto* vessel_compartment_2 = new Vessel();
+    vessel_compartment_2 = new NeuriteElement();
     // Set position an length
     vessel_compartment_2->SetPosition(agent_position);
     vessel_compartment_2->SetMassLocation(agent_end_position);
@@ -111,16 +114,18 @@ void inline PlaceVessel(Double3 start, Double3 end, double compartment_length) {
     vessel_compartment_2->SetRestingLength(compartment_length);
     vessel_compartment_2->SetSpringAxis(direction);
     vessel_compartment_2->SetDiameter(15);
-    vessel_compartment_2->ProhibitGrowth();
+    // vessel_compartment_2->ProhibitGrowth();
+    // Add behaviour
+    vessel_compartment_2->AddBehavior(new SproutingAngiogenesis());
+    // Add Agent to the resource manager
+    rm->AddAgent(vessel_compartment_2);
     // Connect vessels (AgentPtr API is currently bounded to base
     // classes but this is a 'cosmetic' problem)
     vessel_compartment_1->SetDaughterLeft(
         vessel_compartment_2->GetAgentPtr<neuroscience::NeuriteElement>());
     vessel_compartment_2->SetMother(
         vessel_compartment_1->GetAgentPtr<neuroscience::NeuronOrNeurite>());
-    // Add Agent to the resource manager
-    rm->AddAgent(vessel_compartment_2);
-    vessel_compartment_1 = vessel_compartment_2;
+    std::swap(vessel_compartment_1, vessel_compartment_2);
   }
 }
 
