@@ -18,6 +18,7 @@
 #include "neuroscience/neuroscience.h"
 #include "sim_param.h"
 #include "util/neighbor_counter.h"
+#include "util/vector_operations.h"
 
 namespace bdm {
 
@@ -81,7 +82,7 @@ class SproutingAngiogenesis : public Behavior {
 
     /// 2. Check if the is eligible for branching, e.g. minium distance to other
     ///    bifurcation points is given.
-    double min_distance_to_bifurcation = 1.0;
+    double min_distance_to_bifurcation = 60.0;
     double distance{0.0};
     // 2.1 Walk down the tree ("daughter" direction)
     AgentPointer<NeuriteElement> daughter = dendrite->GetDaughterLeft();
@@ -138,8 +139,11 @@ class SproutingAngiogenesis : public Behavior {
       Double3 gradient;
       dg_guide_->GetGradient(dendrite->GetPosition(), &gradient);
 
-      // Compute sprouting direction
-      Double3 sprouting_direction = gradient;
+      // Compute sprouting direction on cone around gradient
+      double phi = random->Uniform(2 * Math::kPi);
+      double theta = random->Uniform(0.25, 0.80);
+      Double3 sprouting_direction =
+          VectorOnConeAroundAxis(gradient, phi, theta);
 
       // Branch vessel
       auto* dendrite_2 =
