@@ -23,7 +23,7 @@ Double3 VectorOnUnitCone(double phi, double theta) {
   return cone_vector_unit_sphere;
 }
 
-Double3 VectorOnConeAroundAxis(Double3& axis, double phi, double theta) {
+Double3 VectorOnConeAroundAxis(const Double3& axis, double phi, double theta) {
   // Create a vector in the unit sphere on cone (phi, theta) around (0,0,1)
   Double3 z_axis{0, 0, 1};
   Double3 cone_vector_unit_sphere = VectorOnUnitCone(phi, theta);

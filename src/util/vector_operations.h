@@ -23,7 +23,7 @@ Double3 VectorOnUnitCone(double phi, double theta);
 
 /// Retruns a unit vector that lies on the cone defined by (phi, theta) around
 /// axis. Intended for behaviors where phi is random.
-Double3 VectorOnConeAroundAxis(Double3& axis, double phi, double theta);
+Double3 VectorOnConeAroundAxis(const Double3& axis, double phi, double theta);
 
 }  // namespace bdm
 
