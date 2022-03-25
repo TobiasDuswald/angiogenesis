@@ -188,9 +188,9 @@ class ApicalGrowth : public Behavior {
 
     /// 2. Get gradient and check if magnitude of gradient is above a
     ///    threshold (0 to begin with).
-    double threshold_gradient{0.01};
+    double threshold_gradient{0.0001};
     Double3 gradient;
-    dg_guide_->GetGradient(dendrite->GetPosition(), &gradient);
+    dg_guide_->GetGradient(dendrite->GetPosition(), &gradient, false);
     if (gradient.Norm() < threshold_gradient) {
       return;
     }
@@ -217,7 +217,7 @@ class ApicalGrowth : public Behavior {
 
     Double3 new_direction = old_direction * weight_old +
                             random_direction * weight_random +
-                            gradient * weight_gradient;
+                            gradient.GetNormalizedArray() * weight_gradient;
 
     dendrite->ElongateTerminalEnd(growth_speed, new_direction);
   }
