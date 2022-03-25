@@ -87,18 +87,17 @@ void inline PlaceVessel(Double3 start, Double3 end, double compartment_length) {
   rm->AddAgent(soma);
 
   // Define a first neurite
-  NeuriteElement
-      v;  // Used for prototype argument (virtual+template not supported c++)
+  Vessel v;  // Used for prototype argument (virtual+template not supported c++)
   auto* vessel_compartment_1 =
-      dynamic_cast<NeuriteElement*>(soma->ExtendNewNeurite(direction, &v));
+      dynamic_cast<Vessel*>(soma->ExtendNewNeurite(direction, &v));
   vessel_compartment_1->SetPosition(start +
                                     direction * compartment_length * 0.5);
   vessel_compartment_1->SetMassLocation(start + direction * compartment_length);
   vessel_compartment_1->SetActualLength(compartment_length);
   vessel_compartment_1->SetDiameter(15);
-  // vessel_compartment_1->ProhibitGrowth();
+  vessel_compartment_1->ProhibitGrowth();
 
-  NeuriteElement* vessel_compartment_2{nullptr};
+  Vessel* vessel_compartment_2{nullptr};
   for (int i = 1; i < n_compartments; i++) {
     // Compute location of next vessel element
     Double3 agent_position =
@@ -106,7 +105,7 @@ void inline PlaceVessel(Double3 start, Double3 end, double compartment_length) {
     Double3 agent_end_position =
         start + direction * compartment_length * (static_cast<double>(i) + 1.0);
     // Create new vessel
-    vessel_compartment_2 = new NeuriteElement();
+    vessel_compartment_2 = new Vessel();
     // Set position an length
     vessel_compartment_2->SetPosition(agent_position);
     vessel_compartment_2->SetMassLocation(agent_end_position);
@@ -114,9 +113,10 @@ void inline PlaceVessel(Double3 start, Double3 end, double compartment_length) {
     vessel_compartment_2->SetRestingLength(compartment_length);
     vessel_compartment_2->SetSpringAxis(direction);
     vessel_compartment_2->SetDiameter(15);
-    // vessel_compartment_2->ProhibitGrowth();
+    vessel_compartment_2->ProhibitGrowth();
     // Add behaviour
     vessel_compartment_2->AddBehavior(new SproutingAngiogenesis());
+    vessel_compartment_2->AddBehavior(new ApicalGrowth());
     // Add Agent to the resource manager
     rm->AddAgent(vessel_compartment_2);
     // Connect vessels (AgentPtr API is currently bounded to base
@@ -225,12 +225,16 @@ int Simulate(int argc, const char** argv) {
   // ---------------------------------------------------------------------------
 
   // Set box length manually because our interaction range is larger than the
-  // cell's diameter.
-  // Todo(tobias): check if factor 2 in necessary and how it influences the
-  // computational runtime
-  env->SetBoxLength(static_cast<int32_t>(
+  // cell's diameter. In the current setup we restrict vessel growth once we
+  // come close to a tumor cell. We set the UniformGrid to larger box sizes
+  // such that we can resolve more long distance relationships than with the
+  // UniformGrid.
+  double distance_for_growth_stop = 60;
+  double box_length =
       std::ceil(2 * sparam->action_radius_factor *
-                (sparam->cell_radius + 5 * sparam->cell_radius_sigma))));
+                (sparam->cell_radius + 5 * sparam->cell_radius_sigma));
+  box_length = std::max(box_length, distance_for_growth_stop);
+  env->SetBoxLength(static_cast<int32_t>(box_length));
 
   // ---------------------------------------------------------------------------
   // 7. Run simulation and visualize results
