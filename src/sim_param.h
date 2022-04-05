@@ -47,7 +47,7 @@ struct SimParam : public ParamGroup {
   // u_int64_t no_cells{1000};
 
   // Length of vessels at initialization
-  double default_vessel_length{20};
+  double default_vessel_length{10};
 
   // Lower bound for the domain (applies to x,y,z; unit [\mu m])
   double lower_bound{-200.0};

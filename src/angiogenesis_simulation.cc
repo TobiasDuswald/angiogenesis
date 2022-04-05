@@ -114,9 +114,10 @@ void inline PlaceVessel(Double3 start, Double3 end, double compartment_length) {
     vessel_compartment_2->SetSpringAxis(direction);
     vessel_compartment_2->SetDiameter(15);
     vessel_compartment_2->ProhibitGrowth();
-    // Add behaviour
+    // Add behaviours
     vessel_compartment_2->AddBehavior(new SproutingAngiogenesis());
     vessel_compartment_2->AddBehavior(new ApicalGrowth());
+    vessel_compartment_2->AddBehavior(new NutrientSupply("Nutrients", 1.0));
     // Add Agent to the resource manager
     rm->AddAgent(vessel_compartment_2);
     // Connect vessels (AgentPtr API is currently bounded to base
