@@ -207,6 +207,11 @@ void TumorCell::UpdateCellCycle() {
         Simulation::GetActive()->GetResourceManager()->GetDiffusionGrid(
             diffusion_substance_id_);
     sigma = diffusion_grid->GetConcentration(GetPosition());
+    if (sigma < sparam->hypoxic_threshold) {
+      // If a quiescent cell lies in a hypoxic area, it turns hypoxic.
+      SetCellState(CellState::kHypoxic);
+      return;
+    }
     double probability_death =
         ComputeProbabilityDeath(sigma, param->simulation_time_step, sparam);
     double probability_prolif = ComputeProbabilityProliferative(
@@ -246,6 +251,26 @@ void TumorCell::UpdateCellCycle() {
     if (!sparam->keep_dead_cells) {
       ChangeVolume(growth_rate_);
     }
+  } else if (cell_state_ == CellState::kHypoxic) {
+    auto* diffusion_grid =
+        Simulation::GetActive()->GetResourceManager()->GetDiffusionGrid(
+            diffusion_substance_id_);
+    auto sigma = diffusion_grid->GetConcentration(GetPosition());
+    if (sigma > sparam->hypoxic_threshold) {
+      // If nutrients are available, the cell enters the quiescent state.
+      SetCellState(CellState::kQuiescent);
+      t_last_state_transition_ = current_time;
+      // // The following code can be commented out to allow cells to transition
+      // // from the hypoxic to the dead state.
+      // } else if (sigma < 0.25 * sparam->hypoxic_threshold) {
+      //   // If the nutrients get even lower, the cell dies.
+      //   SetCellState(CellState::kDead);
+      //   t_last_state_transition_ = current_time;
+      //   ComputeApoptosisVolumeDecrease(sparam->duration_apoptosis);
+    } else {
+      // Cell remains in hypoxic state.
+      ;
+    }
   } else {  // In any other case do nothing.
     ;       // do nothing
   }
@@ -263,7 +288,10 @@ void TumorCell::ChangeVolume(double speed) {
     Base::SetPropagateStaticness();  // copied from cell implementation
   }
   if (volume < 5.2359877E-7) {
-    Log::Fatal("TumorCell::ChangeVolume", "Cell volume is getting too small.");
+    // This part of the code should not be reached.
+    // ToDo: Figure out why it is.
+    Log::Error("TumorCell::ChangeVolume", "Cell volume is getting too small.");
+    RemoveFromSimulation();
   }
   // Set the new radius and update Diameter+ActionRadius.
   if (radius < max_radius_) {

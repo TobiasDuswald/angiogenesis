@@ -33,7 +33,7 @@ class Vessel : public NeuriteElement {
   bool CanGrow() { return can_grow_; }
 
   void RunDiscretization() override {
-    if (!CanGrow()) {
+    if (!CanGrow() && IsTerminal()) {
       // For vessel agents that are part of the initial vasculature, we do not
       // execute the Discretization() function. The discretization generates new
       // vessels, which are allowed to grow and therefore also secrete
