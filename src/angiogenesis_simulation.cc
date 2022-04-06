@@ -78,6 +78,7 @@ void PlaceTumorCells(std::vector<Double3>& positions) {
 void inline PlaceVessel(Double3 start, Double3 end, double compartment_length) {
   auto* rm = Simulation::GetActive()->GetResourceManager();
   auto* param = Simulation::GetActive()->GetParam();
+  auto* sparam = param->Get<SimParam>();
 
   // Compute parameters for straight line between start and end.
   Double3 direction = end - start;
@@ -127,8 +128,9 @@ void inline PlaceVessel(Double3 start, Double3 end, double compartment_length) {
     // Add behaviours
     vessel_compartment_2->AddBehavior(new SproutingAngiogenesis());
     vessel_compartment_2->AddBehavior(new ApicalGrowth());
-    vessel_compartment_2->AddBehavior(
-        new NutrientSupply("Nutrients", 0.01 * param->simulation_time_step));
+    vessel_compartment_2->AddBehavior(new NutrientSupply(
+        "Nutrients",
+        sparam->nutrient_supply_rate_vessel * param->simulation_time_step));
     // Add Agent to the resource manager
     rm->AddAgent(vessel_compartment_2);
     // Connect vessels (AgentPtr API is currently bounded to base

@@ -168,6 +168,9 @@ struct SimParam : public ParamGroup {
 
   // Apical growth speed
   double apical_growth_speed{1.0};
+
+  // Nutrient supply by vessel (unit Nutrients / min])
+  double nutrient_supply_rate_vessel{0.01};
 };
 
 }  // namespace bdm
