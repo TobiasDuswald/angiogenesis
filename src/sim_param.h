@@ -124,7 +124,7 @@ struct SimParam : public ParamGroup {
 
   // The decay constant of glucose. It basically describes an exponential
   // decay for each point in the diffusion grid.
-  double decay_rate_nutrients{0.0};
+  double decay_rate_nutrients{0.01};
 
   // Secretion rate tumor cells, i.e. how much VEGF is released by a tumor cell
   // per minute.
@@ -170,7 +170,7 @@ struct SimParam : public ParamGroup {
   double apical_growth_speed{1.0};
 
   // Nutrient supply by vessel (unit Nutrients / min])
-  double nutrient_supply_rate_vessel{0.01};
+  double nutrient_supply_rate_vessel{0.1};
 };
 
 }  // namespace bdm
