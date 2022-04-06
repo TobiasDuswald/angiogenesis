@@ -27,7 +27,7 @@ void SproutingAngiogenesis::Run(Agent* agent) {
   auto* sim = Simulation::GetActive();
   auto* random = sim->GetRandom();
   auto* rm = sim->GetResourceManager();
-  // const auto* const sparam = sim->GetParam()->Get<SimParam>();
+  const auto* const sparam = sim->GetParam()->Get<SimParam>();
 
   // First time the behaviour is executed we get and remember a pointer to the
   // relevant diffusion grid
@@ -46,16 +46,15 @@ void SproutingAngiogenesis::Run(Agent* agent) {
   }
 
   /// 1. Check if the concentration of VEGF is above a certain threshold
-  double my_vegf_threshold = 1e-3;
   double my_vegf_concentration =
       dg_guide_->GetConcentration(dendrite->GetPosition());
-  if (my_vegf_concentration < my_vegf_threshold) {
+  if (my_vegf_concentration < sparam->vegf_threshold_sprouting) {
     return;
   }
 
   /// 2. Check if the is eligible for branching, e.g. minium distance to other
   ///    bifurcation points is given.
-  double min_distance_to_bifurcation = 60.0;
+  double min_distance_to_bifurcation = sparam->min_dist_to_bifurcation;
   double distance{0.0};
   // 2.1 Walk down the tree ("daughter" direction)
   AgentPointer<NeuriteElement> daughter = dendrite->GetDaughterLeft();
@@ -106,8 +105,7 @@ void SproutingAngiogenesis::Run(Agent* agent) {
   /// 3. If both criteria are satisfied (i.e. we reach this point), create a
   ///    sprout with a certain probability growing towards the gradient of
   ///    VEGF (minimum angle).
-  double sprouting_probability{0.001};
-  if (random->Uniform() < sprouting_probability) {
+  if (random->Uniform() < sparam->sprouting_probability) {
     // Get gradient
     Double3 gradient;
     dg_guide_->GetGradient(dendrite->GetPosition(), &gradient);
@@ -118,11 +116,8 @@ void SproutingAngiogenesis::Run(Agent* agent) {
     Double3 sprouting_direction = VectorOnConeAroundAxis(gradient, phi, theta);
 
     // Branch vessel
-    // auto* dendrite2 =
     dendrite->Branch(dendrite->GetDiameter(), sprouting_direction,
                      dendrite->GetActualLength() / 2);
-    // auto* casted_vessel = dynamic_cast<Vessel*>(dendrite2);
-    // casted_vessel->AddBehavior(new NutrientSupply("Nutrients", 1.0));
   }
 }
 
@@ -135,7 +130,7 @@ void ApicalGrowth::Run(Agent* agent) {
   auto* sim = Simulation::GetActive();
   auto* random = sim->GetRandom();
   auto* rm = sim->GetResourceManager();
-  // const auto* const sparam = sim->GetParam()->Get<SimParam>();
+  const auto* const sparam = sim->GetParam()->Get<SimParam>();
 
   if (!init_) {
     dg_guide_ = rm->GetDiffusionGrid(Substances::kVEGF);
@@ -152,10 +147,9 @@ void ApicalGrowth::Run(Agent* agent) {
 
   /// 2. Get gradient and check if magnitude of gradient is above a
   ///    threshold (0 to begin with).
-  double threshold_gradient{0.0001};
   Double3 gradient;
   dg_guide_->GetGradient(dendrite->GetPosition(), &gradient, false);
-  if (gradient.Norm() < threshold_gradient) {
+  if (gradient.Norm() < sparam->vegf_grad_threshold_apical_growth) {
     return;
   }
 
@@ -171,10 +165,10 @@ void ApicalGrowth::Run(Agent* agent) {
 
   /// 4. Extend into gradient direction with some random disturbance and
   ///    memory.
-  double weight_random{0.2};
-  double weight_old{0.4};
-  double weight_gradient{0.4};
-  double growth_speed{1.0};
+  double weight_random = sparam->apical_growth_random_weight;
+  double weight_old = sparam->apical_growth_old_weight;
+  double weight_gradient = sparam->apical_growth_gradient_weight;
+  double growth_speed = sparam->apical_growth_speed;
   auto random_direction = random->template UniformArray<3>(-1, 1);
   auto old_direction = dendrite->GetSpringAxis();
 

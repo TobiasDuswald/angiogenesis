@@ -139,6 +139,35 @@ struct SimParam : public ParamGroup {
   // Parameter to decide if dead cells decrease in size and are removed or if we
   // keep them in the simulation.
   bool keep_dead_cells{false};
+
+  //////////////////////////////////////////////////////////////////////////////
+  // Vessel parameters
+  //////////////////////////////////////////////////////////////////////////////
+
+  // VEGF threshold for sprouting
+  double vegf_threshold_sprouting{1e-3};
+
+  // VEGF gradient threshold for apical growth
+  double vegf_grad_threshold_apical_growth{1e-3};
+
+  // Minimum distance to bifurcatoin or terminal end of vessel to allow
+  // sprouting
+  double min_dist_to_bifurcation{60.0};
+
+  // Sprouting probability
+  double sprouting_probability{0.001};
+
+  // Weight for random direction of the apical growth
+  double apical_growth_random_weight{0.2};
+
+  // Weight for old direction of the apical growth
+  double apical_growth_old_weight{0.4};
+
+  // Weight for gradient direction of the apical growth
+  double apical_growth_gradient_weight{0.4};
+
+  // Apical growth speed
+  double apical_growth_speed{1.0};
 };
 
 }  // namespace bdm
