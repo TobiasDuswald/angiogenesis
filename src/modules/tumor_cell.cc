@@ -250,6 +250,9 @@ void TumorCell::UpdateCellCycle() {
     // (ComputeApoptosisVolumeDecrease)
     if (!sparam->keep_dead_cells) {
       ChangeVolume(growth_rate_);
+      if (GetRadius() < GetNuclearRadius()) {
+        RemoveFromSimulation();
+      }
     }
   } else if (cell_state_ == CellState::kHypoxic) {
     auto* diffusion_grid =
@@ -345,14 +348,6 @@ void HypoxicSecretion::Run(Agent* agent) {
   if (tumor_cell && tumor_cell->GetCellState() == CellState::kHypoxic) {
     auto& secretion_position = agent->GetPosition();
     dgrid_->ChangeConcentrationBy(secretion_position, quantity_);
-  }
-}
-
-void Death::Run(Agent* agent) {
-  auto* tumor_cell = dynamic_cast<TumorCell*>(agent);
-  if (tumor_cell->GetCellState() == CellState::kDead &&
-      tumor_cell->GetRadius() < tumor_cell->GetNuclearRadius()) {
-    tumor_cell->RemoveFromSimulation();
   }
 }
 

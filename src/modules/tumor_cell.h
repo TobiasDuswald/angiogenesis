@@ -194,16 +194,6 @@ class HypoxicSecretion : public Behavior {
   double quantity_ = 1;
 };
 
-// Behaviour that allows cells to die, i.e. be removed from the simulation if
-// the cell's volume has decreased sufficiently and it's in the dead state.
-struct Death : public Behavior {
-  BDM_BEHAVIOR_HEADER(Death, Behavior, 1);
-
-  Death() { AlwaysCopyToNew(); }
-
-  void Run(Agent* agent) override;
-};
-
 }  // namespace bdm
 
 #endif  // TUMOR_CELL_H_
