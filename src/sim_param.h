@@ -161,16 +161,16 @@ struct SimParam : public ParamGroup {
   double apical_growth_random_weight{0.2};
 
   // Weight for old direction of the apical growth
-  double apical_growth_old_weight{0.4};
+  double apical_growth_old_weight{0.5};
 
   // Weight for gradient direction of the apical growth
-  double apical_growth_gradient_weight{0.4};
+  double apical_growth_gradient_weight{0.3};
 
   // Apical growth speed
   double apical_growth_speed{1.0};
 
-  // Nutrient supply by vessel (unit Nutrients / min])
-  double nutrient_supply_rate_vessel{0.1};
+  // Nutrient supply by vessel (unit Nutrients / (Area * min)])
+  double nutrient_supply_rate_vessel{0.0001};
 };
 
 }  // namespace bdm
