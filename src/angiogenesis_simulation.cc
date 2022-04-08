@@ -201,6 +201,12 @@ int Simulate(int argc, const char** argv) {
   ModelInitializer::InitializeSubstance(Substances::kNutrients,
                                         SetInitialValuesGridVEGF);
 
+  // Define upper and lower threshold for nutrients
+  rm->ForEachDiffusionGrid([&](DiffusionGrid* grid) {
+    grid->SetUpperThreshold(1.0);
+    grid->SetLowerThreshold(0.0);
+  });
+
   // ---------------------------------------------------------------------------
   // 3. Define initial configurations of agents
   // ---------------------------------------------------------------------------

@@ -124,7 +124,7 @@ struct SimParam : public ParamGroup {
 
   // The decay constant of glucose. It basically describes an exponential
   // decay for each point in the diffusion grid.
-  double decay_rate_nutrients{0.01};
+  double decay_rate_nutrients{0.00001};
 
   // Secretion rate tumor cells, i.e. how much VEGF is released by a tumor cell
   // per minute.
@@ -148,7 +148,7 @@ struct SimParam : public ParamGroup {
   double vegf_threshold_sprouting{1e-3};
 
   // VEGF gradient threshold for apical growth
-  double vegf_grad_threshold_apical_growth{1e-3};
+  double vegf_grad_threshold_apical_growth{1e-5};
 
   // Minimum distance to bifurcatoin or terminal end of vessel to allow
   // sprouting

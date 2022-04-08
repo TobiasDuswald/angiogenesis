@@ -238,8 +238,11 @@ void NutrientSupply::Run(Agent* agent) {
         continue;
       }
       // Change concentration according to the weight.
-      double delta_concentration =
-          quantity_ * sample_weights_[i] * vessel->GetSurfaceArea();
+      double scale_factor = (dgrid_->GetUpperThreshold() -
+                             dgrid_->GetConcentration(sample_points_[i]));
+      double delta_concentration = scale_factor * quantity_ *
+                                   sample_weights_[i] *
+                                   vessel->GetSurfaceArea();
       dgrid_->ChangeConcentrationBy(sample_points_[i], delta_concentration);
     }
   }
