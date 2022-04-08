@@ -182,13 +182,13 @@ void ApicalGrowth::Run(Agent* agent) {
 void NutrientSupply::Initialize(const NewAgentEvent& event) {
   Base::Initialize(event);
   auto* other = dynamic_cast<NutrientSupply*>(event.existing_behavior);
-  substance_ = other->substance_;
   dgrid_ = other->dgrid_;
   quantity_ = other->quantity_;
 }
 
 void NutrientSupply::Run(Agent* agent) {
   auto* vessel = dynamic_cast<Vessel*>(agent);
+
   // If the behaviour is assigned to a vessel and it is not part of the initial
   // vascular network, we do supply the nutrients.
   if (vessel && vessel->CanGrow()) {
@@ -197,27 +197,73 @@ void NutrientSupply::Run(Agent* agent) {
     // be changed. Also note that the behavior makes sense if the vessel is
     // in the same scale as the diffusion grid, or smaller.
 
-    // Weights for end, middle and start of the vessel, respectively.
-    std::array<double, 3> weights = {0.25, 0.5, 0.25};
-
-    // Collect positions (max 3) in vector. Necessary because theoretically, a
-    // vessel can have a soma as mother compartment.
-    std::vector<Double3> positions;
-
-    // Collect positions of the vessel.
-    const auto& end = vessel->GetMassLocation();
-    const auto& middle = vessel->GetPosition();
-    positions.push_back(end);
-    positions.push_back(middle);
+    bool skip_first_weight = false;
     auto* mother_ptr = dynamic_cast<Vessel*>(vessel->GetMother().Get());
-    if (mother_ptr != nullptr) {
-      const auto& start = mother_ptr->GetMassLocation();
-      positions.push_back(start);
+    if (mother_ptr &&
+        (vessel->GetAgentPtr<Vessel>() == mother_ptr->GetDaughterRight())) {
+      skip_first_weight = true;
     }
-    for (size_t i = 0; i < positions.size(); i++) {
+
+    // Get start and and point
+    const auto end = vessel->GetMassLocation();
+    Double3 start;
+    if (mother_ptr) {
+      start = mother_ptr->GetMassLocation();
+    } else {
+      // If mother is soma, start with middle of vessel
+      start = vessel->GetPosition();
+    }
+
+    if (!init_) {
+      // In the first step, we define how granular the supply is. We do this by
+      // demanding that the distance between two sampling points is roughly half
+      // the box length of the discretization. Note that we compute the
+      // the number of sample points here and not in the constructor because
+      // the BoxLength is not initialized in the DiffusionGrid constructor.
+      init_ = true;
+      double delta_x = dgrid_->GetBoxLength();
+      double distance = (end - start).Norm();
+      n_sample_points_ =
+          std::max(3, static_cast<int>(std::ceil(2 * distance / delta_x + 1)));
+      ComputeWeights();
+    }
+
+    // Compute the sample points
+    ComputeSamplePoints(start, end);
+
+    // Add nutrients to the continuum.
+    for (size_t i = 0; i < n_sample_points_; i++) {
+      // We skip the first weight if we are in the right daughter vessel.
+      if (skip_first_weight && i == 0) {
+        continue;
+      }
       // Change concentration according to the weight.
-      dgrid_->ChangeConcentrationBy(positions[i], quantity_ * weights[i]);
+      double delta_concentration =
+          quantity_ * sample_weights_[i] * vessel->GetSurfaceArea();
+      dgrid_->ChangeConcentrationBy(sample_points_[i], delta_concentration);
     }
   }
 }
+
+void NutrientSupply::ComputeWeights() {
+  sample_weights_.resize(n_sample_points_);
+  for (size_t i = 0; i < n_sample_points_; i++) {
+    sample_weights_[i] = 1 / static_cast<double>(n_sample_points_ - 1);
+  }
+  sample_weights_[0] *= 0.5;
+  sample_weights_[n_sample_points_ - 1] *= 0.5;
+}
+
+void NutrientSupply::ComputeSamplePoints(const Double3& start,
+                                         const Double3& end) {
+  // Computes the sample points distributed along the line from start to end.
+  // The sample points are equally spaced.
+  sample_points_.resize(n_sample_points_);
+  Double3 direction = end - start;
+  direction /= (n_sample_points_ - 1);
+  for (size_t i = 0; i < n_sample_points_; i++) {
+    sample_points_[i] = start + direction * i;
+  }
+}
+
 }  // namespace bdm

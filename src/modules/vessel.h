@@ -20,6 +20,8 @@
 #include "util/neighbor_counter.h"
 #include "util/vector_operations.h"
 
+#include <algorithm>
+
 namespace bdm {
 
 class Vessel : public NeuriteElement {
@@ -41,6 +43,11 @@ class Vessel : public NeuriteElement {
       return;
     }
     Base::RunDiscretization();
+  }
+
+  double GetSurfaceArea() const {
+    // Vessels are assumed to be cylindrical.
+    return Math::kPi * GetDiameter() * GetActualLength();
   }
 
  protected:
@@ -90,17 +97,18 @@ class NutrientSupply : public Behavior {
 
  public:
   NutrientSupply() { AlwaysCopyToNew(); };
-  explicit NutrientSupply(const std::string& substance, double quantity = 1)
-      : substance_(substance), quantity_(quantity) {
+  explicit NutrientSupply(const std::string& substance, double quantity = 1) {
+    // Register Pointer to substance
+    // auto* dgrid =
     dgrid_ = Simulation::GetActive()->GetResourceManager()->GetDiffusionGrid(
         substance);
+    // Always copy the behavior to a new agent.
     AlwaysCopyToNew();
   }
 
-  explicit NutrientSupply(DiffusionGrid* dgrid, double quantity = 1)
-      : dgrid_(dgrid), quantity_(quantity) {
-    substance_ = dgrid->GetSubstanceName();
-  }
+  // explicit NutrientSupply(DiffusionGrid* dgrid, double quantity = 1)
+  //     : dgrid_(dgrid), quantity_(quantity) {
+  // }
 
   virtual ~NutrientSupply() = default;
 
@@ -108,10 +116,27 @@ class NutrientSupply : public Behavior {
 
   void Run(Agent* agent) override;
 
- protected:
-  std::string substance_;
+ private:
+  /// Compute weights for the sampling points. Weights are designed to add up
+  /// to 1.0 and that the boundary points are weighted half as much as the
+  /// interior points.
+  void ComputeWeights();
+
+  /// Compute the sample points for the source term along the center line.
+  void ComputeSamplePoints(const Double3& start, const Double3& end);
+
+  // Note, it's not very elegant to have a vector of pointers to doubles here.
+  // However, it is the easiest way to implement the weights. The storage is
+  // repetitive.
+  std::vector<double> sample_weights_;
+  std::vector<Double3> sample_points_;
+
   DiffusionGrid* dgrid_ = nullptr;
+  size_t n_sample_points_ = 3;
   double quantity_ = 1;
+
+  // Track if we have already figured out the
+  bool init_ = false;
 };
 
 }  // namespace bdm
