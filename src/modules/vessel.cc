@@ -18,6 +18,22 @@
 
 namespace bdm {
 
+void Vessel::RunDiscretization() {
+  if (!CanGrow() && IsTerminal()) {
+    // For vessel agents that are part of the initial vasculature, we do not
+    // execute the Discretization() function. The discretization generates new
+    // vessels, which are allowed to grow and therefore also secrete
+    // nutrients. We do not want our initial vasculature to supply nutrients.
+    return;
+  }
+  Base::RunDiscretization();
+}
+
+double Vessel::GetSurfaceArea() const {
+  // Vessels are assumed to be cylindrical.
+  return Math::kPi * GetDiameter() * GetActualLength();
+}
+
 void SproutingAngiogenesis::Initialize(const NewAgentEvent& event) {
   Base::Initialize(event);
   can_branch_ = false;

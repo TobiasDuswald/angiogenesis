@@ -34,21 +34,11 @@ class Vessel : public NeuriteElement {
   void ProhibitGrowth() { can_grow_ = false; }
   bool CanGrow() { return can_grow_; }
 
-  void RunDiscretization() override {
-    if (!CanGrow() && IsTerminal()) {
-      // For vessel agents that are part of the initial vasculature, we do not
-      // execute the Discretization() function. The discretization generates new
-      // vessels, which are allowed to grow and therefore also secrete
-      // nutrients. We do not want our initial vasculature to supply nutrients.
-      return;
-    }
-    Base::RunDiscretization();
-  }
+  /// Method called by default discretization operation
+  void RunDiscretization() override;
 
-  double GetSurfaceArea() const {
-    // Vessels are assumed to be cylindrical.
-    return Math::kPi * GetDiameter() * GetActualLength();
-  }
+  /// Returns the surface area of the cylinder
+  double GetSurfaceArea() const;
 
  protected:
   /// Parameter to decide if a vessel compartment can grow towards a higher
@@ -68,11 +58,11 @@ class SproutingAngiogenesis : public Behavior {
   void Run(Agent* agent) override;
 
  private:
+  /// DiffusionGrid for guiding substance
+  DiffusionGrid* dg_guide_ = nullptr;
   /// Boolean to execute certain calls only upon initialization
   bool init_ = false;
   bool can_branch_ = true;
-  /// DiffusionGrid for guiding substance
-  DiffusionGrid* dg_guide_ = nullptr;
 };
 
 /// Behaviour to grow vessels towards higher VEGF concentrations.
@@ -86,12 +76,17 @@ class ApicalGrowth : public Behavior {
   void Run(Agent* agent) override;
 
  private:
+  DiffusionGrid* dg_guide_ = nullptr;
   bool init_ = false;
   bool can_branch_ = true;
-  DiffusionGrid* dg_guide_ = nullptr;
 };
 
-/// Supply nutrients to surrounding tissues.
+/// Supply nutrients to surrounding tissues. The vessel is discretized along
+/// it's center axis into N points. The number N is computed automatically such
+/// that we have roughly 2 points per voxel. When using the behavior, we specify
+/// a quantity - note that this quantity is weighted with the vessel-agent's
+/// surface and corrected by a term that avoids overshooting the maximum
+/// concentration (logistic growth).
 class NutrientSupply : public Behavior {
   BDM_BEHAVIOR_HEADER(NutrientSupply, Behavior, 1);
 
@@ -99,16 +94,11 @@ class NutrientSupply : public Behavior {
   NutrientSupply() { AlwaysCopyToNew(); };
   explicit NutrientSupply(const std::string& substance, double quantity = 1) {
     // Register Pointer to substance
-    // auto* dgrid =
     dgrid_ = Simulation::GetActive()->GetResourceManager()->GetDiffusionGrid(
         substance);
     // Always copy the behavior to a new agent.
     AlwaysCopyToNew();
   }
-
-  // explicit NutrientSupply(DiffusionGrid* dgrid, double quantity = 1)
-  //     : dgrid_(dgrid), quantity_(quantity) {
-  // }
 
   virtual ~NutrientSupply() = default;
 
