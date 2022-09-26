@@ -22,8 +22,8 @@
 #include "modules/vessel.h"
 #include "neuroscience/neuroscience.h"
 #include "sim_param.h"
+#include "util/analysis.h"
 #include "util/timeseries_counters.h"
-#include "util/visualize.h"
 
 namespace bdm {
 
@@ -198,7 +198,7 @@ int Simulate(int argc, const char** argv) {
   auto SetInitialValuesGridVEGF = [&](double x, double y, double z) {
     return 0.0;
   };
-  ModelInitializer::InitializeSubstance(Substances::kNutrients,
+  ModelInitializer::InitializeSubstance(Substances::kVEGF,
                                         SetInitialValuesGridVEGF);
 
   // Define upper and lower threshold for nutrients
@@ -221,20 +221,15 @@ int Simulate(int argc, const char** argv) {
   // ---------------------------------------------------------------------------
 
   // Collect the number of Cells in different states over time
-  auto* ts = simulation.GetTimeSeries();
-  ts->AddCollector("quiescent_cells", CountQuiescent, GetSimulatedTime);
-  ts->AddCollector("G1_cells", CountG1, GetSimulatedTime);
-  ts->AddCollector("SG2_cells", CountSG2, GetSimulatedTime);
-  ts->AddCollector("hypoxic_cells", CountHypoxic, GetSimulatedTime);
-  ts->AddCollector("dead_cells", CountDead, GetSimulatedTime);
+  DefineAndRegisterCollectors();
 
   // ---------------------------------------------------------------------------
   // 5. Use force module typically used by UT Austin
   // ---------------------------------------------------------------------------
 
   // Use custom force module implemented in MechanicalInteractionForce
-  // Note that the force module currently does not support any forces between
-  // vessels and cells.
+  // Note that the force module currently does not support any forces
+  // between vessels and cells.
   auto* custom_force = new MechanicalInteractionForce(
       sparam->adhesion_scale_parameter, sparam->repulsive_scale_parameter);
   auto* op = scheduler->GetOps("mechanical forces")[0];
