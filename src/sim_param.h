@@ -31,6 +31,10 @@ enum Substances { kNutrients, kVEGF, kTRA, kDOX };
 struct SimParam : public ParamGroup {
   BDM_PARAM_GROUP_HEADER(SimParam, 1);
 
+  // -----------------------------------------------------------------------
+  // Simulation parameters
+  // -----------------------------------------------------------------------
+
   // Total simulation time (unit [min]). This unit carries over to
   // bdm::Param.simulation_time_step. E.g. a timestep of 0.01 [min] = 0.6 sec.
   // The parameters are chosen such that no cell can move more than 0.2 \mu m
@@ -46,14 +50,19 @@ struct SimParam : public ParamGroup {
   // // the simulation (uint [1])
   // u_int64_t no_cells{1000};
 
-  // Length of vessels at initialization
-  double default_vessel_length{10};
-
   // Lower bound for the domain (applies to x,y,z; unit [\mu m])
   double lower_bound{-200.0};
 
   // Upper bound for the domain (applies to x,y,z; unit [\mu m])
   double upper_bound{200.0};
+
+  // Parameter to decide if dead cells decrease in size and are removed or if we
+  // keep them in the simulation.
+  bool keep_dead_cells{false};
+
+  // -----------------------------------------------------------------------
+  // TumorCell parameters
+  // -----------------------------------------------------------------------
 
   // Cell radius (unit [\mu m])
   double cell_radius{9.953};
@@ -94,6 +103,24 @@ struct SimParam : public ParamGroup {
   // Gamma factor relating cell death and lack of nutrients (unit [min^{-1}]))
   double gamma{0.0245 / 60.0};
 
+  // -----------------------------------------------------------------------
+  // Agent-Continuum interaction parameters
+  // -----------------------------------------------------------------------
+
+  // Uptake rate of glucose by cells (unit [min^{-1}])
+  double uptake_rate_glucose{0.0483 / 60.0};
+
+  // Secretion rate tumor cells, i.e.how much VEGF is released by a tumor cell
+  // per minute.
+  double secretion_rate_vegf{0.03 / 60.0};
+
+  // VEGF threshold for sprouting
+  double vegf_threshold_sprouting{1e-3};
+
+  // -----------------------------------------------------------------------
+  // Forces
+  // -----------------------------------------------------------------------
+
   // Viscosity of the surrounding (numerical parameter \nu - not defined in
   // paper, taken/assumed from Git)
   double viscosity{2.0};
@@ -109,26 +136,31 @@ struct SimParam : public ParamGroup {
   // Numeric parameter c_{ccr}for force, unit [\mu m / min].
   double repulsive_scale_parameter{10.0};
 
-  // Resolution of the diffusion grid. Gets forwarded to DiffusionGrid
-  // constructor
-  int diffusion_resolution{50};
+  // -----------------------------------------------------------------------
+  // Continuum parameters
+  // -----------------------------------------------------------------------
 
-  // Diffusion coefficient for glucose (unit [\mu m / min])
+  // Resolution of the nutrients (glucose) diffusion grid. Gets forwarded to
+  // DiffusionGrid constructor
+  int diffusion_resolution_nutrients{50};
+
+  // Initial value of the nutrients (glucose) concentration, uniform over grid
+  // (unit [1])
+  double initial_concentration_nutrients{0.5};
+
+  // Diffusion coefficient for nutrients (glucose) (unit [\mu m / min])
   double diffusion_nutrients{50.0 / 60.0};
 
-  // Uptake rate of glucose by cells (unit [min^{-1}])
-  double uptake_rate_glucose{0.0483 / 60.0};
-
-  // Initial value of the glucose concentarion, uniform over grid (unit [1])
-  double initial_nutrient_concentration{0.5};
-
-  // The decay constant of glucose. It basically describes an exponential
-  // decay for each point in the diffusion grid.
+  // The decay constant of nutrients (glucose). It basically describes an
+  // exponential decay for each point in the diffusion grid.
   double decay_rate_nutrients{0.00001};
 
-  // Secretion rate tumor cells, i.e. how much VEGF is released by a tumor cell
-  // per minute.
-  double secretion_rate_vegf{0.03 / 60.0};
+  // Resolution of the nutrients VEGF grid. Gets forwarded to
+  // DiffusionGrid constructor
+  int diffusion_resolution_vegf{50};
+
+  // Initial value of the VEGF concentration, uniform over grid (unit [1])
+  double initial_concentration_vegf{0.0};
 
   // Diffusion constant for VEGF
   double diffusion_vegf{40.0 / 60.0};
@@ -136,16 +168,38 @@ struct SimParam : public ParamGroup {
   // Decay constant for VEGF
   double decay_rate_vegf{0.0};
 
-  // Parameter to decide if dead cells decrease in size and are removed or if we
-  // keep them in the simulation.
-  bool keep_dead_cells{false};
+  // Resolution of the nutrients TRA grid. Gets forwarded to
+  // DiffusionGrid constructor
+  int diffusion_resolution_tra{3};
 
-  //////////////////////////////////////////////////////////////////////////////
+  // Initial value of the TRA concentration, uniform over grid (unit [1])
+  double initial_concentration_tra{0.0};
+
+  // Diffusion constant for TRA
+  double diffusion_tra{0.0};
+
+  // Decay constant for TRA
+  double decay_rate_tra{0.0};
+
+  // Resolution of the nutrients DOX grid. Gets forwarded to
+  // DiffusionGrid constructor
+  int diffusion_resolution_dox{3};
+
+  // Initial value of the DOX concentration, uniform over grid (unit [1])
+  double initial_concentration_dox{0.0};
+
+  // Diffusion constant for DOX
+  double diffusion_dox{0.0};
+
+  // Decay constant for DOX
+  double decay_rate_dox{0.0};
+
+  // -----------------------------------------------------------------------
   // Vessel parameters
-  //////////////////////////////////////////////////////////////////////////////
+  // -----------------------------------------------------------------------
 
-  // VEGF threshold for sprouting
-  double vegf_threshold_sprouting{1e-3};
+  // Length of vessels at initialization
+  double default_vessel_length{10};
 
   // VEGF gradient threshold for apical growth
   double vegf_grad_threshold_apical_growth{1e-5};
