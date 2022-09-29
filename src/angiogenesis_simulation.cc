@@ -214,6 +214,8 @@ int Simulate(int argc, const char** argv) {
                                          {0, 70, 50},      {-200, -160, 300},
                                          {-400, -100, 60}, {-300, 100, -200}};
   PlaceTumorCells(cell_positions);
+  ModelInitializer::CreateAgentsInSphereRndm({0, 60, 40}, 100, 150,
+                                             CreateTumorCell);
   PlaceVessel({-200, 0, -400}, {-200, 0, 400}, sparam->default_vessel_length);
 
   // ---------------------------------------------------------------------------
