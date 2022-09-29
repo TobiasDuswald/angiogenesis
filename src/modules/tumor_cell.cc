@@ -107,7 +107,6 @@ void TumorCell::Initialize(const NewAgentEvent& event) {
     daughter->growth_rate_ = mother_cell->growth_rate_;
     daughter->max_radius_ = mother_cell->max_radius_;
     daughter->nuclear_radius_ = mother_cell->nuclear_radius_;
-    daughter->diffusion_substance_id_ = mother_cell->diffusion_substance_id_;
 
     // Update the action radi of the cells
     mother_cell->UpdateActionRadius();
@@ -192,9 +191,17 @@ Double3 TumorCell::CalculateDisplacement(const InteractionForce* force,
 
 void TumorCell::UpdateCellCycle() {
   // 1. Get necessary objects for computation
-  auto* random = Simulation::GetActive()->GetRandom();
-  const auto* param = Simulation::GetActive()->GetParam();
+  auto* sim = Simulation::GetActive();
+  auto* rm = sim->GetResourceManager();
+  auto* random = sim->GetRandom();
+  const auto* param = sim->GetParam();
   const auto* sparam = param->Get<SimParam>();
+
+  // 1.1 Get all necessary diffusion grids
+  auto* dgrid_nutrients = rm->GetDiffusionGrid(Substances::kNutrients);
+  auto* dgrid_vegf = rm->GetDiffusionGrid(Substances::kVEGF);
+  auto* dgrid_tra = rm->GetDiffusionGrid(Substances::kTRA);
+  auto* dgrid_dox = rm->GetDiffusionGrid(Substances::kDOX);
 
   // 2. Compute the time since the last state transition
   const double current_time =
@@ -207,10 +214,7 @@ void TumorCell::UpdateCellCycle() {
   if (cell_state_ == CellState::kQuiescent) {
     // 3.1 Quiescent states stochastically transition into the states
     // proliferative or dead with certain probabilities.
-    auto* diffusion_grid =
-        Simulation::GetActive()->GetResourceManager()->GetDiffusionGrid(
-            diffusion_substance_id_);
-    double sigma = diffusion_grid->GetConcentration(GetPosition());
+    double sigma = dgrid_nutrients->GetConcentration(GetPosition());
     if (sigma < sparam->hypoxic_threshold) {
       // 3.2 Deterministic transition into the hypoxic state depending on the
       // nutrient concentration.
@@ -275,10 +279,7 @@ void TumorCell::UpdateCellCycle() {
   } else if (cell_state_ == CellState::kHypoxic) {
     // 3.10 Hypoxic cells are idle until they receive enough nutrients to
     // transition into the quiescent state. We first get the nutrients
-    auto* diffusion_grid =
-        Simulation::GetActive()->GetResourceManager()->GetDiffusionGrid(
-            diffusion_substance_id_);
-    auto sigma = diffusion_grid->GetConcentration(GetPosition());
+    auto sigma = dgrid_nutrients->GetConcentration(GetPosition());
     if (sigma > sparam->hypoxic_threshold) {
       // 3.11 If nutrients are available, the cell enters the quiescent state.
       SetCellState(CellState::kQuiescent);
@@ -341,10 +342,10 @@ void UpdateHypoxic::Run(Agent* agent) {
   auto* tumor_cell = dynamic_cast<TumorCell*>(agent);
   if (tumor_cell) {
     auto* sparam = Simulation::GetActive()->GetParam()->Get<SimParam>();
-    auto* diffusion_grid =
+    auto* dgrid_nutrients =
         Simulation::GetActive()->GetResourceManager()->GetDiffusionGrid(
-            substance_id_);
-    auto sigma = diffusion_grid->GetConcentration(tumor_cell->GetPosition());
+            Substances::kNutrients);
+    auto sigma = dgrid_nutrients->GetConcentration(tumor_cell->GetPosition());
     if (sigma < sparam->hypoxic_threshold) {
       tumor_cell->SetCellState(CellState::kHypoxic);
     } else {

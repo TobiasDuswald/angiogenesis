@@ -34,8 +34,6 @@ class TumorCell : public Cell {
  private:
   // Cell state representing, for instance, quiescent, proliferative, or dead.
   int cell_state_;
-  // The cell needs to know to which diffusion grid it is coupled.
-  int diffusion_substance_id_;
   // Time of the last state transition.
   double t_last_state_transition_;
   // Radius of the cell.
@@ -62,7 +60,6 @@ class TumorCell : public Cell {
     max_radius_ = 20.0;
     displacement_scale_factor_ = 4.0;
     t_last_state_transition_ = 0.0;
-    diffusion_substance_id_ = 0;
   }
   virtual ~TumorCell() {}
 
@@ -131,8 +128,6 @@ class TumorCell : public Cell {
     displacement_scale_factor_ = displacement_scale_factor;
   }
   double GetDisplacementScaleFactor() { return displacement_scale_factor_; }
-
-  void SetSubstanceID(int id) { diffusion_substance_id_ = id; }
 
   void SetRadii(double radius, double nuclear_radius, double action_radius);
 };
