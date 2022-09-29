@@ -207,11 +207,17 @@ void NutrientSupply::Run(Agent* agent) {
 
   // If the behaviour is assigned to a vessel and it is not part of the initial
   // vascular network, we do supply the nutrients.
-  if (vessel && vessel->CanGrow()) {
+  if (vessel) {
+    // If we secrete and don't consume, then we only consider vessels that
+    // can grow.
+    if (!use_for_consumption_ && !vessel->CanGrow()) {
+      return;
+    }
+
     // This is very simple way to supply nutrients. In the current setup,
-    // bifurcations add more nutrients than other elements. This should probably
-    // be changed. Also note that the behavior makes sense if the vessel is
-    // in the same scale as the diffusion grid, or smaller.
+    // bifurcations add more nutrients than other elements. This should
+    // probably be changed. Also note that the behavior makes sense if the
+    // vessel is in the same scale as the diffusion grid, or smaller.
 
     bool skip_first_weight = false;
     auto* mother_ptr = dynamic_cast<Vessel*>(vessel->GetMother().Get());
@@ -254,8 +260,15 @@ void NutrientSupply::Run(Agent* agent) {
         continue;
       }
       // Change concentration according to the weight.
-      double scale_factor = (dgrid_->GetUpperThreshold() -
-                             dgrid_->GetConcentration(sample_points_[i]));
+
+      double scale_factor{0.0};
+      if (use_for_consumption_) {
+        scale_factor = (dgrid_->GetLowerThreshold() -
+                        dgrid_->GetConcentration(sample_points_[i]));
+      } else {
+        scale_factor = (dgrid_->GetUpperThreshold() -
+                        dgrid_->GetConcentration(sample_points_[i]));
+      }
       double delta_concentration = scale_factor * quantity_ *
                                    sample_weights_[i] *
                                    vessel->GetSurfaceArea();

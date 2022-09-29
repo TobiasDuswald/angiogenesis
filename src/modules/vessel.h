@@ -92,7 +92,9 @@ class NutrientSupply : public Behavior {
 
  public:
   NutrientSupply() { AlwaysCopyToNew(); };
-  explicit NutrientSupply(const std::string& substance, double quantity = 1) {
+  explicit NutrientSupply(const std::string& substance, double quantity = 1,
+                          bool use_for_consumption = false)
+      : quantity_(quantity), use_for_consumption_(use_for_consumption) {
     // Register Pointer to substance
     dgrid_ = Simulation::GetActive()->GetResourceManager()->GetDiffusionGrid(
         substance);
@@ -127,6 +129,8 @@ class NutrientSupply : public Behavior {
 
   // Track if we have already figured out the
   bool init_ = false;
+  // Do we recycle this behavior to consume nutrients or VEGF?
+  bool use_for_consumption_ = false;
 };
 
 }  // namespace bdm
