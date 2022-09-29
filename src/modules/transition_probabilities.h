@@ -35,6 +35,27 @@ double ComputeProbabilityDeath(const double sigma, const double delta_t,
 double ComputeProbabilityProliferative(const double sigma, const double delta_t,
                                        const SimParam* sparam);
 
+/// @brief A smooth version of the heaviside step function depending on the
+/// value of the concentration. See equation (16) in
+/// https://doi.org/10.1016/j.jtbi.2012.02.002. The function is bounded by
+/// 1-exp(-alpha * dt) and 1-exp(-(alpha+1) * dt).
+/// @param concentration The concentration of the substance
+/// @param concentration_threshold The threshold for the substance
+/// @param alpha Determines upper and lower bounds of the function.
+/// @param k The steepness of transition the function. The higher the value, the
+/// steeper the transition. If larger than 0, the function decreases with c, if
+/// smaller than 0, the function increases with c.
+/// @param delta_t The time step of the simulation (must be small)
+/// @return 1-exp(-(alpha+1/(1+exp(2k*(c-c_t))))dt)
+inline double SmoothHeavisideForConcentration(double concentration,
+                                              double concentration_threshold,
+                                              double alpha, double k,
+                                              double delta_t) {
+  double e = 2 * k * (concentration - concentration_threshold);
+  double summand = 1.0 / (1.0 + std::exp(e));
+  return 1 - std::exp(-(alpha + summand) * delta_t);
+}
+
 }  // namespace bdm
 
 #endif  // TRANSITION_PROBABILITIES_H_

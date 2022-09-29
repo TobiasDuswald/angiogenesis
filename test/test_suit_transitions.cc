@@ -12,6 +12,7 @@
 // -----------------------------------------------------------------------------
 
 #include <gtest/gtest.h>
+#include <array>
 #include "modules/transition_probabilities.h"
 #include "sim_param.h"
 
@@ -72,4 +73,32 @@ TEST(SimParam, ComputeProbabilityProliferative) {
   EXPECT_FLOAT_EQ(0.09811829568804986,
                   ComputeProbabilityProliferative(6.0, 20.0, &sparam));
 }
+
+TEST(SigmoidFunctions, SmoothHeavisideForConcentration) {
+  // Parameter values used in reference solution
+  const double k = 8.0;
+  const double alpha = 3.0;
+  const double c_t = 0.5;
+  const double dt = 0.1;
+
+  // Concentrations (x values) used for testing
+  std::array<double, 13> concentrations(
+      {0, 0.1, 0.2, 0.3, 0.4, 0.45, 0.5, 0.55, 0.6, 0.7, 0.8, 0.9, 1.0});
+
+  // Reference values for the sigmoid function via Wolfram Alpha
+  std::array<double, 13> expected_results(
+      {0.329657, 0.329569, 0.329133, 0.327049, 0.318325, 0.308573, 0.295312,
+       0.281797, 0.271522, 0.262078, 0.259786, 0.259305, 0.259207});
+
+  // Test the sigmoid function for all concentrations
+  for (size_t i = 0; i < concentrations.size(); i++) {
+    // Reference solution is only given with 6 digits precision, thus we demand
+    // the same precision for the test -> 1e-6
+    EXPECT_LT(std::abs(expected_results[i] -
+                       SmoothHeavisideForConcentration(concentrations[i], c_t,
+                                                       alpha, k, dt)),
+              1e-6);
+  }
+}
+
 }  // namespace bdm
