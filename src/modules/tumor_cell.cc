@@ -191,36 +191,50 @@ Double3 TumorCell::CalculateDisplacement(const InteractionForce* force,
 }
 
 void TumorCell::UpdateCellCycle() {
+  // 1. Get necessary objects for computation
   auto* random = Simulation::GetActive()->GetRandom();
   const auto* param = Simulation::GetActive()->GetParam();
   const auto* sparam = param->Get<SimParam>();
+
+  // 2. Compute the time since the last state transition
   const double current_time =
       Simulation::GetActive()->GetScheduler()->GetSimulatedTime();
   const double time_in_state = current_time - t_last_state_transition_;
   const double duplication_time =
       sparam->duration_cell_cycle - sparam->duration_growth_phase;
-  // Quiescent states stochastically transition into the states proliferative
-  // or dead with certain probabilities.
+
+  // 3. Cell state transitions
   if (cell_state_ == CellState::kQuiescent) {
-    double sigma{0.0};
+    // 3.1 Quiescent states stochastically transition into the states
+    // proliferative or dead with certain probabilities.
     auto* diffusion_grid =
         Simulation::GetActive()->GetResourceManager()->GetDiffusionGrid(
             diffusion_substance_id_);
-    sigma = diffusion_grid->GetConcentration(GetPosition());
+    double sigma = diffusion_grid->GetConcentration(GetPosition());
     if (sigma < sparam->hypoxic_threshold) {
-      // If a quiescent cell lies in a hypoxic area, it turns hypoxic.
+      // 3.2 Deterministic transition into the hypoxic state depending on the
+      // nutrient concentration.
       SetCellState(CellState::kHypoxic);
       return;
     }
+
+    // 3.3 Compute probabilities for transition into proliferative or dead
+    // state. Typically the probability for the transitions is rather small, and
+    // we use a random uniform number r in [0,1] to decide whether the
+    // transition happens or not.
     double probability_death =
         ComputeProbabilityDeath(sigma, param->simulation_time_step, sparam);
     double probability_prolif = ComputeProbabilityProliferative(
         sigma, param->simulation_time_step, sparam);
     double decision_variable = random->Uniform();
+
+    // 3.4 Transition from quiescent to other states
     if (decision_variable < probability_prolif) {
+      // Transition into proliferative SG2 state
       SetCellState(CellState::kProliferativeSG2);
       t_last_state_transition_ = current_time;
     } else if (decision_variable < probability_prolif + probability_death) {
+      // Transition into dead state, trigger apoptosis
       SetCellState(CellState::kDead);
       t_last_state_transition_ = current_time;
       // decrease of cell volume per step due to apoptosis
@@ -228,39 +242,45 @@ void TumorCell::UpdateCellCycle() {
     } else {
       ;
     }
-    // Cells in the state kProliferativeSG2 don't do anything until the have
-    // finished duplicating their DNA (etc.) after \tau_p-\tau_G1. Once that
-    // has happened, the cell divides and enters into the G1 growth phase.
   } else if (cell_state_ == CellState::kProliferativeSG2 &&
              time_in_state > duplication_time) {
+    // 3.5 Cells in the state kProliferativeSG2 don't do anything until the have
+    // finished duplicating their DNA (etc.) after \tau_p-\tau_G1
+    // (=duration_time). Once that has happened, the cell divides and enters
+    // into the G1 growth phase.
     t_last_state_transition_ = current_time;
     SetCellState(CellState::kProliferativeG1);
     Divide();
-    // Cells in the cell states kProliferativeG1 increase their volume linearly
-    // and after a certain time \tau_G1 they stop and enter the quiescent state.
   } else if (cell_state_ == CellState::kProliferativeG1) {
-    // ToDo increase volume linearly;
+    // 3.6 Cells in the cell states kProliferativeG1 increase their volume
+    // linearly
     ChangeVolume(growth_rate_);
     if (time_in_state > sparam->duration_growth_phase) {
+      // 3.7 after a certain time \tau_G1 (=duration_growth_phase) they stop and
+      // enter into the quiescent state.
       SetCellState(CellState::kQuiescent);
       t_last_state_transition_ = current_time;
     }
   } else if (cell_state_ == CellState::kDead) {
-    // decrease volume with previously computed negative growth rate
+    // 3.8 Decrease volume with previously computed negative growth rate
     // (ComputeApoptosisVolumeDecrease)
     if (!sparam->keep_dead_cells) {
       ChangeVolume(growth_rate_);
       if (GetRadius() < GetNuclearRadius()) {
+        // 3.9 Once the radius of the cell is as small as the radius of the
+        // nucleus, the cell is removed from the simulation.
         RemoveFromSimulation();
       }
     }
   } else if (cell_state_ == CellState::kHypoxic) {
+    // 3.10 Hypoxic cells are idle until they receive enough nutrients to
+    // transition into the quiescent state. We first get the nutrients
     auto* diffusion_grid =
         Simulation::GetActive()->GetResourceManager()->GetDiffusionGrid(
             diffusion_substance_id_);
     auto sigma = diffusion_grid->GetConcentration(GetPosition());
     if (sigma > sparam->hypoxic_threshold) {
-      // If nutrients are available, the cell enters the quiescent state.
+      // 3.11 If nutrients are available, the cell enters the quiescent state.
       SetCellState(CellState::kQuiescent);
       t_last_state_transition_ = current_time;
       // // The following code can be commented out to allow cells to transition
@@ -271,7 +291,7 @@ void TumorCell::UpdateCellCycle() {
       //   t_last_state_transition_ = current_time;
       //   ComputeApoptosisVolumeDecrease(sparam->duration_apoptosis);
     } else {
-      // Cell remains in hypoxic state.
+      // 3.12 Cell remains in hypoxic state. (default)
       ;
     }
   } else {  // In any other case do nothing.
@@ -285,7 +305,7 @@ void TumorCell::ChangeVolume(double speed) {
   double delta = speed * param->simulation_time_step;
   double volume = GetVolume();
   volume += delta;
-  // Compute the new redius of the cell from volume
+  // Compute the new radius of the cell from volume
   double radius = std::cbrt(volume * 3 / (4 * Math::kPi));
   if (radius > radius_) {
     Base::SetPropagateStaticness();  // copied from cell implementation
