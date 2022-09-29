@@ -201,6 +201,22 @@ int Simulate(int argc, const char** argv) {
   ModelInitializer::InitializeSubstance(Substances::kVEGF,
                                         SetInitialValuesGridVEGF);
 
+  // Define nutrients with constant initial conditions
+  ModelInitializer::DefineSubstance(Substances::kTRA, "TRA", 0, 0, 3);
+  auto SetInitialValuesGridTRA = [&](double x, double y, double z) {
+    return 0.0;
+  };
+  ModelInitializer::InitializeSubstance(Substances::kTRA,
+                                        SetInitialValuesGridTRA);
+
+  // Define nutrients with constant initial conditions
+  ModelInitializer::DefineSubstance(Substances::kDOX, "DOX", 0, 0, 3);
+  auto SetInitialValuesGridDOX = [&](double x, double y, double z) {
+    return 0.0;
+  };
+  ModelInitializer::InitializeSubstance(Substances::kDOX,
+                                        SetInitialValuesGridDOX);
+
   // Define upper and lower threshold for nutrients
   rm->ForEachDiffusionGrid([&](DiffusionGrid* grid) {
     grid->SetUpperThreshold(1.0);

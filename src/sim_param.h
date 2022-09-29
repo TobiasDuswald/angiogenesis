@@ -24,7 +24,7 @@
 namespace bdm {
 
 // Available substances in Simulation
-enum Substances { kNutrients, kVEGF };
+enum Substances { kNutrients, kVEGF, kTRA, kDOX };
 
 // This class defines parameters that are specific to this simulation. The unit
 // h refers to hours.
