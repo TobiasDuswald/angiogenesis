@@ -147,14 +147,51 @@ struct ProgressInCellCycle : public Behavior {
   void Run(Agent* agent) override;
 };
 
-// Behaviour that allows cells to die, i.e. be removed from the simulation if
-// the cell's volume has decreased sufficiently and it's in the dead state.
-struct Death : public Behavior {
-  BDM_BEHAVIOR_HEADER(Death, Behavior, 1);
+// A simple behaviour that turns a TumorCell hypoxic or quiescent depending on
+// the concentration of substance_id (threshold behavior).
+struct UpdateHypoxic : public Behavior {
+  BDM_BEHAVIOR_HEADER(UpdateHypoxic, Behavior, 1);
 
-  Death() { AlwaysCopyToNew(); }
+ public:
+  UpdateHypoxic() = default;
+  explicit UpdateHypoxic(int substance_id) : substance_id_(substance_id) {
+    AlwaysCopyToNew();
+  }
 
   void Run(Agent* agent) override;
+
+ protected:
+  int substance_id_ = 0;
+};
+
+/// Secrete a substance only if it's cell state is hypoxic.
+// ToDo: Implement more consciese by inheriting from Secretion.
+class HypoxicSecretion : public Behavior {
+  BDM_BEHAVIOR_HEADER(HypoxicSecretion, Behavior, 1);
+
+ public:
+  HypoxicSecretion() = default;
+  explicit HypoxicSecretion(const std::string& substance, double quantity = 1)
+      : substance_(substance), quantity_(quantity) {
+    dgrid_ = Simulation::GetActive()->GetResourceManager()->GetDiffusionGrid(
+        substance);
+  }
+
+  explicit HypoxicSecretion(DiffusionGrid* dgrid, double quantity = 1)
+      : dgrid_(dgrid), quantity_(quantity) {
+    substance_ = dgrid->GetSubstanceName();
+  }
+
+  virtual ~HypoxicSecretion() = default;
+
+  void Initialize(const NewAgentEvent& event) override;
+
+  void Run(Agent* agent) override;
+
+ protected:
+  std::string substance_;
+  DiffusionGrid* dgrid_ = nullptr;
+  double quantity_ = 1;
 };
 
 }  // namespace bdm

@@ -36,7 +36,7 @@ void TumorCell::Initialize(const NewAgentEvent& event) {
 
     // First we get the pointers to the new and old TumorCell objects.
     const auto& cdevent = static_cast<const CellDivisionEvent&>(event);
-    auto* mother_cell = bdm_static_cast<TumorCell*>(event.existing_agent);
+    auto* mother_cell = dynamic_cast<TumorCell*>(event.existing_agent);
     auto* daughter = this;
 
     // Inherit displacement scale factor
@@ -164,7 +164,7 @@ Double3 TumorCell::CalculateDisplacement(const InteractionForce* force,
 
   // 2. Cast the force to our custom force
   const MechanicalInteractionForce* interaction_force =
-      bdm_static_cast<const MechanicalInteractionForce*>(force);
+      dynamic_cast<const MechanicalInteractionForce*>(force);
 
   // 3. Iterate over all neighbours and compute forces onto this agent.
   auto calculate_neighbor_forces =
@@ -207,6 +207,11 @@ void TumorCell::UpdateCellCycle() {
         Simulation::GetActive()->GetResourceManager()->GetDiffusionGrid(
             diffusion_substance_id_);
     sigma = diffusion_grid->GetConcentration(GetPosition());
+    if (sigma < sparam->hypoxic_threshold) {
+      // If a quiescent cell lies in a hypoxic area, it turns hypoxic.
+      SetCellState(CellState::kHypoxic);
+      return;
+    }
     double probability_death =
         ComputeProbabilityDeath(sigma, param->simulation_time_step, sparam);
     double probability_prolif = ComputeProbabilityProliferative(
@@ -245,6 +250,29 @@ void TumorCell::UpdateCellCycle() {
     // (ComputeApoptosisVolumeDecrease)
     if (!sparam->keep_dead_cells) {
       ChangeVolume(growth_rate_);
+      if (GetRadius() < GetNuclearRadius()) {
+        RemoveFromSimulation();
+      }
+    }
+  } else if (cell_state_ == CellState::kHypoxic) {
+    auto* diffusion_grid =
+        Simulation::GetActive()->GetResourceManager()->GetDiffusionGrid(
+            diffusion_substance_id_);
+    auto sigma = diffusion_grid->GetConcentration(GetPosition());
+    if (sigma > sparam->hypoxic_threshold) {
+      // If nutrients are available, the cell enters the quiescent state.
+      SetCellState(CellState::kQuiescent);
+      t_last_state_transition_ = current_time;
+      // // The following code can be commented out to allow cells to transition
+      // // from the hypoxic to the dead state.
+      // } else if (sigma < 0.25 * sparam->hypoxic_threshold) {
+      //   // If the nutrients get even lower, the cell dies.
+      //   SetCellState(CellState::kDead);
+      //   t_last_state_transition_ = current_time;
+      //   ComputeApoptosisVolumeDecrease(sparam->duration_apoptosis);
+    } else {
+      // Cell remains in hypoxic state.
+      ;
     }
   } else {  // In any other case do nothing.
     ;       // do nothing
@@ -263,7 +291,10 @@ void TumorCell::ChangeVolume(double speed) {
     Base::SetPropagateStaticness();  // copied from cell implementation
   }
   if (volume < 5.2359877E-7) {
-    Log::Fatal("TumorCell::ChangeVolume", "Cell volume is getting too small.");
+    // This part of the code should not be reached.
+    // ToDo: Figure out why it is.
+    Log::Error("TumorCell::ChangeVolume", "Cell volume is getting too small.");
+    RemoveFromSimulation();
   }
   // Set the new radius and update Diameter+ActionRadius.
   if (radius < max_radius_) {
@@ -280,17 +311,43 @@ void TumorCell::ChangeVolume(double speed) {
 }
 
 void ProgressInCellCycle::Run(Agent* agent) {
-  auto* tumor_cell = bdm_static_cast<TumorCell*>(agent);
+  auto* tumor_cell = dynamic_cast<TumorCell*>(agent);
   if (tumor_cell != nullptr) {
     tumor_cell->UpdateCellCycle();
   }
 }
 
-void Death::Run(Agent* agent) {
-  auto* tumor_cell = bdm_static_cast<TumorCell*>(agent);
-  if (tumor_cell->GetCellState() == CellState::kDead &&
-      tumor_cell->GetRadius() < tumor_cell->GetNuclearRadius()) {
-    tumor_cell->RemoveFromSimulation();
+void UpdateHypoxic::Run(Agent* agent) {
+  auto* tumor_cell = dynamic_cast<TumorCell*>(agent);
+  if (tumor_cell) {
+    auto* sparam = Simulation::GetActive()->GetParam()->Get<SimParam>();
+    auto* diffusion_grid =
+        Simulation::GetActive()->GetResourceManager()->GetDiffusionGrid(
+            substance_id_);
+    auto sigma = diffusion_grid->GetConcentration(tumor_cell->GetPosition());
+    if (sigma < sparam->hypoxic_threshold) {
+      tumor_cell->SetCellState(CellState::kHypoxic);
+    } else {
+      tumor_cell->SetCellState(CellState::kQuiescent);
+    }
+  } else {
+    Log::Warning("UpdateHypoxic::Run", "Not assigned to tumor cell");
+  }
+}
+
+void HypoxicSecretion::Initialize(const NewAgentEvent& event) {
+  Base::Initialize(event);
+  auto* other = dynamic_cast<HypoxicSecretion*>(event.existing_behavior);
+  substance_ = other->substance_;
+  dgrid_ = other->dgrid_;
+  quantity_ = other->quantity_;
+}
+
+void HypoxicSecretion::Run(Agent* agent) {
+  auto* tumor_cell = dynamic_cast<TumorCell*>(agent);
+  if (tumor_cell && tumor_cell->GetCellState() == CellState::kHypoxic) {
+    auto& secretion_position = agent->GetPosition();
+    dgrid_->ChangeConcentrationBy(secretion_position, quantity_);
   }
 }
 

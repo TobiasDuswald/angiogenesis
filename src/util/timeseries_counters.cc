@@ -16,7 +16,7 @@ namespace bdm {
 
 double CountQuiescent(Simulation* sim) {
   auto cond = L2F([](Agent* a) {
-    auto* tumor_cell_local = bdm_static_cast<TumorCell*>(a);
+    auto* tumor_cell_local = dynamic_cast<TumorCell*>(a);
     if (tumor_cell_local != nullptr) {
       return (tumor_cell_local->GetCellState() == CellState::kQuiescent);
     } else {
@@ -28,7 +28,7 @@ double CountQuiescent(Simulation* sim) {
 
 double CountG1(Simulation* sim) {
   auto cond = L2F([](Agent* a) {
-    auto* tumor_cell_local = bdm_static_cast<TumorCell*>(a);
+    auto* tumor_cell_local = dynamic_cast<TumorCell*>(a);
     if (tumor_cell_local != nullptr) {
       return (tumor_cell_local->GetCellState() == CellState::kProliferativeG1);
     } else {
@@ -40,7 +40,7 @@ double CountG1(Simulation* sim) {
 
 double CountSG2(Simulation* sim) {
   auto cond = L2F([](Agent* a) {
-    auto* tumor_cell_local = bdm_static_cast<TumorCell*>(a);
+    auto* tumor_cell_local = dynamic_cast<TumorCell*>(a);
     if (tumor_cell_local != nullptr) {
       return (tumor_cell_local->GetCellState() == CellState::kProliferativeSG2);
     } else {
@@ -52,7 +52,7 @@ double CountSG2(Simulation* sim) {
 
 double CountHypoxic(Simulation* sim) {
   auto cond = L2F([](Agent* a) {
-    auto* tumor_cell_local = bdm_static_cast<TumorCell*>(a);
+    auto* tumor_cell_local = dynamic_cast<TumorCell*>(a);
     if (tumor_cell_local != nullptr) {
       return (tumor_cell_local->GetCellState() == CellState::kHypoxic);
     } else {
@@ -64,7 +64,7 @@ double CountHypoxic(Simulation* sim) {
 
 double CountDead(Simulation* sim) {
   auto cond = L2F([](Agent* a) {
-    auto* tumor_cell_local = bdm_static_cast<TumorCell*>(a);
+    auto* tumor_cell_local = dynamic_cast<TumorCell*>(a);
     if (tumor_cell_local != nullptr) {
       return (tumor_cell_local->GetCellState() == CellState::kDead);
     } else {

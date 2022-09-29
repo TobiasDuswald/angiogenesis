@@ -46,6 +46,9 @@ struct SimParam : public ParamGroup {
   // // the simulation (uint [1])
   // u_int64_t no_cells{1000};
 
+  // Length of vessels at initialization
+  double default_vessel_length{10};
+
   // Lower bound for the domain (applies to x,y,z; unit [\mu m])
   double lower_bound{-200.0};
 
@@ -121,7 +124,7 @@ struct SimParam : public ParamGroup {
 
   // The decay constant of glucose. It basically describes an exponential
   // decay for each point in the diffusion grid.
-  double decay_rate_nutrients{0.0};
+  double decay_rate_nutrients{0.00001};
 
   // Secretion rate tumor cells, i.e. how much VEGF is released by a tumor cell
   // per minute.
@@ -136,6 +139,38 @@ struct SimParam : public ParamGroup {
   // Parameter to decide if dead cells decrease in size and are removed or if we
   // keep them in the simulation.
   bool keep_dead_cells{false};
+
+  //////////////////////////////////////////////////////////////////////////////
+  // Vessel parameters
+  //////////////////////////////////////////////////////////////////////////////
+
+  // VEGF threshold for sprouting
+  double vegf_threshold_sprouting{1e-3};
+
+  // VEGF gradient threshold for apical growth
+  double vegf_grad_threshold_apical_growth{1e-5};
+
+  // Minimum distance to bifurcatoin or terminal end of vessel to allow
+  // sprouting
+  double min_dist_to_bifurcation{60.0};
+
+  // Sprouting probability
+  double sprouting_probability{0.001};
+
+  // Weight for random direction of the apical growth
+  double apical_growth_random_weight{0.2};
+
+  // Weight for old direction of the apical growth
+  double apical_growth_old_weight{0.5};
+
+  // Weight for gradient direction of the apical growth
+  double apical_growth_gradient_weight{0.3};
+
+  // Apical growth speed
+  double apical_growth_speed{1.0};
+
+  // Nutrient supply by vessel (unit Nutrients / (Area * min)])
+  double nutrient_supply_rate_vessel{0.0001};
 };
 
 }  // namespace bdm

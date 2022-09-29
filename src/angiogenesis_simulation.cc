@@ -19,9 +19,11 @@
 #include "math.h"
 #include "modules/mechanical_forces.h"
 #include "modules/tumor_cell.h"
+#include "modules/vessel.h"
+#include "neuroscience/neuroscience.h"
 #include "sim_param.h"
+#include "util/analysis.h"
 #include "util/timeseries_counters.h"
-#include "util/visualize.h"
 
 namespace bdm {
 
@@ -51,19 +53,94 @@ auto CreateTumorCell(const Double3& position) {
                        (sparam->duration_growth_phase);
   tumor_cell->SetGrowthRate(growth_rate);
   // Add a Secretion behaviour to the TumorCell such that it can secrete VEGF.
-  tumor_cell->AddBehavior(new Secretion(
+  tumor_cell->AddBehavior(new HypoxicSecretion(
       "VEGF", sparam->secretion_rate_vegf * param->simulation_time_step));
+  // // The following code is commented out but can be added to add nutrient
+  // // consumption of the tumor cells. Right now, it adds complexity to the
+  // // model but not a lot of benefit.
+  // // Add Nutrient consumption
+  // tumor_cell->AddBehavior(new Secretion(
+  //     "Nutrients", -sparam->uptake_rate_glucose *
+  //     param->simulation_time_step));
+  // Add cell cycle
+  tumor_cell->AddBehavior(new ProgressInCellCycle());
   return tumor_cell;
 }
 
-void PlaceTumorCells() {
-  auto* tumor_cell1 = CreateTumorCell({0, 5, 0});
-  auto* tumor_cell2 = CreateTumorCell({0, 3, 2});
-  auto* tumor_cell3 = CreateTumorCell({0, 7, 5});
+void PlaceTumorCells(std::vector<Double3>& positions) {
   auto* rm = Simulation::GetActive()->GetResourceManager();
-  rm->AddAgent(tumor_cell1);
-  rm->AddAgent(tumor_cell2);
-  rm->AddAgent(tumor_cell3);
+  for (auto pos : positions) {
+    auto* tumor_cell = CreateTumorCell(pos);
+    rm->AddAgent(tumor_cell);
+  }
+}
+
+void inline PlaceVessel(Double3 start, Double3 end, double compartment_length) {
+  auto* rm = Simulation::GetActive()->GetResourceManager();
+  auto* param = Simulation::GetActive()->GetParam();
+  auto* sparam = param->Get<SimParam>();
+
+  // Compute parameters for straight line between start and end.
+  Double3 direction = end - start;
+  double distance = direction.Norm();
+  direction.Normalize();
+  int n_compartments = std::floor(distance / compartment_length);
+
+  // Warn if chosen parameters are not selected ideally
+  if (abs(n_compartments * compartment_length - distance) > 1e-2) {
+    Log::Warning("PlaceVessel", "Vessel will be shorter than expected.");
+  }
+
+  // The setup requires us to define a NeuronSoma, which is kind of a left over
+  // from the neuroscience module.
+  const Double3 tmp = start;
+  auto* soma = new neuroscience::NeuronSoma(tmp);
+  rm->AddAgent(soma);
+
+  // Define a first neurite
+  Vessel v;  // Used for prototype argument (virtual+template not supported c++)
+  auto* vessel_compartment_1 =
+      dynamic_cast<Vessel*>(soma->ExtendNewNeurite(direction, &v));
+  vessel_compartment_1->SetPosition(start +
+                                    direction * compartment_length * 0.5);
+  vessel_compartment_1->SetMassLocation(start + direction * compartment_length);
+  vessel_compartment_1->SetActualLength(compartment_length);
+  vessel_compartment_1->SetDiameter(15);
+  vessel_compartment_1->ProhibitGrowth();
+
+  Vessel* vessel_compartment_2{nullptr};
+  for (int i = 1; i < n_compartments; i++) {
+    // Compute location of next vessel element
+    Double3 agent_position =
+        start + direction * compartment_length * (static_cast<double>(i) + 0.5);
+    Double3 agent_end_position =
+        start + direction * compartment_length * (static_cast<double>(i) + 1.0);
+    // Create new vessel
+    vessel_compartment_2 = new Vessel();
+    // Set position an length
+    vessel_compartment_2->SetPosition(agent_position);
+    vessel_compartment_2->SetMassLocation(agent_end_position);
+    vessel_compartment_2->SetActualLength(compartment_length);
+    vessel_compartment_2->SetRestingLength(compartment_length);
+    vessel_compartment_2->SetSpringAxis(direction);
+    vessel_compartment_2->SetDiameter(15);
+    vessel_compartment_2->ProhibitGrowth();
+    // Add behaviours
+    vessel_compartment_2->AddBehavior(new SproutingAngiogenesis());
+    vessel_compartment_2->AddBehavior(new ApicalGrowth());
+    vessel_compartment_2->AddBehavior(new NutrientSupply(
+        "Nutrients",
+        sparam->nutrient_supply_rate_vessel * param->simulation_time_step));
+    // Add Agent to the resource manager
+    rm->AddAgent(vessel_compartment_2);
+    // Connect vessels (AgentPtr API is currently bounded to base
+    // classes but this is a 'cosmetic' problem)
+    vessel_compartment_1->SetDaughterLeft(
+        vessel_compartment_2->GetAgentPtr<neuroscience::NeuriteElement>());
+    vessel_compartment_2->SetMother(
+        vessel_compartment_1->GetAgentPtr<neuroscience::NeuronOrNeurite>());
+    std::swap(vessel_compartment_1, vessel_compartment_2);
+  }
 }
 
 // -----------------------------------------------------------------------------
@@ -72,13 +149,14 @@ void PlaceTumorCells() {
 int Simulate(int argc, const char** argv) {
   // Register the simulation parameter
   Param::RegisterParamGroup(new SimParam());
+  neuroscience::InitModule();
 
   // ---------------------------------------------------------------------------
   // 1. Define parameters and initialize simulation
   // ---------------------------------------------------------------------------
   auto set_param = [&](Param* param) {
     param->statistics = true;
-    param->calculate_gradients = false;
+    param->calculate_gradients = true;
     param->visualization_interval =
         param->Get<SimParam>()->visualization_interval /
         param->simulation_time_step;
@@ -87,7 +165,7 @@ int Simulate(int argc, const char** argv) {
   // Initialize the simulation
   Simulation simulation(argc, argv, set_param);
   // Get a pointer to the resource manager
-  const auto* rm = simulation.GetResourceManager();
+  auto* rm = simulation.GetResourceManager();
   // Get a pointer to the param object
   const auto* param = simulation.GetParam();
   // Get a pointer to an instance of SimParam
@@ -107,7 +185,8 @@ int Simulate(int argc, const char** argv) {
       Substances::kNutrients, "Nutrients", sparam->diffusion_nutrients,
       sparam->decay_rate_nutrients, sparam->diffusion_resolution);
   auto SetInitialValuesGridNutrients = [&](double x, double y, double z) {
-    return sparam->initial_nutrient_concentration;
+    // return sparam->initial_nutrient_concentration;
+    return sparam->hypoxic_threshold * 0.5;
   };
   ModelInitializer::InitializeSubstance(Substances::kNutrients,
                                         SetInitialValuesGridNutrients);
@@ -119,32 +198,40 @@ int Simulate(int argc, const char** argv) {
   auto SetInitialValuesGridVEGF = [&](double x, double y, double z) {
     return 0.0;
   };
-  ModelInitializer::InitializeSubstance(Substances::kNutrients,
+  ModelInitializer::InitializeSubstance(Substances::kVEGF,
                                         SetInitialValuesGridVEGF);
+
+  // Define upper and lower threshold for nutrients
+  rm->ForEachDiffusionGrid([&](DiffusionGrid* grid) {
+    grid->SetUpperThreshold(1.0);
+    grid->SetLowerThreshold(0.0);
+  });
 
   // ---------------------------------------------------------------------------
   // 3. Define initial configurations of agents
   // ---------------------------------------------------------------------------
-
-  PlaceTumorCells();
+  std::vector<Double3> cell_positions = {{0, 50, 0},       {0, 30, 20},
+                                         {0, 70, 50},      {-200, -160, 300},
+                                         {-400, -100, 60}, {-300, 100, -200}};
+  PlaceTumorCells(cell_positions);
+  ModelInitializer::CreateAgentsInSphereRndm({0, 60, 40}, 100, 150,
+                                             CreateTumorCell);
+  PlaceVessel({-200, 0, -400}, {-200, 0, 400}, sparam->default_vessel_length);
 
   // ---------------------------------------------------------------------------
   // 4. Track simulation results over time with timeseries objects
   // ---------------------------------------------------------------------------
 
   // Collect the number of Cells in different states over time
-  auto* ts = simulation.GetTimeSeries();
-  ts->AddCollector("quiescent_cells", CountQuiescent, GetSimulatedTime);
-  ts->AddCollector("G1_cells", CountG1, GetSimulatedTime);
-  ts->AddCollector("SG2_cells", CountSG2, GetSimulatedTime);
-  ts->AddCollector("hypoxic_cells", CountHypoxic, GetSimulatedTime);
-  ts->AddCollector("dead_cells", CountDead, GetSimulatedTime);
+  DefineAndRegisterCollectors();
 
   // ---------------------------------------------------------------------------
   // 5. Use force module typically used by UT Austin
   // ---------------------------------------------------------------------------
 
   // Use custom force module implemented in MechanicalInteractionForce
+  // Note that the force module currently does not support any forces
+  // between vessels and cells.
   auto* custom_force = new MechanicalInteractionForce(
       sparam->adhesion_scale_parameter, sparam->repulsive_scale_parameter);
   auto* op = scheduler->GetOps("mechanical forces")[0];
@@ -156,12 +243,16 @@ int Simulate(int argc, const char** argv) {
   // ---------------------------------------------------------------------------
 
   // Set box length manually because our interaction range is larger than the
-  // cell's diameter.
-  // Todo(tobias): check if factor 2 in necessary and how it influences the
-  // computational runtime
-  env->SetBoxLength(static_cast<int32_t>(
+  // cell's diameter. In the current setup we restrict vessel growth once we
+  // come close to a tumor cell. We set the UniformGrid to larger box sizes
+  // such that we can resolve more long distance relationships than with the
+  // UniformGrid.
+  double distance_for_growth_stop = 60;
+  double box_length =
       std::ceil(2 * sparam->action_radius_factor *
-                (sparam->cell_radius + 5 * sparam->cell_radius_sigma))));
+                (sparam->cell_radius + 5 * sparam->cell_radius_sigma));
+  box_length = std::max(box_length, distance_for_growth_stop);
+  env->SetBoxLength(static_cast<int32_t>(box_length));
 
   // ---------------------------------------------------------------------------
   // 7. Run simulation and visualize results

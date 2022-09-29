@@ -5,12 +5,13 @@
     "diffusion_method": "euler",
     "environment": "uniform_grid",
     "export_visualization": true,
-    "min_bound": -100,
-    "max_bound": 100,
+    "min_bound": -800,
+    "max_bound": 800,
     "remove_output_dir_contents": true,
     "statistics": true,
     "unschedule_default_operations": [],
     "use_progress_bar": true,
+    "simulation_time_step": 0.1,
     "visualize_agents": {
       "TumorCell": [
         "cell_state_",
@@ -18,6 +19,7 @@
         "radius_",
         "volume_"
       ],
+      "Vessel": [],
       "_typename": "map<string,set<string> >"
     },
     "visualize_diffusion": [
@@ -31,7 +33,10 @@
   },
   "bdm::SimParam": {
     "_typename": "bdm::SimParam",
-    "total_sim_time": 30,
-    "visualization_interval": 1
+    "total_sim_time": 300,
+    "visualization_interval": 5,
+    "default_vessel_length": 30,
+    "secretion_rate_vegf": 0.03,
+    "diffusion_vegf": 3.0
   }
 }
