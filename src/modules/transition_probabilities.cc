@@ -18,11 +18,9 @@ namespace bdm {
 
 double ComputeProbabilityDeath(const double sigma, const double delta_t,
                                const SimParam* sparam) {
-  double intensity{sparam->apoptosis_rate};
-  intensity +=
-      sparam->gamma * 1 /
-      (1 + std::exp(2 * sparam->k * (sigma - sparam->hypoxic_threshold)));
-  return 1 - std::exp(-intensity * delta_t);
+  return SmoothHeavisideForConcentration(sigma, sparam->hypoxic_threshold,
+                                         sparam->apoptosis_rate, sparam->k,
+                                         delta_t, sparam->gamma);
 }
 
 double ComputeProbabilityProliferative(const double sigma, const double delta_t,

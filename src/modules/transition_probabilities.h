@@ -46,13 +46,15 @@ double ComputeProbabilityProliferative(const double sigma, const double delta_t,
 /// steeper the transition. If larger than 0, the function decreases with c, if
 /// smaller than 0, the function increases with c.
 /// @param delta_t The time step of the simulation (must be small)
-/// @return 1-exp(-(alpha+1/(1+exp(2k*(c-c_t))))dt)
+/// @param gamma Optional parmater to adjust the function (default = 1)
+/// @return 1-exp(-(alpha+gamma/(1+exp(2k*(c-c_t))))dt)
 inline double SmoothHeavisideForConcentration(double concentration,
                                               double concentration_threshold,
                                               double alpha, double k,
-                                              double delta_t) {
+                                              double delta_t,
+                                              double gamma = 1) {
   double e = 2 * k * (concentration - concentration_threshold);
-  double summand = 1.0 / (1.0 + std::exp(e));
+  double summand = gamma / (1.0 + std::exp(e));
   return 1 - std::exp(-(alpha + summand) * delta_t);
 }
 
