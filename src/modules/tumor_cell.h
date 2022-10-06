@@ -174,7 +174,7 @@ class HypoxicSecretion : public Behavior {
 
   explicit HypoxicSecretion(DiffusionGrid* dgrid, double quantity = 1)
       : dgrid_(dgrid), quantity_(quantity) {
-    substance_ = dgrid->GetSubstanceName();
+    substance_ = dgrid->GetContinuumName();
   }
 
   virtual ~HypoxicSecretion() = default;
