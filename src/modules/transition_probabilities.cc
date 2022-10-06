@@ -16,20 +16,98 @@
 
 namespace bdm {
 
-double ComputeProbabilityDeath(const double sigma, const double delta_t,
-                               const SimParam* sparam) {
-  return SmoothHeavisideForConcentration(sigma, sparam->hypoxic_threshold,
-                                         sparam->apoptosis_rate, sparam->k,
-                                         delta_t, sparam->gamma);
-}
+double ComputeProbability_Q_To_SG2(const double nutrients, const double tra,
+                                   const double delta_t,
+                                   const SimParam* sparam) {
+  return P_Q_SG2_N(nutrients, delta_t, sparam) *
+         P_Q_SG2_TRA(tra, delta_t, sparam);
+};
 
-double ComputeProbabilityProliferative(const double sigma, const double delta_t,
-                                       const SimParam* sparam) {
-  double intensity = std::max(sparam->qp_transition_rate *
-                                  (sigma - sparam->hypoxic_threshold) /
-                                  (1 - sparam->hypoxic_threshold),
-                              0.0);
-  return 1 - std::exp(-intensity * delta_t);
-}
+double ComputeProbability_SG2_To_SG2(const double dox, const double delta_t,
+                                     const SimParam* sparam) {
+  return P_SG2_SG2_DOX(dox, delta_t, sparam);
+};
+
+double ComputeProbability_SG2_To_D(const double dox, const double delta_t,
+                                   const SimParam* sparam) {
+  return P_SG2_D_DOX(dox, delta_t, sparam);
+};
+
+double ComputeProbability_Q_To_D(const double nutrients, const double tra,
+                                 const double dox, const double delta_t,
+                                 const SimParam* sparam) {
+  return P_Q_D_N(nutrients, delta_t, sparam) * P_Q_D_TRA(tra, delta_t, sparam) *
+         P_Q_D_DOX(dox, delta_t, sparam);
+};
+
+double ComputeProbability_H_To_D(const double tra, const double dox,
+                                 const double delta_t, const SimParam* sparam) {
+  return P_H_D_DOX(dox, delta_t, sparam) * P_H_D_TRA(tra, delta_t, sparam);
+};
+
+double P_Q_D_N(const double nutrients, const double delta_t,
+               const SimParam* sparam) {
+  return SmoothHeavisideForConcentration(nutrients, sparam->threshold_Q_D_N,
+                                         sparam->alpha_Q_D_N, sparam->k_Q_D_N,
+                                         delta_t, sparam->gamma_Q_D_N);
+};
+
+double P_Q_SG2_N(const double nutrients, const double delta_t,
+                 const SimParam* sparam) {
+  return LinearProbabilityIncreaseForConcentration(
+      nutrients, sparam->threshold_Q_SG2_N, sparam->alpha_Q_SG2_N, delta_t);
+};
+
+double P_Q_SG2_TRA(const double tra, const double delta_t,
+                   const SimParam* sparam) {
+  // return SmoothHeavisideForConcentration(
+  //     tra, sparam->threshold_Q_SG2_TRA, sparam->alpha_Q_SG2_TRA,
+  //     sparam->k_Q_SG2_TRA, delta_t, sparam->gamma_Q_SG2_TRA);
+  return 1.0;
+};
+
+double P_Q_D_TRA(const double tra, const double delta_t,
+                 const SimParam* sparam) {
+  // return SmoothHeavisideForConcentration(
+  //     tra, sparam->threshold_Q_D_TRA, sparam->alpha_Q_D_TRA,
+  //     sparam->k_Q_D_TRA, delta_t, sparam->gamma_Q_D_TRA);
+  return 1;
+};
+
+double P_Q_D_DOX(const double dox, const double delta_t,
+                 const SimParam* sparam) {
+  // return SmoothHeavisideForConcentration(
+  //     dox, sparam->threshold_Q_D_DOX, sparam->alpha_Q_D_DOX,
+  //     sparam->k_Q_D_DOX, delta_t, sparam->gamma_Q_D_DOX);
+  return 1;
+};
+
+double P_SG2_SG2_DOX(const double dox, const double delta_t,
+                     const SimParam* sparam) {
+  return SmoothHeavisideForConcentration(
+      dox, sparam->threshold_SG2_SG2_DOX, sparam->alpha_SG2_SG2_DOX,
+      sparam->k_SG2_SG2_DOX, delta_t, sparam->gamma_SG2_SG2_DOX);
+};
+
+double P_SG2_D_DOX(const double dox, const double delta_t,
+                   const SimParam* sparam) {
+  return SmoothHeavisideForConcentration(
+      dox, sparam->threshold_SG2_D_DOX, sparam->alpha_SG2_D_DOX,
+      sparam->k_SG2_D_DOX, delta_t, sparam->gamma_SG2_D_DOX);
+};
+
+double P_H_D_DOX(const double dox, const double delta_t,
+                 const SimParam* sparam) {
+  return SmoothHeavisideForConcentration(
+      dox, sparam->threshold_H_D_DOX, sparam->alpha_H_D_DOX, sparam->k_H_D_DOX,
+      delta_t, sparam->gamma_H_D_DOX);
+};
+
+double P_H_D_TRA(const double tra, const double delta_t,
+                 const SimParam* sparam) {
+  return SmoothHeavisideForConcentration(
+      tra, sparam->threshold_H_D_TRA, sparam->alpha_H_D_TRA, sparam->k_H_D_TRA,
+      delta_t, sparam->gamma_H_D_TRA);
+};
 
 }  // namespace bdm

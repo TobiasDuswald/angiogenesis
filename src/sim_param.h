@@ -78,6 +78,10 @@ struct SimParam : public ParamGroup {
   // (unit [1])
   double action_radius_factor{1.214};
 
+  // -----------------------------------------------------------------------
+  // Cell cycle parameters
+  // -----------------------------------------------------------------------
+
   // Duration of the cell cycle (numeric parameter \tau_{P}, unit [min])
   double duration_cell_cycle{18.0 * 60.0};
 
@@ -87,21 +91,69 @@ struct SimParam : public ParamGroup {
   // Duration of apoptosis
   double duration_apoptosis{8.6 * 60.0};
 
-  // Apoptosis rate (numeric parameter \bar{\alpha}_{D}, unit [min^{-1}])
-  double apoptosis_rate{0.000408 / 60.0};
-
-  // Undefined rate governing the transition from quiescent to proliferative
-  // (numeric parameter \bar{\alpha}_{P}, unit [min^{-1}])
-  double qp_transition_rate{0.0493 / 60.0};
-
   // Hypoxic threshold (numeric parameter \sigma_{H}, unit [1])
   double hypoxic_threshold{0.0538};
 
-  // Mathematical parameter k (unit [1])
-  double k{50.0};
+  // Probability parameters for the transition from G1 to D modulated by the
+  // nutrients N
+  double threshold_Q_D_N{0.0538};
+  double gamma_Q_D_N{0.0245 / 60.0};
+  double alpha_Q_D_N{0.000408 / 60.0};
+  double k_Q_D_N{50.0};
 
-  // Gamma factor relating cell death and lack of nutrients (unit [min^{-1}]))
-  double gamma{0.0245 / 60.0};
+  // Probability parameters for the transition from G1 to SG2 modulated by the
+  // nutrients N
+  double threshold_Q_SG2_N{0.0538};
+  double alpha_Q_SG2_N{0.0493 / 60.0};
+
+  // // Probability parameters for the transition from G1 to SG2 modulated by
+  // // the drug TRA
+  // double threshold_Q_SG2_TRA{0.1};
+  // double gamma_Q_SG2_TRA{1.0};
+  // double alpha_Q_SG2_TRA{0.1};
+  // double k_Q_SG2_TRA{30.0};
+
+  // // Probability parameters for the transition from G to D modulated by the
+  // // drug DOX
+  // double threshold_Q_D_DOX{0.1};
+  // double gamma_Q_D_DOX{1.0};
+  // double alpha_Q_D_DOX{0.1};
+  // double k_Q_D_DOX{30.0};
+
+  // // Probability parameters for the transition from G to D modulated by the
+  // // drug TRA
+  // double threshold_Q_D_TRA{0.1};
+  // double gamma_Q_D_TRA{1.0};
+  // double alpha_Q_D_TRA{0.1};
+  // double k_Q_D_TRA{30.0};
+
+  // Probability parameters for the transition from SG2 to SG2 modulated by the
+  // drug DOX, e.g. probability to be trapped in SG2 due to drug DOX
+  double threshold_SG2_SG2_DOX{0.1};
+  double gamma_SG2_SG2_DOX{1.0};
+  double alpha_SG2_SG2_DOX{0.1};
+  double k_SG2_SG2_DOX{30.0};
+
+  // Probability parameters for the transition from SG2 to D modulated by the
+  // drug DOX
+  double threshold_SG2_D_DOX{0.1};
+  double gamma_SG2_D_DOX{1.0};
+  double alpha_SG2_D_DOX{0.1};
+  double k_SG2_D_DOX{30.0};
+
+  // Probability parameters for the transition from H to D modulated by the
+  // drug TRA
+  double threshold_H_D_TRA{0.1};
+  double gamma_H_D_TRA{1.0};
+  double alpha_H_D_TRA{0.1};
+  double k_H_D_TRA{30.0};
+
+  // Probability parameters for the transition from H to D modulated by the
+  // drug DOX
+  double threshold_H_D_DOX{0.1};
+  double gamma_H_D_DOX{1.0};
+  double alpha_H_D_DOX{0.1};
+  double k_H_D_DOX{30.0};
 
   // -----------------------------------------------------------------------
   // Agent-Continuum interaction parameters
