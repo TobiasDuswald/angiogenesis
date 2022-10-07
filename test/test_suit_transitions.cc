@@ -75,7 +75,7 @@ TEST(SimParam, ComputeProbability_Q_To_SG2) {
                   ComputeProbability_Q_To_SG2(6.0, 0, 20.0, &sparam));
 }
 
-TEST(SigmoidFunctions, SmoothHeavisideForConcentration) {
+TEST(TransitionHelperFunctions, SmoothHeavisideForConcentration) {
   // Parameter values used in reference solution
   const double k = 8.0;
   const double alpha = 3.0;
@@ -98,6 +98,32 @@ TEST(SigmoidFunctions, SmoothHeavisideForConcentration) {
     EXPECT_LT(std::abs(expected_results[i] -
                        SmoothHeavisideForConcentration(concentrations[i], c_t,
                                                        alpha, k, dt)),
+              1e-6);
+  }
+}
+
+TEST(TransitionHelperFunctions, LinearProbabilityIncreaseForConcentration) {
+  // Parameter values used in reference solution
+  const double alpha = 3.0;
+  const double c_t = 0.5;
+  const double dt = 0.1;
+
+  // Concentrations (x values) used for testing
+  std::array<double, 13> concentrations(
+      {0, 0.1, 0.2, 0.3, 0.4, 0.45, 0.5, 0.55, 0.6, 0.7, 0.8, 0.9, 1.0});
+
+  // Reference values for the sigmoid function via Python
+  std::array<double, 13> expected_results({0., 0., 0., 0., 0., 0., 0.,
+                                           0.02955447, 0.05823547, 0.11307956,
+                                           0.16472979, 0.21337214, 0.25918178});
+
+  // Test the function for all concentrations
+  for (size_t i = 0; i < concentrations.size(); i++) {
+    // Reference solution is only given with 6 digits precision, thus we demand
+    // the same precision for the test -> 1e-6
+    EXPECT_LT(std::abs(expected_results[i] -
+                       LinearProbabilityIncreaseForConcentration(
+                           concentrations[i], c_t, alpha, dt)),
               1e-6);
   }
 }
