@@ -45,13 +45,6 @@ double ComputeProbability_H_To_D(const double tra, const double dox,
   return P_H_D_DOX(dox, delta_t, sparam) * P_H_D_TRA(tra, delta_t, sparam);
 };
 
-double P_Q_D_N(const double nutrients, const double delta_t,
-               const SimParam* sparam) {
-  return SmoothHeavisideForConcentration(nutrients, sparam->threshold_Q_D_N,
-                                         sparam->alpha_Q_D_N, sparam->k_Q_D_N,
-                                         delta_t, sparam->gamma_Q_D_N);
-};
-
 double P_Q_SG2_N(const double nutrients, const double delta_t,
                  const SimParam* sparam) {
   return LinearProbabilityIncreaseForConcentration(
@@ -63,7 +56,14 @@ double P_Q_SG2_TRA(const double tra, const double delta_t,
   // return SmoothHeavisideForConcentration(
   //     tra, sparam->threshold_Q_SG2_TRA, sparam->alpha_Q_SG2_TRA,
   //     sparam->k_Q_SG2_TRA, delta_t, sparam->gamma_Q_SG2_TRA);
-  return 1.0;
+  return std::exp(-sparam->alpha_Q_SG2_TRA * tra);
+};
+
+double P_Q_D_N(const double nutrients, const double delta_t,
+               const SimParam* sparam) {
+  return SmoothHeavisideForConcentration(nutrients, sparam->threshold_Q_D_N,
+                                         sparam->alpha_Q_D_N, sparam->k_Q_D_N,
+                                         delta_t, sparam->gamma_Q_D_N);
 };
 
 double P_Q_D_TRA(const double tra, const double delta_t,
@@ -71,7 +71,7 @@ double P_Q_D_TRA(const double tra, const double delta_t,
   // return SmoothHeavisideForConcentration(
   //     tra, sparam->threshold_Q_D_TRA, sparam->alpha_Q_D_TRA,
   //     sparam->k_Q_D_TRA, delta_t, sparam->gamma_Q_D_TRA);
-  return 1;
+  return 1.0;
 };
 
 double P_Q_D_DOX(const double dox, const double delta_t,
@@ -98,16 +98,20 @@ double P_SG2_D_DOX(const double dox, const double delta_t,
 
 double P_H_D_DOX(const double dox, const double delta_t,
                  const SimParam* sparam) {
-  return SmoothHeavisideForConcentration(
-      dox, sparam->threshold_H_D_DOX, sparam->alpha_H_D_DOX, sparam->k_H_D_DOX,
-      delta_t, sparam->gamma_H_D_DOX);
+  // return SmoothHeavisideForConcentration(
+  //     dox, sparam->threshold_H_D_DOX, sparam->alpha_H_D_DOX,
+  //     sparam->k_H_D_DOX,
+  //     delta_t, sparam->gamma_H_D_DOX);
+  return (dox > 0.01);
 };
 
 double P_H_D_TRA(const double tra, const double delta_t,
                  const SimParam* sparam) {
-  return SmoothHeavisideForConcentration(
-      tra, sparam->threshold_H_D_TRA, sparam->alpha_H_D_TRA, sparam->k_H_D_TRA,
-      delta_t, sparam->gamma_H_D_TRA);
+  // return SmoothHeavisideForConcentration(
+  //     tra, sparam->threshold_H_D_TRA, sparam->alpha_H_D_TRA,
+  //     sparam->k_H_D_TRA,
+  //     delta_t, sparam->gamma_H_D_TRA);
+  return (tra > 0.01);
 };
 
 }  // namespace bdm

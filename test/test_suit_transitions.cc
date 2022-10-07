@@ -18,7 +18,7 @@
 
 namespace bdm {
 
-TEST(SimParam, ComputeProbability_Q_To_D) {
+TEST(TransitionFunctions, ComputeProbability_Q_To_D) {
   auto sparam = SimParam();
   // Set values used in reference solution.
   sparam.alpha_Q_D_N = 0.000408 / 60.0;
@@ -49,7 +49,7 @@ TEST(SimParam, ComputeProbability_Q_To_D) {
                   ComputeProbability_Q_To_D(0.10, 0, 0, 20.0, &sparam));
 }
 
-TEST(SimParam, ComputeProbability_Q_To_SG2) {
+TEST(TransitionFunctions, ComputeProbability_Q_To_SG2) {
   auto sparam = SimParam();
   // Set values used in reference solution.
   sparam.alpha_Q_SG2_N = 0.0493 / 60.0;
@@ -75,7 +75,39 @@ TEST(SimParam, ComputeProbability_Q_To_SG2) {
                   ComputeProbability_Q_To_SG2(6.0, 0, 20.0, &sparam));
 }
 
-TEST(TransitionHelperFunctions, SmoothHeavisideForConcentration) {
+/// Test that the transition probabilities decrease with increasing TRA
+TEST(TransitionFunctions, ComputeProbability_Q_To_SG2_TRA) {
+  auto sparam = SimParam();
+  // Set values used in reference solution.
+  sparam.alpha_Q_SG2_N = 0.0493 / 60.0;
+  sparam.threshold_Q_SG2_N = 0.0538;
+  const double dt = 0.1;
+
+  // Define numeric value for nutrients and TRA concentration
+  std::vector<double> nutrients = {0.1, 0.3, 0.5, 0.7, 0.9};
+  std::vector<double> tra = {0.1, 0.3, 0.5, 0.7, 0.9};
+
+  // Iterate over all combinations of nutrients and TRA concentration
+  double probability_1{0.0};
+  double probability_2{0.0};
+  for (auto n : nutrients) {
+    for (size_t i = 0; i < tra.size(); i++) {
+      double t = tra[i];
+      probability_2 = ComputeProbability_Q_To_SG2(n, t, dt, &sparam);
+      if (i > 0) {
+        EXPECT_LE(probability_2, probability_1);
+        if (probability_2 == probability_1) {
+          std::cout << "<Warning> Probability is equal for n = " << n
+                    << " and t = " << t << "\n  expected decrease."
+                    << std::endl;
+        }
+      }
+      probability_1 = probability_2;
+    }
+  }
+}
+
+TEST(TransitionFunctions, SmoothHeavisideForConcentration) {
   // Parameter values used in reference solution
   const double k = 8.0;
   const double alpha = 3.0;
@@ -93,8 +125,8 @@ TEST(TransitionHelperFunctions, SmoothHeavisideForConcentration) {
 
   // Test the sigmoid function for all concentrations
   for (size_t i = 0; i < concentrations.size(); i++) {
-    // Reference solution is only given with 6 digits precision, thus we demand
-    // the same precision for the test -> 1e-6
+    // Reference solution is only given with 6 digits precision, thus we
+    // demand the same precision for the test -> 1e-6
     EXPECT_LT(std::abs(expected_results[i] -
                        SmoothHeavisideForConcentration(concentrations[i], c_t,
                                                        alpha, k, dt)),
@@ -102,7 +134,7 @@ TEST(TransitionHelperFunctions, SmoothHeavisideForConcentration) {
   }
 }
 
-TEST(TransitionHelperFunctions, LinearProbabilityIncreaseForConcentration) {
+TEST(TransitionFunctions, LinearProbabilityIncreaseForConcentration) {
   // Parameter values used in reference solution
   const double alpha = 3.0;
   const double c_t = 0.5;
@@ -119,8 +151,8 @@ TEST(TransitionHelperFunctions, LinearProbabilityIncreaseForConcentration) {
 
   // Test the function for all concentrations
   for (size_t i = 0; i < concentrations.size(); i++) {
-    // Reference solution is only given with 6 digits precision, thus we demand
-    // the same precision for the test -> 1e-6
+    // Reference solution is only given with 6 digits precision, thus we
+    // demand the same precision for the test -> 1e-6
     EXPECT_LT(std::abs(expected_results[i] -
                        LinearProbabilityIncreaseForConcentration(
                            concentrations[i], c_t, alpha, dt)),
