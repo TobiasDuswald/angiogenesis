@@ -106,11 +106,11 @@ struct SimParam : public ParamGroup {
   double threshold_Q_SG2_N{0.0538};
   double alpha_Q_SG2_N{0.0493 / 60.0};
 
-  // // Probability parameters for the transition from G1 to SG2 modulated by
-  // // the drug TRA
+  // Probability parameters for the transition from G1 to SG2 modulated by
+  // the drug TRA
   // double threshold_Q_SG2_TRA{0.1};
   // double gamma_Q_SG2_TRA{1.0};
-  // double alpha_Q_SG2_TRA{0.1};
+  double alpha_Q_SG2_TRA{5};
   // double k_Q_SG2_TRA{30.0};
 
   // // Probability parameters for the transition from G to D modulated by the
