@@ -71,7 +71,7 @@ double P_Q_D_TRA(const double tra, const double delta_t,
   // return SmoothHeavisideForConcentration(
   //     tra, sparam->threshold_Q_D_TRA, sparam->alpha_Q_D_TRA,
   //     sparam->k_Q_D_TRA, delta_t, sparam->gamma_Q_D_TRA);
-  return 1.0;
+  return (tra < 0.2);
 };
 
 double P_Q_D_DOX(const double dox, const double delta_t,
@@ -79,21 +79,25 @@ double P_Q_D_DOX(const double dox, const double delta_t,
   // return SmoothHeavisideForConcentration(
   //     dox, sparam->threshold_Q_D_DOX, sparam->alpha_Q_D_DOX,
   //     sparam->k_Q_D_DOX, delta_t, sparam->gamma_Q_D_DOX);
-  return 1;
+  return (dox < 0.2);
 };
 
 double P_SG2_SG2_DOX(const double dox, const double delta_t,
                      const SimParam* sparam) {
-  return SmoothHeavisideForConcentration(
-      dox, sparam->threshold_SG2_SG2_DOX, sparam->alpha_SG2_SG2_DOX,
-      sparam->k_SG2_SG2_DOX, delta_t, sparam->gamma_SG2_SG2_DOX);
+  // return SmoothHeavisideForConcentration(
+  //     dox, sparam->threshold_SG2_SG2_DOX, sparam->alpha_SG2_SG2_DOX,
+  //     sparam->k_SG2_SG2_DOX, delta_t, sparam->gamma_SG2_SG2_DOX);
+  return LinearProbabilityIncreaseForConcentration(
+      dox, sparam->threshold_SG2_SG2_DOX, sparam->alpha_SG2_SG2_DOX, delta_t);
 };
 
 double P_SG2_D_DOX(const double dox, const double delta_t,
                    const SimParam* sparam) {
-  return SmoothHeavisideForConcentration(
-      dox, sparam->threshold_SG2_D_DOX, sparam->alpha_SG2_D_DOX,
-      sparam->k_SG2_D_DOX, delta_t, sparam->gamma_SG2_D_DOX);
+  // return SmoothHeavisideForConcentration(
+  //     dox, sparam->threshold_SG2_D_DOX, sparam->alpha_SG2_D_DOX,
+  //     sparam->k_SG2_D_DOX, delta_t, sparam->gamma_SG2_D_DOX);
+  return LinearProbabilityIncreaseForConcentration(
+      dox, sparam->threshold_SG2_D_DOX, sparam->alpha_SG2_D_DOX, delta_t);
 };
 
 double P_H_D_DOX(const double dox, const double delta_t,
@@ -102,7 +106,7 @@ double P_H_D_DOX(const double dox, const double delta_t,
   //     dox, sparam->threshold_H_D_DOX, sparam->alpha_H_D_DOX,
   //     sparam->k_H_D_DOX,
   //     delta_t, sparam->gamma_H_D_DOX);
-  return (dox > 0.01);
+  return (dox < 0.01);
 };
 
 double P_H_D_TRA(const double tra, const double delta_t,
@@ -111,7 +115,7 @@ double P_H_D_TRA(const double tra, const double delta_t,
   //     tra, sparam->threshold_H_D_TRA, sparam->alpha_H_D_TRA,
   //     sparam->k_H_D_TRA,
   //     delta_t, sparam->gamma_H_D_TRA);
-  return (tra > 0.01);
+  return (tra < 0.01);
 };
 
 }  // namespace bdm
