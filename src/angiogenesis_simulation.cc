@@ -230,13 +230,32 @@ int Simulate(int argc, const char** argv) {
   // ---------------------------------------------------------------------------
   // 3. Define initial configurations of agents
   // ---------------------------------------------------------------------------
-  std::vector<Double3> cell_positions = {{0, 50, 0},       {0, 30, 20},
-                                         {0, 70, 50},      {-200, -160, 300},
-                                         {-400, -100, 60}, {-300, 100, -200}};
-  PlaceTumorCells(cell_positions);
-  ModelInitializer::CreateAgentsInSphereRndm({0, 60, 40}, 100, 150,
-                                             CreateTumorCell);
-  PlaceVessel({-200, 0, -400}, {-200, 0, 400}, sparam->default_vessel_length);
+  {
+    Timing timer_set_up("Initialize agents");
+
+    // Old single cell initialization
+    // std::vector<Double3> cell_positions = {{0, 50, 0},       {0, 30, 20},
+    //                                        {0, 70, 50},      {-200, -160,
+    //                                        300},
+    //                                        {-400, -100, 60}, {-300, 100,
+    //                                        -200}};
+    // PlaceTumorCells(cell_positions);
+
+    // Place tumor cells
+    const uint64_t num_cells = 500;
+    const double filled_volume = 0.7;
+    const double R =
+        std::pow(num_cells * std::pow(sparam->cell_radius, 3) / filled_volume,
+                 1.0 / 3.0);
+    ModelInitializer::CreateAgentsInSphereRndm({0, 0, 0}, R, num_cells,
+                                               CreateTumorCell);
+
+    // Place vessels
+    PlaceVessel({-200, 0, -400}, {-200, 0, 400}, sparam->default_vessel_length);
+    PlaceVessel({200, 0, -400}, {200, 0, 400}, sparam->default_vessel_length);
+    PlaceVessel({0, -400, 200}, {0, 400, 200}, sparam->default_vessel_length);
+    PlaceVessel({0, -400, -200}, {0, 400, -200}, sparam->default_vessel_length);
+  }
 
   // ---------------------------------------------------------------------------
   // 4. Track simulation results over time with timeseries objects
