@@ -294,11 +294,21 @@ int Simulate(int argc, const char** argv) {
   env->SetBoxLength(static_cast<int32_t>(box_length));
 
   // ---------------------------------------------------------------------------
-  // 7. Run simulation and visualize results
+  // 7. Track continuum models
+  // ---------------------------------------------------------------------------
+
+  OperationRegistry::GetInstance()->AddOperationImpl(
+      "VerifyContinuum", OpComputeTarget::kCpu, new VerifyContinuum());
+  auto* verify_continuum = NewOperation("VerifyContinuum");
+  scheduler->ScheduleOp(verify_continuum, OpType::kPostSchedule);
+
+  // ---------------------------------------------------------------------------
+  // 8 . Run simulation and visualize results
   // ---------------------------------------------------------------------------
 
   // Finalize initialization
   scheduler->FinalizeInitialization();
+  scheduler->PrintInfo(std::cout);
 
   // Test if correct number of Agents were initialized
   std::cout << "Agents im Simulation: " << rm->GetNumAgents() << "\n";

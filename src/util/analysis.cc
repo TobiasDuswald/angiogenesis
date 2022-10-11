@@ -20,6 +20,52 @@ namespace bdm {
 using experimental::Counter;
 using experimental::GenericReducer;
 
+void VerifyContinuum::operator()() {
+  if (!initialized_) {
+    // Initialize the results map with the correct keys
+    Initialize();
+  }
+
+  // Get the current simulation time
+  auto *sim = Simulation::GetActive();
+  auto *rm = sim->GetResourceManager();
+  simulated_time_.push_back(sim->GetScheduler()->GetSimulatedTime());
+
+  // Iterate over all continuum models of type diffusion grid
+  rm->ForEachDiffusionGrid([&](DiffusionGrid *grid) {
+    // Compute min, max and avg of the current grid
+    auto &cn = grid->GetContinuumName();
+    const real_t *data = grid->GetAllConcentrations();
+    int num_elements = grid->GetNumBoxes();
+    real_t min = data[0];
+    real_t max = data[0];
+    real_t sum = 0;
+    for (int i = 0; i < num_elements; i++) {
+      min = std::min(min, data[i]);
+      max = std::max(max, data[i]);
+      sum += data[i];
+    }
+    // Add the results to the results map
+    results_[cn + "_min"].push_back(min);
+    results_[cn + "_max"].push_back(max);
+    results_[cn + "_avg"].push_back(sum / num_elements);
+  });
+};
+
+void VerifyContinuum::Initialize() {
+  initialized_ = true;
+  auto *sim = Simulation::GetActive();
+  auto *rm = sim->GetResourceManager();
+  // Initialize a map with the correct keys, e.g "<continuum>_min",
+  // "<continuum>_max", "<continuum>_avg"
+  rm->ForEachDiffusionGrid([&](DiffusionGrid *grid) {
+    auto &cn = grid->GetContinuumName();
+    results_[cn + "_min"] = std::vector<real_t>();
+    results_[cn + "_max"] = std::vector<real_t>();
+    results_[cn + "_avg"] = std::vector<real_t>();
+  });
+};
+
 void DefineAndRegisterCollectors() {
   // Get population statistics, i.e. extract data from simulation
   // Get the pointer to the TimeSeries
@@ -106,26 +152,87 @@ void PlotAndSaveTimeseries() {
   // Get pointers for simulation and TimeSeries data
   auto sim = Simulation::GetActive();
   auto *ts = sim->GetTimeSeries();
+  auto *scheduler = sim->GetScheduler();
 
   // Save the TimeSeries Data as JSON to the folder <date_time>
   ts->SaveJson(Concat(sim->GetOutputDir(), "/time-series-data.json"));
 
   // Create a bdm LineGraph that visualizes the TimeSeries data
-  bdm::experimental::LineGraph g1(ts, "TumorCell count", "Time",
-                                  "Number of agents", true);
-  g1.Add("q", "Q", "L", kBlue, 1.0);
-  g1.Add("sg2", "SG2", "L", kGreen, 1.0);
-  g1.Add("g1", "G1", "L", kOrange, 1.0);
-  g1.Add("h", "H", "L", kGray, 1.0);
-  g1.Add("d", "D", "L", kBlack, 1.0);
-  g1.Draw();
-  g1.SaveAs(Concat(sim->GetOutputDir(), "/tumor_cells"), {".svg", ".png"});
+  {
+    bdm::experimental::LineGraph g1(ts, "TumorCell count", "Time",
+                                    "Number of agents", true);
+    g1.Add("q", "Q", "L", kBlue, 1.0);
+    g1.Add("sg2", "SG2", "L", kGreen, 1.0);
+    g1.Add("g1", "G1", "L", kOrange, 1.0);
+    g1.Add("h", "H", "L", kGray, 1.0);
+    g1.Add("d", "D", "L", kBlack, 1.0);
+    g1.Draw();
+    g1.SaveAs(Concat(sim->GetOutputDir(), "/tumor_cells"), {".svg", ".png"});
+  }
 
   // Create a bdm LineGraph that visualizes the TimeSeries data
-  bdm::experimental::LineGraph g2(ts, "Vessel count", "Time",
-                                  "Number of agents", true);
-  g2.Add("v", "Vessel", "L", kBlue, 1.0);
-  g2.Draw();
-  g2.SaveAs(Concat(sim->GetOutputDir(), "/vessel_agents"), {".svg", ".png"});
+  {
+    bdm::experimental::LineGraph g2(ts, "Vessel count", "Time",
+                                    "Number of agents", true);
+    g2.Add("v", "Vessel", "L", kBlue, 1.0);
+    g2.Draw();
+    g2.SaveAs(Concat(sim->GetOutputDir(), "/vessel_agents"), {".svg", ".png"});
+  }
+
+  // Add the TimeSeries from the continuum verification to the TimeSeries
+  {
+    auto *op = scheduler->GetOps("VerifyContinuum")[0];
+    auto *results_continuum =
+        op->GetImplementation<VerifyContinuum>()->GetResults();
+    auto *sim_time =
+        op->GetImplementation<VerifyContinuum>()->GetSimulatedTime();
+    // Add all key values pairs to the TimeSeries
+    for (auto &pair : *results_continuum) {
+      ts->Add(pair.first, *sim_time, pair.second);
+    }
+
+    // Create a bdm LineGraph that visualizes the TimeSeries data for the
+    // continuum
+    {
+      // Plot for nutrients
+      bdm::experimental::LineGraph g3(ts, "Nutrients", "Time", "Value", true);
+      g3.Add("Nutrients_avg", "Nutrients (avg)", "L", kRed, 1.0);
+      g3.Add("Nutrients_min", "Nutrients (min)", "L", kGreen, 1.0);
+      g3.Add("Nutrients_max", "Nutrients (max)", "L", kBlack, 1.0);
+      g3.Draw();
+      g3.SaveAs(Concat(sim->GetOutputDir(), "/continuum_values_nutrients"),
+                {".svg", ".png"});
+    }
+    {
+      // Plot for VEGF
+      bdm::experimental::LineGraph g3(ts, "VEGF", "Time", "Value", true);
+      g3.Add("VEGF_avg", "VEGF (avg)", "L", kRed, 1.0);
+      g3.Add("VEGF_min", "VEGF (min)", "L", kGreen, 1.0);
+      g3.Add("VEGF_max", "VEGF (max)", "L", kBlack, 1.0);
+      g3.Draw();
+      g3.SaveAs(Concat(sim->GetOutputDir(), "/continuum_values_vegf"),
+                {".svg", ".png"});
+    }
+    {
+      // Plot for DOX
+      bdm::experimental::LineGraph g3(ts, "DOX", "Time", "Value", true);
+      g3.Add("DOX_avg", "DOX (avg)", "L", kRed, 1.0);
+      g3.Add("DOX_min", "DOX (min)", "L", kGreen, 1.0);
+      g3.Add("DOX_max", "DOX (max)", "L", kBlack, 1.0);
+      g3.Draw();
+      g3.SaveAs(Concat(sim->GetOutputDir(), "/continuum_values_dox"),
+                {".svg", ".png"});
+    }
+    {
+      // Plot for TRA
+      bdm::experimental::LineGraph g3(ts, "TRA", "Time", "Value", true);
+      g3.Add("TRA_avg", "TRA (avg)", "L", kRed, 1.0);
+      g3.Add("TRA_min", "TRA (min)", "L", kGreen, 1.0);
+      g3.Add("TRA_max", "TRA (max)", "L", kBlack, 1.0);
+      g3.Draw();
+      g3.SaveAs(Concat(sim->GetOutputDir(), "/continuum_values_tra"),
+                {".svg", ".png"});
+    }
+  }
 }
 }  // namespace bdm
