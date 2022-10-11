@@ -62,8 +62,7 @@ void SproutingAngiogenesis::Run(Agent* agent) {
   }
 
   /// 1. Check if the concentration of VEGF is above a certain threshold
-  double my_vegf_concentration =
-      dg_guide_->GetConcentration(dendrite->GetPosition());
+  double my_vegf_concentration = dg_guide_->GetValue(dendrite->GetPosition());
   if (my_vegf_concentration < sparam->vegf_threshold_sprouting) {
     return;
   }
@@ -263,11 +262,11 @@ void NutrientSupply::Run(Agent* agent) {
 
       double scale_factor{0.0};
       if (use_for_consumption_) {
-        scale_factor = (dgrid_->GetLowerThreshold() -
-                        dgrid_->GetConcentration(sample_points_[i]));
+        scale_factor =
+            (dgrid_->GetLowerThreshold() - dgrid_->GetValue(sample_points_[i]));
       } else {
-        scale_factor = (dgrid_->GetUpperThreshold() -
-                        dgrid_->GetConcentration(sample_points_[i]));
+        scale_factor =
+            (dgrid_->GetUpperThreshold() - dgrid_->GetValue(sample_points_[i]));
       }
       double delta_concentration = scale_factor * quantity_ *
                                    sample_weights_[i] *

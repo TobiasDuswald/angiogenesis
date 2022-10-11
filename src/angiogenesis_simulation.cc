@@ -183,9 +183,9 @@ int Simulate(int argc, const char** argv) {
   // Define nutrients with constant initial conditions
   ModelInitializer::DefineSubstance(
       Substances::kNutrients, "Nutrients", sparam->diffusion_nutrients,
-      sparam->decay_rate_nutrients, sparam->diffusion_resolution);
-  auto SetInitialValuesGridNutrients = [&](double x, double y, double z) {
-    // return sparam->initial_nutrient_concentration;
+      sparam->decay_rate_nutrients, sparam->diffusion_resolution_nutrients);
+  auto SetInitialValuesGridNutrients = [&sparam](double x, double y, double z) {
+    // return sparam->initial_concentration_nutrients;
     return sparam->hypoxic_threshold * 0.5;
   };
   ModelInitializer::InitializeSubstance(Substances::kNutrients,
@@ -194,12 +194,32 @@ int Simulate(int argc, const char** argv) {
   // Define nutrients with constant initial conditions
   ModelInitializer::DefineSubstance(
       Substances::kVEGF, "VEGF", sparam->diffusion_vegf,
-      sparam->decay_rate_vegf, sparam->diffusion_resolution);
-  auto SetInitialValuesGridVEGF = [&](double x, double y, double z) {
-    return 0.0;
+      sparam->decay_rate_vegf, sparam->diffusion_resolution_vegf);
+  auto SetInitialValuesGridVEGF = [&sparam](double x, double y, double z) {
+    return sparam->initial_concentration_vegf;
   };
   ModelInitializer::InitializeSubstance(Substances::kVEGF,
                                         SetInitialValuesGridVEGF);
+
+  // Define nutrients with constant initial conditions
+  ModelInitializer::DefineSubstance(
+      Substances::kTRA, "TRA", sparam->diffusion_tra, sparam->decay_rate_tra,
+      sparam->diffusion_resolution_tra);
+  auto SetInitialValuesGridTRA = [&sparam](double x, double y, double z) {
+    return sparam->initial_concentration_tra;
+  };
+  ModelInitializer::InitializeSubstance(Substances::kTRA,
+                                        SetInitialValuesGridTRA);
+
+  // Define nutrients with constant initial conditions
+  ModelInitializer::DefineSubstance(
+      Substances::kDOX, "DOX", sparam->diffusion_dox, sparam->decay_rate_dox,
+      sparam->diffusion_resolution_dox);
+  auto SetInitialValuesGridDOX = [&sparam](double x, double y, double z) {
+    return sparam->initial_concentration_dox;
+  };
+  ModelInitializer::InitializeSubstance(Substances::kDOX,
+                                        SetInitialValuesGridDOX);
 
   // Define upper and lower threshold for nutrients
   rm->ForEachDiffusionGrid([&](DiffusionGrid* grid) {
@@ -210,13 +230,32 @@ int Simulate(int argc, const char** argv) {
   // ---------------------------------------------------------------------------
   // 3. Define initial configurations of agents
   // ---------------------------------------------------------------------------
-  std::vector<Double3> cell_positions = {{0, 50, 0},       {0, 30, 20},
-                                         {0, 70, 50},      {-200, -160, 300},
-                                         {-400, -100, 60}, {-300, 100, -200}};
-  PlaceTumorCells(cell_positions);
-  ModelInitializer::CreateAgentsInSphereRndm({0, 60, 40}, 100, 150,
-                                             CreateTumorCell);
-  PlaceVessel({-200, 0, -400}, {-200, 0, 400}, sparam->default_vessel_length);
+  {
+    Timing timer_set_up("Initialize agents");
+
+    // Old single cell initialization
+    // std::vector<Double3> cell_positions = {{0, 50, 0},       {0, 30, 20},
+    //                                        {0, 70, 50},      {-200, -160,
+    //                                        300},
+    //                                        {-400, -100, 60}, {-300, 100,
+    //                                        -200}};
+    // PlaceTumorCells(cell_positions);
+
+    // Place tumor cells
+    const uint64_t num_cells = 500;
+    const double filled_volume = 0.7;
+    const double R =
+        std::pow(num_cells * std::pow(sparam->cell_radius, 3) / filled_volume,
+                 1.0 / 3.0);
+    ModelInitializer::CreateAgentsInSphereRndm({0, 0, 0}, R, num_cells,
+                                               CreateTumorCell);
+
+    // Place vessels
+    PlaceVessel({-200, 0, -400}, {-200, 0, 400}, sparam->default_vessel_length);
+    PlaceVessel({200, 0, -400}, {200, 0, 400}, sparam->default_vessel_length);
+    PlaceVessel({0, -400, 200}, {0, 400, 200}, sparam->default_vessel_length);
+    PlaceVessel({0, -400, -200}, {0, 400, -200}, sparam->default_vessel_length);
+  }
 
   // ---------------------------------------------------------------------------
   // 4. Track simulation results over time with timeseries objects

@@ -107,7 +107,6 @@ void TumorCell::Initialize(const NewAgentEvent& event) {
     daughter->growth_rate_ = mother_cell->growth_rate_;
     daughter->max_radius_ = mother_cell->max_radius_;
     daughter->nuclear_radius_ = mother_cell->nuclear_radius_;
-    daughter->diffusion_substance_id_ = mother_cell->diffusion_substance_id_;
 
     // Update the action radi of the cells
     mother_cell->UpdateActionRadius();
@@ -191,36 +190,57 @@ Double3 TumorCell::CalculateDisplacement(const InteractionForce* force,
 }
 
 void TumorCell::UpdateCellCycle() {
-  auto* random = Simulation::GetActive()->GetRandom();
-  const auto* param = Simulation::GetActive()->GetParam();
+  // 1. Get necessary objects for computation
+  auto* sim = Simulation::GetActive();
+  auto* rm = sim->GetResourceManager();
+  auto* random = sim->GetRandom();
+  const auto* param = sim->GetParam();
   const auto* sparam = param->Get<SimParam>();
+
+  // 1.1 Get all necessary diffusion grids
+  auto* dgrid_nutrients = rm->GetDiffusionGrid(Substances::kNutrients);
+  auto* dgrid_tra = rm->GetDiffusionGrid(Substances::kTRA);
+  auto* dgrid_dox = rm->GetDiffusionGrid(Substances::kDOX);
+
+  // 2. Compute the time since the last state transition
   const double current_time =
       Simulation::GetActive()->GetScheduler()->GetSimulatedTime();
   const double time_in_state = current_time - t_last_state_transition_;
   const double duplication_time =
       sparam->duration_cell_cycle - sparam->duration_growth_phase;
-  // Quiescent states stochastically transition into the states proliferative
-  // or dead with certain probabilities.
+
+  // 3. Cell state transitions
   if (cell_state_ == CellState::kQuiescent) {
-    double sigma{0.0};
-    auto* diffusion_grid =
-        Simulation::GetActive()->GetResourceManager()->GetDiffusionGrid(
-            diffusion_substance_id_);
-    sigma = diffusion_grid->GetConcentration(GetPosition());
-    if (sigma < sparam->hypoxic_threshold) {
-      // If a quiescent cell lies in a hypoxic area, it turns hypoxic.
+    // 3.1 Quiescent states stochastically transition into the states
+    // proliferative or dead with certain probabilities.
+    const double nutrients = dgrid_nutrients->GetValue(GetPosition());
+    const double tra = dgrid_nutrients->GetValue(GetPosition());
+    const double dox = dgrid_nutrients->GetValue(GetPosition());
+
+    if (nutrients < sparam->hypoxic_threshold) {
+      // 3.2 Deterministic transition into the hypoxic state depending on the
+      // nutrient concentration.
       SetCellState(CellState::kHypoxic);
       return;
     }
-    double probability_death =
-        ComputeProbabilityDeath(sigma, param->simulation_time_step, sparam);
-    double probability_prolif = ComputeProbabilityProliferative(
-        sigma, param->simulation_time_step, sparam);
+
+    // 3.3 Compute probabilities for transition into proliferative or dead
+    // state. Typically the probability for the transitions is rather small, and
+    // we use a random uniform number r in [0,1] to decide whether the
+    // transition happens or not.
+    double probability_death = ComputeProbability_Q_To_D(
+        nutrients, tra, dox, param->simulation_time_step, sparam);
+    double probability_prolif = ComputeProbability_Q_To_SG2(
+        nutrients, tra, param->simulation_time_step, sparam);
     double decision_variable = random->Uniform();
+
+    // 3.4 Transition from quiescent to other states
     if (decision_variable < probability_prolif) {
+      // Transition into proliferative SG2 state
       SetCellState(CellState::kProliferativeSG2);
       t_last_state_transition_ = current_time;
     } else if (decision_variable < probability_prolif + probability_death) {
+      // Transition into dead state, trigger apoptosis
       SetCellState(CellState::kDead);
       t_last_state_transition_ = current_time;
       // decrease of cell volume per step due to apoptosis
@@ -228,51 +248,79 @@ void TumorCell::UpdateCellCycle() {
     } else {
       ;
     }
-    // Cells in the state kProliferativeSG2 don't do anything until the have
-    // finished duplicating their DNA (etc.) after \tau_p-\tau_G1. Once that
-    // has happened, the cell divides and enters into the G1 growth phase.
-  } else if (cell_state_ == CellState::kProliferativeSG2 &&
-             time_in_state > duplication_time) {
-    t_last_state_transition_ = current_time;
-    SetCellState(CellState::kProliferativeG1);
-    Divide();
-    // Cells in the cell states kProliferativeG1 increase their volume linearly
-    // and after a certain time \tau_G1 they stop and enter the quiescent state.
+  } else if (cell_state_ == CellState::kProliferativeSG2) {
+    // 3.5 Cells in the state kProliferativeSG2 don't do anything until the have
+    // finished duplicating their DNA (etc.) after \tau_p-\tau_G1
+    // (=duration_time). Once that has happened, the cell divides and enters
+    // into the G1 growth phase.
+    if (time_in_state > duplication_time) {
+      t_last_state_transition_ = current_time;
+      SetCellState(CellState::kProliferativeG1);
+      Divide();
+    }
+    // In the presence of DOX, cells in the proliferative phase can also
+    // transition into the dead state or remain in the proliferative phase
+    // longer.
+    const double dox = dgrid_dox->GetValue(GetPosition());
+    const double probability_reset =
+        ComputeProbability_SG2_To_SG2(dox, param->simulation_time_step, sparam);
+    const double probability_death =
+        ComputeProbability_SG2_To_D(dox, param->simulation_time_step, sparam);
+    double decision_variable = random->Uniform();
+    if (decision_variable < probability_reset) {
+      // Remain in proliferative SG2 state
+      t_last_state_transition_ = current_time;
+    } else if (decision_variable < probability_reset + probability_death) {
+      // Transition into dead state, trigger apoptosis
+      SetCellState(CellState::kDead);
+      t_last_state_transition_ = current_time;
+      // decrease of cell volume per step due to apoptosis
+      ComputeApoptosisVolumeDecrease(sparam->duration_apoptosis);
+    } else {
+      ;  // Remain in proliferative SG2 state without resetting the time
+    }
   } else if (cell_state_ == CellState::kProliferativeG1) {
-    // ToDo increase volume linearly;
+    // 3.6 Cells in the cell states kProliferativeG1 increase their volume
+    // linearly
     ChangeVolume(growth_rate_);
     if (time_in_state > sparam->duration_growth_phase) {
+      // 3.7 after a certain time \tau_G1 (=duration_growth_phase) they stop and
+      // enter into the quiescent state.
       SetCellState(CellState::kQuiescent);
       t_last_state_transition_ = current_time;
     }
   } else if (cell_state_ == CellState::kDead) {
-    // decrease volume with previously computed negative growth rate
+    // 3.8 Decrease volume with previously computed negative growth rate
     // (ComputeApoptosisVolumeDecrease)
     if (!sparam->keep_dead_cells) {
       ChangeVolume(growth_rate_);
       if (GetRadius() < GetNuclearRadius()) {
+        // 3.9 Once the radius of the cell is as small as the radius of the
+        // nucleus, the cell is removed from the simulation.
         RemoveFromSimulation();
       }
     }
   } else if (cell_state_ == CellState::kHypoxic) {
-    auto* diffusion_grid =
-        Simulation::GetActive()->GetResourceManager()->GetDiffusionGrid(
-            diffusion_substance_id_);
-    auto sigma = diffusion_grid->GetConcentration(GetPosition());
-    if (sigma > sparam->hypoxic_threshold) {
-      // If nutrients are available, the cell enters the quiescent state.
+    // 3.10 Hypoxic cells are idle until they receive enough nutrients to
+    // transition into the quiescent state. We first get the nutrients
+    auto nutrients = dgrid_nutrients->GetValue(GetPosition());
+    if (nutrients > sparam->hypoxic_threshold) {
+      // 3.11 If nutrients are available, the cell enters the quiescent state.
       SetCellState(CellState::kQuiescent);
       t_last_state_transition_ = current_time;
-      // // The following code can be commented out to allow cells to transition
-      // // from the hypoxic to the dead state.
-      // } else if (sigma < 0.25 * sparam->hypoxic_threshold) {
-      //   // If the nutrients get even lower, the cell dies.
-      //   SetCellState(CellState::kDead);
-      //   t_last_state_transition_ = current_time;
-      //   ComputeApoptosisVolumeDecrease(sparam->duration_apoptosis);
     } else {
-      // Cell remains in hypoxic state.
-      ;
+      // 3.12 If nutrients are not available, the cell stays in the hypoxic
+      // state or might (stochastically) transition into the dead state.
+      const double tra = dgrid_tra->GetValue(GetPosition());
+      const double dox = dgrid_dox->GetValue(GetPosition());
+      const double probability_death = ComputeProbability_H_To_D(
+          tra, dox, param->simulation_time_step, sparam);
+      const double decision_variable = random->Uniform();
+      if (decision_variable < probability_death) {
+        SetCellState(CellState::kDead);
+        t_last_state_transition_ = current_time;
+        ComputeApoptosisVolumeDecrease(sparam->duration_apoptosis);
+      }
     }
   } else {  // In any other case do nothing.
     ;       // do nothing
@@ -285,7 +333,7 @@ void TumorCell::ChangeVolume(double speed) {
   double delta = speed * param->simulation_time_step;
   double volume = GetVolume();
   volume += delta;
-  // Compute the new redius of the cell from volume
+  // Compute the new radius of the cell from volume
   double radius = std::cbrt(volume * 3 / (4 * Math::kPi));
   if (radius > radius_) {
     Base::SetPropagateStaticness();  // copied from cell implementation
@@ -321,11 +369,11 @@ void UpdateHypoxic::Run(Agent* agent) {
   auto* tumor_cell = dynamic_cast<TumorCell*>(agent);
   if (tumor_cell) {
     auto* sparam = Simulation::GetActive()->GetParam()->Get<SimParam>();
-    auto* diffusion_grid =
+    auto* dgrid_nutrients =
         Simulation::GetActive()->GetResourceManager()->GetDiffusionGrid(
-            substance_id_);
-    auto sigma = diffusion_grid->GetConcentration(tumor_cell->GetPosition());
-    if (sigma < sparam->hypoxic_threshold) {
+            Substances::kNutrients);
+    auto nutrients = dgrid_nutrients->GetValue(tumor_cell->GetPosition());
+    if (nutrients < sparam->hypoxic_threshold) {
       tumor_cell->SetCellState(CellState::kHypoxic);
     } else {
       tumor_cell->SetCellState(CellState::kQuiescent);

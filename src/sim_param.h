@@ -24,12 +24,16 @@
 namespace bdm {
 
 // Available substances in Simulation
-enum Substances { kNutrients, kVEGF };
+enum Substances { kNutrients, kVEGF, kTRA, kDOX };
 
 // This class defines parameters that are specific to this simulation. The unit
 // h refers to hours.
 struct SimParam : public ParamGroup {
   BDM_PARAM_GROUP_HEADER(SimParam, 1);
+
+  // -----------------------------------------------------------------------
+  // Simulation parameters
+  // -----------------------------------------------------------------------
 
   // Total simulation time (unit [min]). This unit carries over to
   // bdm::Param.simulation_time_step. E.g. a timestep of 0.01 [min] = 0.6 sec.
@@ -46,14 +50,19 @@ struct SimParam : public ParamGroup {
   // // the simulation (uint [1])
   // u_int64_t no_cells{1000};
 
-  // Length of vessels at initialization
-  double default_vessel_length{10};
-
   // Lower bound for the domain (applies to x,y,z; unit [\mu m])
   double lower_bound{-200.0};
 
   // Upper bound for the domain (applies to x,y,z; unit [\mu m])
   double upper_bound{200.0};
+
+  // Parameter to decide if dead cells decrease in size and are removed or if we
+  // keep them in the simulation.
+  bool keep_dead_cells{false};
+
+  // -----------------------------------------------------------------------
+  // TumorCell parameters
+  // -----------------------------------------------------------------------
 
   // Cell radius (unit [\mu m])
   double cell_radius{9.953};
@@ -69,6 +78,10 @@ struct SimParam : public ParamGroup {
   // (unit [1])
   double action_radius_factor{1.214};
 
+  // -----------------------------------------------------------------------
+  // Cell cycle parameters
+  // -----------------------------------------------------------------------
+
   // Duration of the cell cycle (numeric parameter \tau_{P}, unit [min])
   double duration_cell_cycle{18.0 * 60.0};
 
@@ -78,21 +91,87 @@ struct SimParam : public ParamGroup {
   // Duration of apoptosis
   double duration_apoptosis{8.6 * 60.0};
 
-  // Apoptosis rate (numeric parameter \bar{\alpha}_{D}, unit [min^{-1}])
-  double apoptosis_rate{0.000408 / 60.0};
-
-  // Undefined rate governing the transition from quiescent to proliferative
-  // (numeric parameter \bar{\alpha}_{P}, unit [min^{-1}])
-  double qp_transition_rate{0.0493 / 60.0};
-
   // Hypoxic threshold (numeric parameter \sigma_{H}, unit [1])
   double hypoxic_threshold{0.0538};
 
-  // Mathematical parameter k (unit [1])
-  double k{50.0};
+  // Probability parameters for the transition from G1 to D modulated by the
+  // nutrients N
+  double threshold_Q_D_N{0.0538};
+  double gamma_Q_D_N{0.0245 / 60.0};
+  double alpha_Q_D_N{0.000408 / 60.0};
+  double k_Q_D_N{50.0};
 
-  // Gamma factor relating cell death and lack of nutrients (unit [min^{-1}]))
-  double gamma{0.0245 / 60.0};
+  // Probability parameters for the transition from G1 to SG2 modulated by the
+  // nutrients N
+  double threshold_Q_SG2_N{0.0538};
+  double alpha_Q_SG2_N{0.0493 / 60.0};
+
+  // Probability parameters for the transition from G1 to SG2 modulated by
+  // the drug TRA
+  // double threshold_Q_SG2_TRA{0.1};
+  // double gamma_Q_SG2_TRA{1.0};
+  double alpha_Q_SG2_TRA{5};
+  // double k_Q_SG2_TRA{30.0};
+
+  // // Probability parameters for the transition from G to D modulated by the
+  // // drug DOX
+  // double threshold_Q_D_DOX{0.1};
+  // double gamma_Q_D_DOX{1.0};
+  // double alpha_Q_D_DOX{0.1};
+  // double k_Q_D_DOX{30.0};
+
+  // // Probability parameters for the transition from G to D modulated by the
+  // // drug TRA
+  // double threshold_Q_D_TRA{0.1};
+  // double gamma_Q_D_TRA{1.0};
+  // double alpha_Q_D_TRA{0.1};
+  // double k_Q_D_TRA{30.0};
+
+  // Probability parameters for the transition from SG2 to SG2 modulated by the
+  // drug DOX, e.g. probability to be trapped in SG2 due to drug DOX
+  double threshold_SG2_SG2_DOX{0.1};
+  double gamma_SG2_SG2_DOX{1.0};
+  double alpha_SG2_SG2_DOX{0.1};
+  double k_SG2_SG2_DOX{30.0};
+
+  // Probability parameters for the transition from SG2 to D modulated by the
+  // drug DOX
+  double threshold_SG2_D_DOX{0.1};
+  double gamma_SG2_D_DOX{1.0};
+  double alpha_SG2_D_DOX{0.1};
+  double k_SG2_D_DOX{30.0};
+
+  // Probability parameters for the transition from H to D modulated by the
+  // drug TRA
+  double threshold_H_D_TRA{0.1};
+  double gamma_H_D_TRA{1.0};
+  double alpha_H_D_TRA{0.1};
+  double k_H_D_TRA{30.0};
+
+  // Probability parameters for the transition from H to D modulated by the
+  // drug DOX
+  double threshold_H_D_DOX{0.1};
+  double gamma_H_D_DOX{1.0};
+  double alpha_H_D_DOX{0.1};
+  double k_H_D_DOX{30.0};
+
+  // -----------------------------------------------------------------------
+  // Agent-Continuum interaction parameters
+  // -----------------------------------------------------------------------
+
+  // Uptake rate of glucose by cells (unit [min^{-1}])
+  double uptake_rate_glucose{0.0483 / 60.0};
+
+  // Secretion rate tumor cells, i.e.how much VEGF is released by a tumor cell
+  // per minute.
+  double secretion_rate_vegf{0.03 / 60.0};
+
+  // VEGF threshold for sprouting
+  double vegf_threshold_sprouting{1e-3};
+
+  // -----------------------------------------------------------------------
+  // Forces
+  // -----------------------------------------------------------------------
 
   // Viscosity of the surrounding (numerical parameter \nu - not defined in
   // paper, taken/assumed from Git)
@@ -109,26 +188,31 @@ struct SimParam : public ParamGroup {
   // Numeric parameter c_{ccr}for force, unit [\mu m / min].
   double repulsive_scale_parameter{10.0};
 
-  // Resolution of the diffusion grid. Gets forwarded to DiffusionGrid
-  // constructor
-  int diffusion_resolution{50};
+  // -----------------------------------------------------------------------
+  // Continuum parameters
+  // -----------------------------------------------------------------------
 
-  // Diffusion coefficient for glucose (unit [\mu m / min])
+  // Resolution of the nutrients (glucose) diffusion grid. Gets forwarded to
+  // DiffusionGrid constructor
+  int diffusion_resolution_nutrients{50};
+
+  // Initial value of the nutrients (glucose) concentration, uniform over grid
+  // (unit [1])
+  double initial_concentration_nutrients{0.5};
+
+  // Diffusion coefficient for nutrients (glucose) (unit [\mu m / min])
   double diffusion_nutrients{50.0 / 60.0};
 
-  // Uptake rate of glucose by cells (unit [min^{-1}])
-  double uptake_rate_glucose{0.0483 / 60.0};
-
-  // Initial value of the glucose concentarion, uniform over grid (unit [1])
-  double initial_nutrient_concentration{0.5};
-
-  // The decay constant of glucose. It basically describes an exponential
-  // decay for each point in the diffusion grid.
+  // The decay constant of nutrients (glucose). It basically describes an
+  // exponential decay for each point in the diffusion grid.
   double decay_rate_nutrients{0.00001};
 
-  // Secretion rate tumor cells, i.e. how much VEGF is released by a tumor cell
-  // per minute.
-  double secretion_rate_vegf{0.03 / 60.0};
+  // Resolution of the nutrients VEGF grid. Gets forwarded to
+  // DiffusionGrid constructor
+  int diffusion_resolution_vegf{50};
+
+  // Initial value of the VEGF concentration, uniform over grid (unit [1])
+  double initial_concentration_vegf{0.0};
 
   // Diffusion constant for VEGF
   double diffusion_vegf{40.0 / 60.0};
@@ -136,16 +220,38 @@ struct SimParam : public ParamGroup {
   // Decay constant for VEGF
   double decay_rate_vegf{0.0};
 
-  // Parameter to decide if dead cells decrease in size and are removed or if we
-  // keep them in the simulation.
-  bool keep_dead_cells{false};
+  // Resolution of the nutrients TRA grid. Gets forwarded to
+  // DiffusionGrid constructor
+  int diffusion_resolution_tra{3};
 
-  //////////////////////////////////////////////////////////////////////////////
+  // Initial value of the TRA concentration, uniform over grid (unit [1])
+  double initial_concentration_tra{0.0};
+
+  // Diffusion constant for TRA
+  double diffusion_tra{0.0};
+
+  // Decay constant for TRA
+  double decay_rate_tra{0.0};
+
+  // Resolution of the nutrients DOX grid. Gets forwarded to
+  // DiffusionGrid constructor
+  int diffusion_resolution_dox{3};
+
+  // Initial value of the DOX concentration, uniform over grid (unit [1])
+  double initial_concentration_dox{0.0};
+
+  // Diffusion constant for DOX
+  double diffusion_dox{0.0};
+
+  // Decay constant for DOX
+  double decay_rate_dox{0.0};
+
+  // -----------------------------------------------------------------------
   // Vessel parameters
-  //////////////////////////////////////////////////////////////////////////////
+  // -----------------------------------------------------------------------
 
-  // VEGF threshold for sprouting
-  double vegf_threshold_sprouting{1e-3};
+  // Length of vessels at initialization
+  double default_vessel_length{10};
 
   // VEGF gradient threshold for apical growth
   double vegf_grad_threshold_apical_growth{1e-5};

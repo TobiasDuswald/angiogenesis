@@ -236,8 +236,8 @@ TEST(TumorCellTest, HypoxicSecretion) {
 
   auto* dgrid = Simulation::GetActive()->GetResourceManager()->GetDiffusionGrid(
       substance_name);
-  auto value_hypoxic = dgrid->GetConcentration(pos_hypoxic);
-  auto value_quiescent = dgrid->GetConcentration(pos_quiescent);
+  auto value_hypoxic = dgrid->GetValue(pos_hypoxic);
+  auto value_quiescent = dgrid->GetValue(pos_quiescent);
   EXPECT_EQ(10, value_hypoxic);
   EXPECT_EQ(0, value_quiescent);
 }

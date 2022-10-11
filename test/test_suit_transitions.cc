@@ -12,64 +12,152 @@
 // -----------------------------------------------------------------------------
 
 #include <gtest/gtest.h>
+#include <array>
 #include "modules/transition_probabilities.h"
 #include "sim_param.h"
 
 namespace bdm {
 
-// The SimParam struct can compute the probability of cell to transition into
-// the death state. This computation in tested here.
-TEST(SimParam, ComputeProbabilityDeath) {
+TEST(TransitionFunctions, ComputeProbability_Q_To_D) {
   auto sparam = SimParam();
   // Set values used in reference solution.
-  sparam.apoptosis_rate = 0.000408 / 60.0;
-  sparam.k = 50.0;
-  sparam.gamma = 0.0245 / 60.0;
-  sparam.hypoxic_threshold = 0.0538;
+  sparam.alpha_Q_D_N = 0.000408 / 60.0;
+  sparam.k_Q_D_N = 50.0;
+  sparam.gamma_Q_D_N = 0.0245 / 60.0;
+  sparam.threshold_Q_D_N = 0.0538;
 
   // Test some numeric values of the function
   EXPECT_FLOAT_EQ(4.100812398e-06,
-                  ComputeProbabilityDeath(0.01, 0.01, &sparam));
+                  ComputeProbability_Q_To_D(0.01, 0, 0, 0.01, &sparam));
   EXPECT_FLOAT_EQ(3.8054246159e-06,
-                  ComputeProbabilityDeath(0.03, 0.01, &sparam));
+                  ComputeProbability_Q_To_D(0.03, 0, 0, 0.01, &sparam));
   EXPECT_FLOAT_EQ(2.4929787294e-06,
-                  ComputeProbabilityDeath(0.05, 0.01, &sparam));
+                  ComputeProbability_Q_To_D(0.05, 0, 0, 0.01, &sparam));
   EXPECT_FLOAT_EQ(7.425862775e-07,
-                  ComputeProbabilityDeath(0.07, 0.01, &sparam));
+                  ComputeProbability_Q_To_D(0.07, 0, 0, 0.01, &sparam));
   EXPECT_FLOAT_EQ(1.0783971216e-07,
-                  ComputeProbabilityDeath(0.10, 0.01, &sparam));
-  EXPECT_FLOAT_EQ(0.00816809991, ComputeProbabilityDeath(0.01, 20.0, &sparam));
-  EXPECT_FLOAT_EQ(0.00758197442, ComputeProbabilityDeath(0.03, 20.0, &sparam));
-  EXPECT_FLOAT_EQ(0.00497355438, ComputeProbabilityDeath(0.05, 20.0, &sparam));
-  EXPECT_FLOAT_EQ(0.00148407078, ComputeProbabilityDeath(0.07, 20.0, &sparam));
-  EXPECT_FLOAT_EQ(0.00021565617, ComputeProbabilityDeath(0.10, 20.0, &sparam));
+                  ComputeProbability_Q_To_D(0.10, 0, 0, 0.01, &sparam));
+  EXPECT_FLOAT_EQ(0.00816809991,
+                  ComputeProbability_Q_To_D(0.01, 0, 0, 20.0, &sparam));
+  EXPECT_FLOAT_EQ(0.00758197442,
+                  ComputeProbability_Q_To_D(0.03, 0, 0, 20.0, &sparam));
+  EXPECT_FLOAT_EQ(0.00497355438,
+                  ComputeProbability_Q_To_D(0.05, 0, 0, 20.0, &sparam));
+  EXPECT_FLOAT_EQ(0.00148407078,
+                  ComputeProbability_Q_To_D(0.07, 0, 0, 20.0, &sparam));
+  EXPECT_FLOAT_EQ(0.00021565617,
+                  ComputeProbability_Q_To_D(0.10, 0, 0, 20.0, &sparam));
 }
 
-// The SimParam struct can compute the probability of cell to transition into
-// the proliferative state. This computation in tested here.
-TEST(SimParam, ComputeProbabilityProliferative) {
+TEST(TransitionFunctions, ComputeProbability_Q_To_SG2) {
   auto sparam = SimParam();
   // Set values used in reference solution.
-  sparam.qp_transition_rate = 0.0493 / 60.0;
-  sparam.hypoxic_threshold = 0.0538;
+  sparam.alpha_Q_SG2_N = 0.0493 / 60.0;
+  sparam.threshold_Q_SG2_N = 0.0538;
 
   // Test some numeric values of the function
-  EXPECT_FLOAT_EQ(0.0, ComputeProbabilityProliferative(0.01, 0.01, &sparam));
-  EXPECT_FLOAT_EQ(0.0, ComputeProbabilityProliferative(0.03, 0.01, &sparam));
-  EXPECT_FLOAT_EQ(0.0, ComputeProbabilityProliferative(0.05, 0.01, &sparam));
+  EXPECT_FLOAT_EQ(0.0, ComputeProbability_Q_To_SG2(0.01, 0, 0.01, &sparam));
+  EXPECT_FLOAT_EQ(0.0, ComputeProbability_Q_To_SG2(0.03, 0, 0.01, &sparam));
+  EXPECT_FLOAT_EQ(0.0, ComputeProbability_Q_To_SG2(0.05, 0, 0.01, &sparam));
   EXPECT_FLOAT_EQ(1.4067849363197382e-07,
-                  ComputeProbabilityProliferative(0.07, 0.01, &sparam));
+                  ComputeProbability_Q_To_SG2(0.07, 0, 0.01, &sparam));
   EXPECT_FLOAT_EQ(4.011941702186661e-07,
-                  ComputeProbabilityProliferative(0.10, 0.01, &sparam));
-  EXPECT_FLOAT_EQ(0.0, ComputeProbabilityProliferative(0.01, 20.0, &sparam));
-  EXPECT_FLOAT_EQ(0.0, ComputeProbabilityProliferative(0.03, 20.0, &sparam));
+                  ComputeProbability_Q_To_SG2(0.10, 0, 0.01, &sparam));
+  EXPECT_FLOAT_EQ(0.0, ComputeProbability_Q_To_SG2(0.01, 0, 20.0, &sparam));
+  EXPECT_FLOAT_EQ(0.0, ComputeProbability_Q_To_SG2(0.03, 0, 20.0, &sparam));
   EXPECT_FLOAT_EQ(0.005994663318752647,
-                  ComputeProbabilityProliferative(0.4, 20.0, &sparam));
+                  ComputeProbability_Q_To_SG2(0.4, 0, 20.0, &sparam));
   EXPECT_FLOAT_EQ(0.01629904273146321,
-                  ComputeProbabilityProliferative(1.0, 20.0, &sparam));
+                  ComputeProbability_Q_To_SG2(1.0, 0, 20.0, &sparam));
   EXPECT_FLOAT_EQ(0.049881690944160284,
-                  ComputeProbabilityProliferative(3.0, 20.0, &sparam));
+                  ComputeProbability_Q_To_SG2(3.0, 0, 20.0, &sparam));
   EXPECT_FLOAT_EQ(0.09811829568804986,
-                  ComputeProbabilityProliferative(6.0, 20.0, &sparam));
+                  ComputeProbability_Q_To_SG2(6.0, 0, 20.0, &sparam));
 }
+
+/// Test that the transition probabilities decrease with increasing TRA
+TEST(TransitionFunctions, ComputeProbability_Q_To_SG2_TRA) {
+  auto sparam = SimParam();
+  // Set values used in reference solution.
+  sparam.alpha_Q_SG2_N = 0.0493 / 60.0;
+  sparam.threshold_Q_SG2_N = 0.0538;
+  const double dt = 0.1;
+
+  // Define numeric value for nutrients and TRA concentration
+  std::vector<double> nutrients = {0.1, 0.3, 0.5, 0.7, 0.9};
+  std::vector<double> tra = {0.1, 0.3, 0.5, 0.7, 0.9};
+
+  // Iterate over all combinations of nutrients and TRA concentration
+  double probability_1{0.0};
+  double probability_2{0.0};
+  for (auto n : nutrients) {
+    for (size_t i = 0; i < tra.size(); i++) {
+      double t = tra[i];
+      probability_2 = ComputeProbability_Q_To_SG2(n, t, dt, &sparam);
+      if (i > 0) {
+        EXPECT_LE(probability_2, probability_1);
+        if (probability_2 == probability_1) {
+          std::cout << "<Warning> Probability is equal for n = " << n
+                    << " and t = " << t << "\n  expected decrease."
+                    << std::endl;
+        }
+      }
+      probability_1 = probability_2;
+    }
+  }
+}
+
+TEST(TransitionFunctions, SmoothHeavisideForConcentration) {
+  // Parameter values used in reference solution
+  const double k = 8.0;
+  const double alpha = 3.0;
+  const double c_t = 0.5;
+  const double dt = 0.1;
+
+  // Concentrations (x values) used for testing
+  std::array<double, 13> concentrations(
+      {0, 0.1, 0.2, 0.3, 0.4, 0.45, 0.5, 0.55, 0.6, 0.7, 0.8, 0.9, 1.0});
+
+  // Reference values for the sigmoid function via Wolfram Alpha
+  std::array<double, 13> expected_results(
+      {0.329657, 0.329569, 0.329133, 0.327049, 0.318325, 0.308573, 0.295312,
+       0.281797, 0.271522, 0.262078, 0.259786, 0.259305, 0.259207});
+
+  // Test the sigmoid function for all concentrations
+  for (size_t i = 0; i < concentrations.size(); i++) {
+    // Reference solution is only given with 6 digits precision, thus we
+    // demand the same precision for the test -> 1e-6
+    EXPECT_LT(std::abs(expected_results[i] -
+                       SmoothHeavisideForConcentration(concentrations[i], c_t,
+                                                       alpha, k, dt)),
+              1e-6);
+  }
+}
+
+TEST(TransitionFunctions, LinearProbabilityIncreaseForConcentration) {
+  // Parameter values used in reference solution
+  const double alpha = 3.0;
+  const double c_t = 0.5;
+  const double dt = 0.1;
+
+  // Concentrations (x values) used for testing
+  std::array<double, 13> concentrations(
+      {0, 0.1, 0.2, 0.3, 0.4, 0.45, 0.5, 0.55, 0.6, 0.7, 0.8, 0.9, 1.0});
+
+  // Reference values for the sigmoid function via Python
+  std::array<double, 13> expected_results({0., 0., 0., 0., 0., 0., 0.,
+                                           0.02955447, 0.05823547, 0.11307956,
+                                           0.16472979, 0.21337214, 0.25918178});
+
+  // Test the function for all concentrations
+  for (size_t i = 0; i < concentrations.size(); i++) {
+    // Reference solution is only given with 6 digits precision, thus we
+    // demand the same precision for the test -> 1e-6
+    EXPECT_LT(std::abs(expected_results[i] -
+                       LinearProbabilityIncreaseForConcentration(
+                           concentrations[i], c_t, alpha, dt)),
+              1e-6);
+  }
+}
+
 }  // namespace bdm
