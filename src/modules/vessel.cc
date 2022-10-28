@@ -293,6 +293,9 @@ void LineContinuumInteraction::Run(Agent* agent) {
           continue;
         }
 
+        /// NOTE: replace with BDM native function as soon as in master to avoid
+        /// Thread race.
+
         // Logistic scaling of the supply
         double scale_factor{0.0};
         const double value = dg->GetValue(sample_points_[i]);
