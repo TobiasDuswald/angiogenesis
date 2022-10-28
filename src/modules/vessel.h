@@ -87,19 +87,19 @@ class ApicalGrowth : public Behavior {
 /// a quantity - note that this quantity is weighted with the vessel-agent's
 /// surface and corrected by a term that avoids overshooting the maximum
 /// concentration (logistic growth).
-class ContinuumInteraction : public Behavior {
-  BDM_BEHAVIOR_HEADER(ContinuumInteraction, Behavior, 1);
+class LineContinuumInteraction : public Behavior {
+  BDM_BEHAVIOR_HEADER(LineContinuumInteraction, Behavior, 1);
 
  public:
-  ContinuumInteraction() { AlwaysCopyToNew(); };
-  explicit ContinuumInteraction(double rate_nutrients, double rate_vegf,
-                                double rate_dox, double rate_tra)
+  LineContinuumInteraction() { AlwaysCopyToNew(); };
+  explicit LineContinuumInteraction(double rate_nutrients, double rate_vegf,
+                                    double rate_dox, double rate_tra)
       : interaction_rate_({rate_nutrients, rate_vegf, rate_dox, rate_tra}) {
     // Always copy the behavior to a new agent.
     AlwaysCopyToNew();
   }
 
-  virtual ~ContinuumInteraction() = default;
+  virtual ~LineContinuumInteraction() = default;
 
   void Initialize(const NewAgentEvent& event) override;
 

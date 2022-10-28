@@ -195,13 +195,14 @@ void ApicalGrowth::Run(Agent* agent) {
   dendrite->ElongateTerminalEnd(growth_speed, new_direction);
 }
 
-void ContinuumInteraction::Initialize(const NewAgentEvent& event) {
+void LineContinuumInteraction::Initialize(const NewAgentEvent& event) {
   Base::Initialize(event);
-  auto* other = dynamic_cast<ContinuumInteraction*>(event.existing_behavior);
+  auto* other =
+      dynamic_cast<LineContinuumInteraction*>(event.existing_behavior);
   interaction_rate_ = other->interaction_rate_;
 }
 
-void ContinuumInteraction::Run(Agent* agent) {
+void LineContinuumInteraction::Run(Agent* agent) {
   auto* vessel = dynamic_cast<Vessel*>(agent);
 
   // If the behaviour is assigned to a vessel and it is not part of the initial
@@ -316,7 +317,7 @@ void ContinuumInteraction::Run(Agent* agent) {
   }
 }
 
-void ContinuumInteraction::ComputeWeights() {
+void LineContinuumInteraction::ComputeWeights() {
   sample_weights_.resize(n_sample_points_);
   for (size_t i = 0; i < n_sample_points_; i++) {
     sample_weights_[i] = 1 / static_cast<double>(n_sample_points_ - 1);
@@ -325,8 +326,8 @@ void ContinuumInteraction::ComputeWeights() {
   sample_weights_[n_sample_points_ - 1] *= 0.5;
 }
 
-void ContinuumInteraction::ComputeSamplePoints(const Double3& start,
-                                               const Double3& end) {
+void LineContinuumInteraction::ComputeSamplePoints(const Double3& start,
+                                                   const Double3& end) {
   // Computes the sample points distributed along the line from start to end.
   // The sample points are equally spaced.
   sample_points_.resize(n_sample_points_);

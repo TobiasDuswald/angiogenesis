@@ -128,7 +128,7 @@ void inline PlaceVessel(Double3 start, Double3 end, double compartment_length) {
     // Add behaviours
     // vessel_compartment_2->AddBehavior(new SproutingAngiogenesis());
     vessel_compartment_2->AddBehavior(new ApicalGrowth());
-    vessel_compartment_2->AddBehavior(new ContinuumInteraction(
+    vessel_compartment_2->AddBehavior(new LineContinuumInteraction(
         sparam->nutrient_supply_rate_vessel,
         sparam->vegf_consumption_rate_vessel, sparam->dox_supply_rate_vessel,
         sparam->tra_supply_rate_vessel));
