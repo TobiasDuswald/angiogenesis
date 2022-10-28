@@ -52,16 +52,10 @@ auto CreateTumorCell(const Double3& position) {
   double growth_rate = 2.0 / 3.0 * Math::kPi * pow(random_radius, 3) /
                        (sparam->duration_growth_phase);
   tumor_cell->SetGrowthRate(growth_rate);
-  // Add a Secretion behaviour to the TumorCell such that it can secrete VEGF.
-  tumor_cell->AddBehavior(new HypoxicSecretion(
-      "VEGF", sparam->secretion_rate_vegf * param->simulation_time_step));
-  // // The following code is commented out but can be added to add nutrient
-  // // consumption of the tumor cells. Right now, it adds complexity to the
-  // // model but not a lot of benefit.
-  // // Add Nutrient consumption
-  // tumor_cell->AddBehavior(new Secretion(
-  //     "Nutrients", -sparam->uptake_rate_glucose *
-  //     param->simulation_time_step));
+  // Add the continuum interactions to the tumor cell.
+  tumor_cell->AddBehavior(new PointContinuumInteraction(
+      sparam->nutrient_consumption_rate_tcell, sparam->vegf_supply_rate_tcell,
+      sparam->dox_consumption_rate_tcell, sparam->tra_consumption_rate_tcell));
   // Add cell cycle
   tumor_cell->AddBehavior(new ProgressInCellCycle());
   return tumor_cell;

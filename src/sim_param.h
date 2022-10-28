@@ -181,6 +181,18 @@ struct SimParam : public ParamGroup {
   // Nutrient supply by vessel (unit Nutrients / (Area * min)])
   double tra_supply_rate_vessel{0.00001};
 
+  // Nutrient consumption by TumorCell (unit Nutrients / (min)])
+  double nutrient_consumption_rate_tcell{-0.0001};
+
+  // VEGF supply by TumorCell (unit Nutrients / (min)])
+  double vegf_supply_rate_tcell{0.001};
+
+  // Nutrient supply by TumorCell (unit Nutrients / (min)])
+  double dox_consumption_rate_tcell{-0.00000};
+
+  // Nutrient supply by TumorCell (unit Nutrients / (min)])
+  double tra_consumption_rate_tcell{-0.00000};
+
   // -----------------------------------------------------------------------
   // Forces
   // -----------------------------------------------------------------------
