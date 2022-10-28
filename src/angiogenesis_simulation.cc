@@ -126,11 +126,12 @@ void inline PlaceVessel(Double3 start, Double3 end, double compartment_length) {
     vessel_compartment_2->SetDiameter(15);
     vessel_compartment_2->ProhibitGrowth();
     // Add behaviours
-    vessel_compartment_2->AddBehavior(new SproutingAngiogenesis());
+    // vessel_compartment_2->AddBehavior(new SproutingAngiogenesis());
     vessel_compartment_2->AddBehavior(new ApicalGrowth());
-    vessel_compartment_2->AddBehavior(new NutrientSupply(
-        "Nutrients",
-        sparam->nutrient_supply_rate_vessel * param->simulation_time_step));
+    vessel_compartment_2->AddBehavior(new ContinuumInteraction(
+        sparam->nutrient_supply_rate_vessel,
+        sparam->vegf_consumption_rate_vessel, sparam->dox_supply_rate_vessel,
+        sparam->tra_supply_rate_vessel));
     // Add Agent to the resource manager
     rm->AddAgent(vessel_compartment_2);
     // Connect vessels (AgentPtr API is currently bounded to base
@@ -155,11 +156,12 @@ int Simulate(int argc, const char** argv) {
   // 1. Define parameters and initialize simulation
   // ---------------------------------------------------------------------------
   auto set_param = [&](Param* param) {
-    param->statistics = true;
+    param->statistics = false;
     param->calculate_gradients = true;
     param->visualization_interval =
         param->Get<SimParam>()->visualization_interval /
         param->simulation_time_step;
+    param->visualization_compress_pv_files = false;
   };
 
   // Initialize the simulation
@@ -191,7 +193,7 @@ int Simulate(int argc, const char** argv) {
   ModelInitializer::InitializeSubstance(Substances::kNutrients,
                                         SetInitialValuesGridNutrients);
 
-  // Define nutrients with constant initial conditions
+  // Define VEGF with constant initial conditions
   ModelInitializer::DefineSubstance(
       Substances::kVEGF, "VEGF", sparam->diffusion_vegf,
       sparam->decay_rate_vegf, sparam->diffusion_resolution_vegf);
@@ -201,7 +203,7 @@ int Simulate(int argc, const char** argv) {
   ModelInitializer::InitializeSubstance(Substances::kVEGF,
                                         SetInitialValuesGridVEGF);
 
-  // Define nutrients with constant initial conditions
+  // Define TRA with constant initial conditions
   ModelInitializer::DefineSubstance(
       Substances::kTRA, "TRA", sparam->diffusion_tra, sparam->decay_rate_tra,
       sparam->diffusion_resolution_tra);
@@ -211,7 +213,7 @@ int Simulate(int argc, const char** argv) {
   ModelInitializer::InitializeSubstance(Substances::kTRA,
                                         SetInitialValuesGridTRA);
 
-  // Define nutrients with constant initial conditions
+  // Define DOX with constant initial conditions
   ModelInitializer::DefineSubstance(
       Substances::kDOX, "DOX", sparam->diffusion_dox, sparam->decay_rate_dox,
       sparam->diffusion_resolution_dox);

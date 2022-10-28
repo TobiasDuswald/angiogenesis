@@ -87,22 +87,19 @@ class ApicalGrowth : public Behavior {
 /// a quantity - note that this quantity is weighted with the vessel-agent's
 /// surface and corrected by a term that avoids overshooting the maximum
 /// concentration (logistic growth).
-class NutrientSupply : public Behavior {
-  BDM_BEHAVIOR_HEADER(NutrientSupply, Behavior, 1);
+class ContinuumInteraction : public Behavior {
+  BDM_BEHAVIOR_HEADER(ContinuumInteraction, Behavior, 1);
 
  public:
-  NutrientSupply() { AlwaysCopyToNew(); };
-  explicit NutrientSupply(const std::string& substance, double quantity = 1,
-                          bool use_for_consumption = false)
-      : quantity_(quantity), use_for_consumption_(use_for_consumption) {
-    // Register Pointer to substance
-    dgrid_ = Simulation::GetActive()->GetResourceManager()->GetDiffusionGrid(
-        substance);
+  ContinuumInteraction() { AlwaysCopyToNew(); };
+  explicit ContinuumInteraction(double rate_nutrients, double rate_vegf,
+                                double rate_dox, double rate_tra)
+      : interaction_rate_({rate_nutrients, rate_vegf, rate_dox, rate_tra}) {
     // Always copy the behavior to a new agent.
     AlwaysCopyToNew();
   }
 
-  virtual ~NutrientSupply() = default;
+  virtual ~ContinuumInteraction() = default;
 
   void Initialize(const NewAgentEvent& event) override;
 
@@ -123,14 +120,12 @@ class NutrientSupply : public Behavior {
   std::vector<double> sample_weights_;
   std::vector<Double3> sample_points_;
 
-  DiffusionGrid* dgrid_ = nullptr;
-  size_t n_sample_points_ = 3;
-  double quantity_ = 1;
+  std::array<double, 4> interaction_rate_ = {0, 0, 0, 0};
+  size_t n_sample_points_ = 0;
+  double smallest_voxel_size_ = 10;
 
   // Track if we have already figured out the
   bool init_ = false;
-  // Do we recycle this behavior to consume nutrients or VEGF?
-  bool use_for_consumption_ = false;
 };
 
 }  // namespace bdm

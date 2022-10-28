@@ -169,6 +169,18 @@ struct SimParam : public ParamGroup {
   // VEGF threshold for sprouting
   double vegf_threshold_sprouting{1e-3};
 
+  // Nutrient supply by vessel (unit Nutrients / (Area * min)])
+  double nutrient_supply_rate_vessel{0.0001};
+
+  // VEGF consumption by vessel (unit Nutrients / (Area * min)])
+  double vegf_consumption_rate_vessel{-0.0000};
+
+  // Nutrient supply by vessel (unit Nutrients / (Area * min)])
+  double dox_supply_rate_vessel{0.00001};
+
+  // Nutrient supply by vessel (unit Nutrients / (Area * min)])
+  double tra_supply_rate_vessel{0.00001};
+
   // -----------------------------------------------------------------------
   // Forces
   // -----------------------------------------------------------------------
@@ -274,9 +286,6 @@ struct SimParam : public ParamGroup {
 
   // Apical growth speed
   double apical_growth_speed{1.0};
-
-  // Nutrient supply by vessel (unit Nutrients / (Area * min)])
-  double nutrient_supply_rate_vessel{0.0001};
 };
 
 }  // namespace bdm
