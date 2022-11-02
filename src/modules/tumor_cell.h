@@ -189,6 +189,35 @@ class HypoxicSecretion : public Behavior {
   double quantity_ = 1;
 };
 
+/// Supply nutrients to surrounding tissues. The vessel is discretized along
+/// it's center axis into N points. The number N is computed automatically such
+/// that we have roughly 2 points per voxel. When using the behavior, we specify
+/// a quantity - note that this quantity is weighted with the vessel-agent's
+/// surface and corrected by a term that avoids overshooting the maximum
+/// concentration (logistic growth).
+class PointContinuumInteraction : public Behavior {
+  BDM_BEHAVIOR_HEADER(PointContinuumInteraction, Behavior, 1);
+
+ public:
+  PointContinuumInteraction() { AlwaysCopyToNew(); };
+  explicit PointContinuumInteraction(double rate_nutrients, double rate_vegf,
+                                     double rate_dox, double rate_tra)
+      : interaction_rate_({rate_nutrients, rate_vegf, rate_dox, rate_tra}) {
+    // Always copy the behavior to a new agent.
+    AlwaysCopyToNew();
+  }
+
+  virtual ~PointContinuumInteraction() = default;
+
+  void Initialize(const NewAgentEvent& event) override;
+
+  void Run(Agent* agent) override;
+
+ private:
+  std::array<double, 4> interaction_rate_ = {0, 0, 0, 0};
+  bool init_ = false;
+};
+
 }  // namespace bdm
 
 #endif  // TUMOR_CELL_H_

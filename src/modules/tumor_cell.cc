@@ -399,4 +399,52 @@ void HypoxicSecretion::Run(Agent* agent) {
   }
 }
 
+void PointContinuumInteraction::Initialize(const NewAgentEvent& event) {
+  Base::Initialize(event);
+  auto* other =
+      dynamic_cast<PointContinuumInteraction*>(event.existing_behavior);
+  interaction_rate_ = other->interaction_rate_;
+}
+
+void PointContinuumInteraction::Run(Agent* agent) {
+  auto* tumor_cell = dynamic_cast<TumorCell*>(agent);
+
+  // If the behaviour is assigned to a vessel and it is not part of the initial
+  // vascular network, we do supply the nutrients.
+  if (tumor_cell) {
+    // Get the pointers to the diffusion grids: nutrients, VEGF, DOX, and TRA
+    auto* sim = Simulation::GetActive();
+    auto* rm = sim->GetResourceManager();
+    auto* param = sim->GetParam();
+    const double simulation_time_step = param->simulation_time_step;
+    auto* dg_nutrients = bdm_static_cast<DiffusionGrid*>(
+        rm->GetContinuum(Substances::kNutrients));
+    auto* dg_vegf =
+        bdm_static_cast<DiffusionGrid*>(rm->GetContinuum(Substances::kVEGF));
+    auto* dg_dox =
+        bdm_static_cast<DiffusionGrid*>(rm->GetContinuum(Substances::kDOX));
+    auto* dg_tra =
+        bdm_static_cast<DiffusionGrid*>(rm->GetContinuum(Substances::kTRA));
+
+    // Modify the continuum values
+    std::array<DiffusionGrid*, 4> dg_array = {dg_nutrients, dg_vegf, dg_dox,
+                                              dg_tra};
+    for (int j = 0; j < 4; j++) {
+      auto* dg = dg_array[j];
+      const double rate = interaction_rate_[j];
+
+      if (j == 1 && tumor_cell->GetCellState() != CellState::kHypoxic) {
+        // Only if the cell is in the hypoxic state, we supply VEGF.
+        continue;
+      }
+
+      // Update the diffusion grid. You may encounter a compilation error if
+      // you run bdm < v1.05.3-46996fef.
+      double delta_concentration = rate * simulation_time_step;
+      dg->ChangeConcentrationBy(tumor_cell->GetPosition(), delta_concentration,
+                                InteractionMode::kLogistic);
+    }
+  }
+}
+
 }  // namespace bdm

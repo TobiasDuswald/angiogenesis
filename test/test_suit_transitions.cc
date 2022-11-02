@@ -18,7 +18,7 @@
 
 namespace bdm {
 
-TEST(TransitionFunctions, ComputeProbability_Q_To_D) {
+TEST(DISABLED_TransitionFunctions, ComputeProbability_Q_To_D) {
   auto sparam = SimParam();
   // Set values used in reference solution.
   sparam.alpha_Q_D_N = 0.000408 / 60.0;

@@ -51,14 +51,26 @@ struct SimParam : public ParamGroup {
   // u_int64_t no_cells{1000};
 
   // Lower bound for the domain (applies to x,y,z; unit [\mu m])
-  double lower_bound{-200.0};
+  double lower_bound{-500.0};
 
   // Upper bound for the domain (applies to x,y,z; unit [\mu m])
-  double upper_bound{200.0};
+  double upper_bound{500.0};
 
   // Parameter to decide if dead cells decrease in size and are removed or if we
   // keep them in the simulation.
   bool keep_dead_cells{false};
+
+  // Initialize tumor spheroid at the beginning
+  bool initialize_tumor_spheroid{true};
+
+  // Initialize vasculature at the beginning
+  bool initialize_vasculature{true};
+
+  // Set random cells (~ 10) somewhere in the domain
+  bool initialize_random_cells{false};
+
+  // Verify that the continuum values are all between 0 and 1
+  bool verify_continuum_values{true};
 
   // -----------------------------------------------------------------------
   // TumorCell parameters
@@ -169,6 +181,30 @@ struct SimParam : public ParamGroup {
   // VEGF threshold for sprouting
   double vegf_threshold_sprouting{1e-3};
 
+  // Nutrient supply by vessel (unit Nutrients / (Area * min)])
+  double nutrient_supply_rate_vessel{0.0001};
+
+  // VEGF consumption by vessel (unit Nutrients / (Area * min)])
+  double vegf_consumption_rate_vessel{-0.0000};
+
+  // Nutrient supply by vessel (unit Nutrients / (Area * min)])
+  double dox_supply_rate_vessel{0.00001};
+
+  // Nutrient supply by vessel (unit Nutrients / (Area * min)])
+  double tra_supply_rate_vessel{0.00001};
+
+  // Nutrient consumption by TumorCell (unit Nutrients / (min)])
+  double nutrient_consumption_rate_tcell{-0.0001};
+
+  // VEGF supply by TumorCell (unit Nutrients / (min)])
+  double vegf_supply_rate_tcell{0.0001};
+
+  // Nutrient supply by TumorCell (unit Nutrients / (min)])
+  double dox_consumption_rate_tcell{-0.00000};
+
+  // Nutrient supply by TumorCell (unit Nutrients / (min)])
+  double tra_consumption_rate_tcell{-0.00000};
+
   // -----------------------------------------------------------------------
   // Forces
   // -----------------------------------------------------------------------
@@ -274,9 +310,6 @@ struct SimParam : public ParamGroup {
 
   // Apical growth speed
   double apical_growth_speed{1.0};
-
-  // Nutrient supply by vessel (unit Nutrients / (Area * min)])
-  double nutrient_supply_rate_vessel{0.0001};
 };
 
 }  // namespace bdm

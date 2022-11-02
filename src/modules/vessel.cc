@@ -15,6 +15,7 @@
 
 #include "vessel.h"
 #include "modules/tumor_cell.h"
+#include "sim_param.h"
 
 namespace bdm {
 
@@ -194,14 +195,14 @@ void ApicalGrowth::Run(Agent* agent) {
   dendrite->ElongateTerminalEnd(growth_speed, new_direction);
 }
 
-void NutrientSupply::Initialize(const NewAgentEvent& event) {
+void LineContinuumInteraction::Initialize(const NewAgentEvent& event) {
   Base::Initialize(event);
-  auto* other = dynamic_cast<NutrientSupply*>(event.existing_behavior);
-  dgrid_ = other->dgrid_;
-  quantity_ = other->quantity_;
+  auto* other =
+      dynamic_cast<LineContinuumInteraction*>(event.existing_behavior);
+  interaction_rate_ = other->interaction_rate_;
 }
 
-void NutrientSupply::Run(Agent* agent) {
+void LineContinuumInteraction::Run(Agent* agent) {
   auto* vessel = dynamic_cast<Vessel*>(agent);
 
   // If the behaviour is assigned to a vessel and it is not part of the initial
@@ -209,9 +210,23 @@ void NutrientSupply::Run(Agent* agent) {
   if (vessel) {
     // If we secrete and don't consume, then we only consider vessels that
     // can grow.
-    if (!use_for_consumption_ && !vessel->CanGrow()) {
+    if (!vessel->CanGrow()) {
       return;
     }
+
+    // Get the pointers to the diffusion grids: nutrients, VEGF, DOX, and TRA
+    auto* sim = Simulation::GetActive();
+    auto* rm = sim->GetResourceManager();
+    auto* param = sim->GetParam();
+    const double simulation_time_step = param->simulation_time_step;
+    auto* dg_nutrients = bdm_static_cast<DiffusionGrid*>(
+        rm->GetContinuum(Substances::kNutrients));
+    auto* dg_vegf =
+        bdm_static_cast<DiffusionGrid*>(rm->GetContinuum(Substances::kVEGF));
+    auto* dg_dox =
+        bdm_static_cast<DiffusionGrid*>(rm->GetContinuum(Substances::kDOX));
+    auto* dg_tra =
+        bdm_static_cast<DiffusionGrid*>(rm->GetContinuum(Substances::kTRA));
 
     // This is very simple way to supply nutrients. In the current setup,
     // bifurcations add more nutrients than other elements. This should
@@ -234,7 +249,9 @@ void NutrientSupply::Run(Agent* agent) {
       // If mother is soma, start with middle of vessel
       start = vessel->GetPosition();
     }
+    double distance = (end - start).Norm();
 
+    // Problem: If the vessel grows, this will not be updated.
     if (!init_) {
       // In the first step, we define how granular the supply is. We do this by
       // demanding that the distance between two sampling points is roughly half
@@ -242,41 +259,51 @@ void NutrientSupply::Run(Agent* agent) {
       // the number of sample points here and not in the constructor because
       // the BoxLength is not initialized in the DiffusionGrid constructor.
       init_ = true;
-      double delta_x = dgrid_->GetBoxLength();
-      double distance = (end - start).Norm();
-      n_sample_points_ =
-          std::max(3, static_cast<int>(std::ceil(2 * distance / delta_x + 1)));
+      std::array<double, 4> box_length = {
+          dg_nutrients->GetBoxLength(), dg_vegf->GetBoxLength(),
+          dg_dox->GetBoxLength(), dg_tra->GetBoxLength()};
+      // Get the minimum box length
+      smallest_voxel_size_ =
+          *std::min_element(box_length.begin(), box_length.end());
+    }
+    n_sample_points_ = std::max(
+        3,
+        static_cast<int>(std::ceil(2 * distance / smallest_voxel_size_ + 1)));
+    if (n_sample_points_ != sample_points_.size()) {
+      // Update the number of samples and the weights
       ComputeWeights();
     }
 
     // Compute the sample points
     ComputeSamplePoints(start, end);
 
-    // Add nutrients to the continuum.
-    for (size_t i = 0; i < n_sample_points_; i++) {
-      // We skip the first weight if we are in the right daughter vessel.
-      if (skip_first_weight && i == 0) {
+    // Modify the continuum values
+    std::array<DiffusionGrid*, 4> dg_array = {dg_nutrients, dg_vegf, dg_dox,
+                                              dg_tra};
+    const double surface = vessel->GetSurfaceArea();
+    for (int j = 0; j < 4; j++) {
+      auto* dg = dg_array[j];
+      const double rate = interaction_rate_[j];
+      if (rate == 0) {
         continue;
       }
-      // Change concentration according to the weight.
+      for (size_t i = 0; i < n_sample_points_; i++) {
+        // We skip the first weight if we are in the right daughter vessel.
+        if (skip_first_weight && i == 0) {
+          continue;
+        }
 
-      double scale_factor{0.0};
-      if (use_for_consumption_) {
-        scale_factor =
-            (dgrid_->GetLowerThreshold() - dgrid_->GetValue(sample_points_[i]));
-      } else {
-        scale_factor =
-            (dgrid_->GetUpperThreshold() - dgrid_->GetValue(sample_points_[i]));
+        // Update the diffusion grid
+        double delta_concentration =
+            rate * sample_weights_[i] * surface * simulation_time_step;
+        dg->ChangeConcentrationBy(sample_points_[i], delta_concentration,
+                                  InteractionMode::kLogistic);
       }
-      double delta_concentration = scale_factor * quantity_ *
-                                   sample_weights_[i] *
-                                   vessel->GetSurfaceArea();
-      dgrid_->ChangeConcentrationBy(sample_points_[i], delta_concentration);
     }
   }
 }
 
-void NutrientSupply::ComputeWeights() {
+void LineContinuumInteraction::ComputeWeights() {
   sample_weights_.resize(n_sample_points_);
   for (size_t i = 0; i < n_sample_points_; i++) {
     sample_weights_[i] = 1 / static_cast<double>(n_sample_points_ - 1);
@@ -285,8 +312,8 @@ void NutrientSupply::ComputeWeights() {
   sample_weights_[n_sample_points_ - 1] *= 0.5;
 }
 
-void NutrientSupply::ComputeSamplePoints(const Double3& start,
-                                         const Double3& end) {
+void LineContinuumInteraction::ComputeSamplePoints(const Double3& start,
+                                                   const Double3& end) {
   // Computes the sample points distributed along the line from start to end.
   // The sample points are equally spaced.
   sample_points_.resize(n_sample_points_);

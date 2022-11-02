@@ -52,16 +52,10 @@ auto CreateTumorCell(const Double3& position) {
   double growth_rate = 2.0 / 3.0 * Math::kPi * pow(random_radius, 3) /
                        (sparam->duration_growth_phase);
   tumor_cell->SetGrowthRate(growth_rate);
-  // Add a Secretion behaviour to the TumorCell such that it can secrete VEGF.
-  tumor_cell->AddBehavior(new HypoxicSecretion(
-      "VEGF", sparam->secretion_rate_vegf * param->simulation_time_step));
-  // // The following code is commented out but can be added to add nutrient
-  // // consumption of the tumor cells. Right now, it adds complexity to the
-  // // model but not a lot of benefit.
-  // // Add Nutrient consumption
-  // tumor_cell->AddBehavior(new Secretion(
-  //     "Nutrients", -sparam->uptake_rate_glucose *
-  //     param->simulation_time_step));
+  // Add the continuum interactions to the tumor cell.
+  tumor_cell->AddBehavior(new PointContinuumInteraction(
+      sparam->nutrient_consumption_rate_tcell, sparam->vegf_supply_rate_tcell,
+      sparam->dox_consumption_rate_tcell, sparam->tra_consumption_rate_tcell));
   // Add cell cycle
   tumor_cell->AddBehavior(new ProgressInCellCycle());
   return tumor_cell;
@@ -128,9 +122,10 @@ void inline PlaceVessel(Double3 start, Double3 end, double compartment_length) {
     // Add behaviours
     vessel_compartment_2->AddBehavior(new SproutingAngiogenesis());
     vessel_compartment_2->AddBehavior(new ApicalGrowth());
-    vessel_compartment_2->AddBehavior(new NutrientSupply(
-        "Nutrients",
-        sparam->nutrient_supply_rate_vessel * param->simulation_time_step));
+    vessel_compartment_2->AddBehavior(new LineContinuumInteraction(
+        sparam->nutrient_supply_rate_vessel,
+        sparam->vegf_consumption_rate_vessel, sparam->dox_supply_rate_vessel,
+        sparam->tra_supply_rate_vessel));
     // Add Agent to the resource manager
     rm->AddAgent(vessel_compartment_2);
     // Connect vessels (AgentPtr API is currently bounded to base
@@ -155,7 +150,6 @@ int Simulate(int argc, const char** argv) {
   // 1. Define parameters and initialize simulation
   // ---------------------------------------------------------------------------
   auto set_param = [&](Param* param) {
-    param->statistics = true;
     param->calculate_gradients = true;
     param->visualization_interval =
         param->Get<SimParam>()->visualization_interval /
@@ -185,13 +179,12 @@ int Simulate(int argc, const char** argv) {
       Substances::kNutrients, "Nutrients", sparam->diffusion_nutrients,
       sparam->decay_rate_nutrients, sparam->diffusion_resolution_nutrients);
   auto SetInitialValuesGridNutrients = [&sparam](double x, double y, double z) {
-    // return sparam->initial_concentration_nutrients;
-    return sparam->hypoxic_threshold * 0.5;
+    return sparam->hypoxic_threshold * 2;
   };
   ModelInitializer::InitializeSubstance(Substances::kNutrients,
                                         SetInitialValuesGridNutrients);
 
-  // Define nutrients with constant initial conditions
+  // Define VEGF with constant initial conditions
   ModelInitializer::DefineSubstance(
       Substances::kVEGF, "VEGF", sparam->diffusion_vegf,
       sparam->decay_rate_vegf, sparam->diffusion_resolution_vegf);
@@ -201,7 +194,7 @@ int Simulate(int argc, const char** argv) {
   ModelInitializer::InitializeSubstance(Substances::kVEGF,
                                         SetInitialValuesGridVEGF);
 
-  // Define nutrients with constant initial conditions
+  // Define TRA with constant initial conditions
   ModelInitializer::DefineSubstance(
       Substances::kTRA, "TRA", sparam->diffusion_tra, sparam->decay_rate_tra,
       sparam->diffusion_resolution_tra);
@@ -211,7 +204,7 @@ int Simulate(int argc, const char** argv) {
   ModelInitializer::InitializeSubstance(Substances::kTRA,
                                         SetInitialValuesGridTRA);
 
-  // Define nutrients with constant initial conditions
+  // Define DOX with constant initial conditions
   ModelInitializer::DefineSubstance(
       Substances::kDOX, "DOX", sparam->diffusion_dox, sparam->decay_rate_dox,
       sparam->diffusion_resolution_dox);
@@ -233,28 +226,34 @@ int Simulate(int argc, const char** argv) {
   {
     Timing timer_set_up("Initialize agents");
 
-    // Old single cell initialization
-    // std::vector<Double3> cell_positions = {{0, 50, 0},       {0, 30, 20},
-    //                                        {0, 70, 50},      {-200, -160,
-    //                                        300},
-    //                                        {-400, -100, 60}, {-300, 100,
-    //                                        -200}};
-    // PlaceTumorCells(cell_positions);
+    if (sparam->initialize_random_cells) {
+      // Old single cell initialization
+      std::vector<Double3> cell_positions = {
+          {0, 50, 0},        {0, 30, 20},      {0, 70, 50},
+          {-200, -160, 300}, {-400, -100, 60}, {-300, 100, -200}};
+      PlaceTumorCells(cell_positions);
+    }
 
-    // Place tumor cells
-    const uint64_t num_cells = 500;
-    const double filled_volume = 0.7;
-    const double R =
-        std::pow(num_cells * std::pow(sparam->cell_radius, 3) / filled_volume,
-                 1.0 / 3.0);
-    ModelInitializer::CreateAgentsInSphereRndm({0, 0, 0}, R, num_cells,
-                                               CreateTumorCell);
+    if (sparam->initialize_tumor_spheroid) {
+      // Place tumor cells in spheroid
+      const uint64_t num_cells = 500;
+      const double filled_volume = 0.7;
+      const double R =
+          std::pow(num_cells * std::pow(sparam->cell_radius, 3) / filled_volume,
+                   1.0 / 3.0);
+      ModelInitializer::CreateAgentsInSphereRndm({0, 0, 0}, R, num_cells,
+                                                 CreateTumorCell);
+    }
 
-    // Place vessels
-    PlaceVessel({-200, 0, -400}, {-200, 0, 400}, sparam->default_vessel_length);
-    PlaceVessel({200, 0, -400}, {200, 0, 400}, sparam->default_vessel_length);
-    PlaceVessel({0, -400, 200}, {0, 400, 200}, sparam->default_vessel_length);
-    PlaceVessel({0, -400, -200}, {0, 400, -200}, sparam->default_vessel_length);
+    if (sparam->initialize_vasculature) {
+      // Place vessels
+      PlaceVessel({-200, 0, -400}, {-200, 0, 400},
+                  sparam->default_vessel_length);
+      PlaceVessel({200, 0, -400}, {200, 0, 400}, sparam->default_vessel_length);
+      PlaceVessel({0, -400, 200}, {0, 400, 200}, sparam->default_vessel_length);
+      PlaceVessel({0, -400, -200}, {0, 400, -200},
+                  sparam->default_vessel_length);
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -294,11 +293,23 @@ int Simulate(int argc, const char** argv) {
   env->SetBoxLength(static_cast<int32_t>(box_length));
 
   // ---------------------------------------------------------------------------
-  // 7. Run simulation and visualize results
+  // 7. Track continuum models
+  // ---------------------------------------------------------------------------
+
+  if (sparam->verify_continuum_values) {
+    OperationRegistry::GetInstance()->AddOperationImpl(
+        "VerifyContinuum", OpComputeTarget::kCpu, new VerifyContinuum());
+    auto* verify_continuum = NewOperation("VerifyContinuum");
+    scheduler->ScheduleOp(verify_continuum, OpType::kPostSchedule);
+  }
+
+  // ---------------------------------------------------------------------------
+  // 8 . Run simulation and visualize results
   // ---------------------------------------------------------------------------
 
   // Finalize initialization
   scheduler->FinalizeInitialization();
+  scheduler->PrintInfo(std::cout);
 
   // Test if correct number of Agents were initialized
   std::cout << "Agents im Simulation: " << rm->GetNumAgents() << "\n";
