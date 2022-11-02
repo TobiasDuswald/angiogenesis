@@ -80,3 +80,12 @@ File >> Load State... >> "output/angiogenesis/angiogenesis.pvsm" >> \
 Use File Name from States
 ```
 and the simulation output is ready to view. Simply click play.
+
+## Results backup
+
+In case we accidentally delete the project, the results are backed up in the 
+Cernbox cloud. The backup is automated, e.g. run
+```
+./backup_results.sh
+```
+to compress the results folder and copy it to the Cernbox.
