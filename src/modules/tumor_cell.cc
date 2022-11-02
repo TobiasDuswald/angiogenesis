@@ -438,21 +438,11 @@ void PointContinuumInteraction::Run(Agent* agent) {
         continue;
       }
 
-      /// NOTE: replace with BDM native function as soon as in master to avoid
-      /// Thread race.
-
-      // Logistic scaling of the supply
-      double scale_factor{0.0};
-      const double value = dg->GetValue(tumor_cell->GetPosition());
-      if (rate > 0) {
-        scale_factor = (1.0 - value);
-      } else {
-        scale_factor = value;
-      }
-
-      // Update the diffusion grid
-      double delta_concentration = scale_factor * rate * simulation_time_step;
-      dg->ChangeConcentrationBy(tumor_cell->GetPosition(), delta_concentration);
+      // Update the diffusion grid. You may encounter a compilation error if
+      // you run bdm < v1.05.3-46996fef.
+      double delta_concentration = rate * simulation_time_step;
+      dg->ChangeConcentrationBy(tumor_cell->GetPosition(), delta_concentration,
+                                InteractionMode::kLogistic);
     }
   }
 }

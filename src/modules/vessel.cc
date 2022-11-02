@@ -293,28 +293,11 @@ void LineContinuumInteraction::Run(Agent* agent) {
           continue;
         }
 
-        /// NOTE: replace with BDM native function as soon as in master to avoid
-        /// Thread race.
-
-        // Logistic scaling of the supply
-        double scale_factor{0.0};
-        const double value = dg->GetValue(sample_points_[i]);
-        if (rate > 0) {
-          scale_factor = (1.0 - value);
-        } else {
-          scale_factor = value;
-        }
-
         // Update the diffusion grid
-        double delta_concentration = scale_factor * rate * sample_weights_[i] *
-                                     surface * simulation_time_step;
-        dg->ChangeConcentrationBy(sample_points_[i], delta_concentration);
-
-        // Warning / ToDo : there's a small chance that a thread race will cause
-        // the continuum to jump out of bounds (0,1) because the calls
-        // GetConcentration and ChangeConcentrationBy are atomic but there is
-        // no guarantee that there's not thread acting in between.
-        // Add logistic scaling to diffusion grid to avoid this.
+        double delta_concentration =
+            rate * sample_weights_[i] * surface * simulation_time_step;
+        dg->ChangeConcentrationBy(sample_points_[i], delta_concentration,
+                                  InteractionMode::kLogistic);
       }
     }
   }
