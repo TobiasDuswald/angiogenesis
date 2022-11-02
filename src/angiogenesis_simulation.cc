@@ -150,12 +150,11 @@ int Simulate(int argc, const char** argv) {
   // 1. Define parameters and initialize simulation
   // ---------------------------------------------------------------------------
   auto set_param = [&](Param* param) {
-    param->statistics = false;
     param->calculate_gradients = true;
     param->visualization_interval =
         param->Get<SimParam>()->visualization_interval /
         param->simulation_time_step;
-    param->visualization_compress_pv_files = false;
+    param->visualization_compress_pv_files = true;
   };
 
   // Initialize the simulation
