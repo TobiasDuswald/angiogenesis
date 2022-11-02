@@ -69,6 +69,9 @@ struct SimParam : public ParamGroup {
   // Set random cells (~ 10) somewhere in the domain
   bool initialize_random_cells{false};
 
+  // Verify that the continuum values are all between 0 and 1
+  bool verify_continuum_values{true};
+
   // -----------------------------------------------------------------------
   // TumorCell parameters
   // -----------------------------------------------------------------------

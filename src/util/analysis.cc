@@ -14,6 +14,7 @@
 #include "util/analysis.h"
 #include "modules/tumor_cell.h"
 #include "modules/vessel.h"
+#include "sim_param.h"
 
 namespace bdm {
 
@@ -151,6 +152,7 @@ void DefineAndRegisterCollectors() {
 void PlotAndSaveTimeseries() {
   // Get pointers for simulation and TimeSeries data
   auto sim = Simulation::GetActive();
+  auto *sparam = sim->GetParam()->Get<SimParam>();
   auto *ts = sim->GetTimeSeries();
   auto *scheduler = sim->GetScheduler();
 
@@ -180,7 +182,7 @@ void PlotAndSaveTimeseries() {
   }
 
   // Add the TimeSeries from the continuum verification to the TimeSeries
-  {
+  if (sparam->verify_continuum_values) {
     auto *op = scheduler->GetOps("VerifyContinuum")[0];
     auto *results_continuum =
         op->GetImplementation<VerifyContinuum>()->GetResults();

@@ -120,7 +120,7 @@ void inline PlaceVessel(Double3 start, Double3 end, double compartment_length) {
     vessel_compartment_2->SetDiameter(15);
     vessel_compartment_2->ProhibitGrowth();
     // Add behaviours
-    // vessel_compartment_2->AddBehavior(new SproutingAngiogenesis());
+    vessel_compartment_2->AddBehavior(new SproutingAngiogenesis());
     vessel_compartment_2->AddBehavior(new ApicalGrowth());
     vessel_compartment_2->AddBehavior(new LineContinuumInteraction(
         sparam->nutrient_supply_rate_vessel,
@@ -154,7 +154,6 @@ int Simulate(int argc, const char** argv) {
     param->visualization_interval =
         param->Get<SimParam>()->visualization_interval /
         param->simulation_time_step;
-    param->visualization_compress_pv_files = true;
   };
 
   // Initialize the simulation
@@ -180,8 +179,6 @@ int Simulate(int argc, const char** argv) {
       Substances::kNutrients, "Nutrients", sparam->diffusion_nutrients,
       sparam->decay_rate_nutrients, sparam->diffusion_resolution_nutrients);
   auto SetInitialValuesGridNutrients = [&sparam](double x, double y, double z) {
-    // return sparam->initial_concentration_nutrients;
-    // return sparam->hypoxic_threshold * 0.5;
     return sparam->hypoxic_threshold * 2;
   };
   ModelInitializer::InitializeSubstance(Substances::kNutrients,
@@ -299,10 +296,12 @@ int Simulate(int argc, const char** argv) {
   // 7. Track continuum models
   // ---------------------------------------------------------------------------
 
-  OperationRegistry::GetInstance()->AddOperationImpl(
-      "VerifyContinuum", OpComputeTarget::kCpu, new VerifyContinuum());
-  auto* verify_continuum = NewOperation("VerifyContinuum");
-  scheduler->ScheduleOp(verify_continuum, OpType::kPostSchedule);
+  if (sparam->verify_continuum_values) {
+    OperationRegistry::GetInstance()->AddOperationImpl(
+        "VerifyContinuum", OpComputeTarget::kCpu, new VerifyContinuum());
+    auto* verify_continuum = NewOperation("VerifyContinuum");
+    scheduler->ScheduleOp(verify_continuum, OpType::kPostSchedule);
+  }
 
   // ---------------------------------------------------------------------------
   // 8 . Run simulation and visualize results
