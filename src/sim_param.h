@@ -191,10 +191,10 @@ struct SimParam : public ParamGroup {
   double vegf_consumption_rate_vessel{-0.0000};
 
   // Nutrient supply by vessel (unit Nutrients / (Area * min)])
-  double dox_supply_rate_vessel{0.00001};
+  double dox_supply_rate_vessel{0.0};
 
   // Nutrient supply by vessel (unit Nutrients / (Area * min)])
-  double tra_supply_rate_vessel{0.00001};
+  double tra_supply_rate_vessel{0.0};
 
   // Nutrient consumption by TumorCell (unit Nutrients / (min)])
   double nutrient_consumption_rate_tcell{-0.0001};
@@ -298,6 +298,9 @@ struct SimParam : public ParamGroup {
   // Minimum distance to bifurcatoin or terminal end of vessel to allow
   // sprouting
   double min_dist_to_bifurcation{60.0};
+
+  // Minimum distance to another tip cell to allow sprouting
+  double min_dist_to_tip_cell{60.0};
 
   // Sprouting probability
   double sprouting_probability{0.001};
