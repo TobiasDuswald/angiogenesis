@@ -19,6 +19,9 @@ set(CMAKE_CXX_STANDARD 14)
 # Use BioDynaMo in this project.
 find_package(BioDynaMo REQUIRED)
 
+# Add include directory for unibn octree
+include_directories("${CMAKE_SOURCE_DIR}/third_party/unibn-octree")
+
 # See UseBioDynaMo.cmake in your BioDynaMo build folder for details.
 # Note that BioDynaMo provides gtest header/libraries in its include/lib dir.
 include(${BDM_USE_FILE})
