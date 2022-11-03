@@ -22,15 +22,18 @@ TipCellContainer::TipCellContainer() { Update(); }
 void TipCellContainer::Update() {
   auto* rm = Simulation::GetActive()->GetResourceManager();
   assert(rm != nullptr && "ResourceManager is NULL.");
-  // Iterate over all agents and add tip cell position to element_center_points_
-  std::vector<Real3> tmp;
-  rm->ForEachAgent([&tmp](Agent* agent) {
-    auto* vessel = bdm_static_cast<Vessel*>(agent);
-    if (vessel && vessel->GetDaughterLeft() == nullptr) {
-      tmp.push_back(vessel->GetMassLocation());
-    }
-  });
-  element_center_points_ = tmp;
+  if (rm) {
+    // Iterate over all agents and add tip cell position to
+    // element_center_points_
+    std::vector<Real3> tmp;
+    rm->ForEachAgent([&tmp](Agent* agent) {
+      auto* vessel = bdm_static_cast<Vessel*>(agent);
+      if (vessel && vessel->GetDaughterLeft() == nullptr) {
+        tmp.push_back(vessel->GetMassLocation());
+      }
+    });
+    element_center_points_ = tmp;
+  }
 }
 
 size_t TipCellContainer::size() const { return element_center_points_.size(); }

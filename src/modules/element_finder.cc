@@ -22,20 +22,18 @@ namespace bdm {
 
 TipCellFinder::TipCellFinder() : octree_(nullptr), update_container_(false) {
   octree_ = new unibn::Octree<Real3, TipCellContainer>();
-  unibn::OctreeParams params;
-  octree_->initialize(tip_cell_container_, params);
   Update();
 }
 
-int TipCellFinder::FindClosestTipCell(const Real3& x) {
+int TipCellFinder::FindClosestTipCell(const Real3& x) const {
   return static_cast<int>(octree_->findNeighbor<unibn::L2Distance<Real3>>(x));
 }
 
-Real3 TipCellFinder::GetTipCellCenter(int element_id) {
+Real3 TipCellFinder::GetTipCellCenter(int element_id) const {
   return tip_cell_container_[element_id];
 }
 
-bool TipCellFinder::IsTipCellInBall(const Real3& x, double r) {
+bool TipCellFinder::IsTipCellInBall(const Real3& x, double r) const {
   auto idx = FindClosestTipCell(x);
   auto center = GetTipCellCenter(idx);
   auto dist = (center - x).Norm();
@@ -50,11 +48,12 @@ void TipCellFinder::Update() {
   if (update_container_) {
     tip_cell_container_.Update();
   }
-  tip_cell_container_.Update();
-  auto* param = Simulation::GetActive()->GetParam();
-  unibn::OctreeParams params;
-  params.bucketSize = param->unibn_bucketsize;
-  octree_->initialize(tip_cell_container_, params);
+  if (tip_cell_container_.size() > 0) {
+    auto* param = Simulation::GetActive()->GetParam();
+    unibn::OctreeParams params;
+    params.bucketSize = param->unibn_bucketsize;
+    octree_->initialize(tip_cell_container_, params);
+  }
   // For all further update calls, we update the container
   update_container_ = true;
 }

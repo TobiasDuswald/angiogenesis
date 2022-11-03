@@ -72,6 +72,9 @@ struct SimParam : public ParamGroup {
   // Verify that the continuum values are all between 0 and 1
   bool verify_continuum_values{true};
 
+  // Update frequency for TipCellFinder
+  size_t tip_cell_finder_update_frequency{1};
+
   // -----------------------------------------------------------------------
   // TumorCell parameters
   // -----------------------------------------------------------------------

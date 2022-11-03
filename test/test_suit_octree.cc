@@ -12,8 +12,7 @@
 // -----------------------------------------------------------------------------
 
 #include <gtest/gtest.h>
-#include "modules/element_container.h"
-#include "modules/element_finder.h"
+#include "modules/tip_cell_finder_operation.h"
 #include "modules/vessel.h"
 
 #define TEST_NAME typeid(*this).name()
@@ -168,6 +167,39 @@ TEST(TipCellFinder, Finder) {
   EXPECT_TRUE(finder.IsTipCellInBall(test_point_8, 0));  // Self find
   EXPECT_FALSE(finder.IsTipCellInBall(test_point_9, 19));
   EXPECT_FALSE(finder.IsTipCellInBall(test_point_10, 19));
+}
+
+TEST(TipCellFinder, SimulationIntegration) {
+  neuroscience::InitModule();
+  AngiogenesisSimulation simulation(TEST_NAME);
+  auto* scheduler = Simulation::GetActive()->GetScheduler();
+
+  // Place a vessel
+  PlaceVessel({0, 0, 0}, {100, 0, 0}, 10);
+
+  // Register the tip cell finder update operation
+  OperationRegistry::GetInstance()->AddOperationImpl("update tip-cell finder",
+                                                     OpComputeTarget::kCpu,
+                                                     new UpdateTipCellFinder());
+  auto* update_tip_cell_finder = NewOperation("update tip-cell finder");
+  update_tip_cell_finder->frequency_ = 1;
+  scheduler->ScheduleOp(update_tip_cell_finder, OpType::kPreSchedule);
+
+  // Get the tip cell finder
+  auto* finder = simulation.GetTipCellFinder();
+
+  for (size_t i = 1; i < 10; i++) {
+    scheduler->Simulate(1);
+    // Test if at each simulation step, we find the correct amount of tip cells
+    EXPECT_EQ(finder->GetNumberOfTipCells(), i);
+    // Test if the tip cells are registered correctly
+    for (size_t j = 1; j <= i; j++) {
+      EXPECT_TRUE(finder->IsTipCellInBall(
+          {100, (static_cast<double>(j) - 1) * 10, 0}, 3));
+    }
+    PlaceVessel({0, 10 * static_cast<double>(i), 0},
+                {100, 10 * static_cast<double>(i), 0}, 10);
+  }
 }
 
 }  // namespace bdm

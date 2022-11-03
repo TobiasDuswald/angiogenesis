@@ -31,16 +31,16 @@ class TipCellFinder {
   ~TipCellFinder() { delete octree_; };
 
   /// Calls back to FindClosestTipCell(mfem::Vector&).
-  int FindClosestTipCell(const Real3& x);
+  int FindClosestTipCell(const Real3& x) const;
 
   /// Get the center coordinates of a given element labeled by element_id.
-  Real3 GetTipCellCenter(int element_id);
+  Real3 GetTipCellCenter(int element_id) const;
 
   /// Returns if there is at least one TipCell in the ball of radius r around
   /// the point x.
-  bool IsTipCellInBall(const Real3& x, double r);
+  bool IsTipCellInBall(const Real3& x, double r) const;
 
-  size_t GetNumberOfTipCells() { return tip_cell_container_.size(); }
+  size_t GetNumberOfTipCells() const { return tip_cell_container_.size(); }
 
   // Update the Octree
   void Update();
