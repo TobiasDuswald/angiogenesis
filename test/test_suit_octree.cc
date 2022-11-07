@@ -23,7 +23,8 @@ namespace bdm {
 // Helper function taken from angiogenesis_simulation.cc to construct the
 // simulation environment, e.g. the vessels.
 // --------------------------------------------------------------------------
-void inline PlaceVessel(Double3 start, Double3 end, double compartment_length) {
+inline AgentPointer<Vessel> PlaceVessel(Double3 start, Double3 end,
+                                        double compartment_length) {
   auto* rm = Simulation::GetActive()->GetResourceManager();
 
   // Compute parameters for straight line between start and end.
@@ -81,6 +82,7 @@ void inline PlaceVessel(Double3 start, Double3 end, double compartment_length) {
         vessel_compartment_1->GetAgentPtr<neuroscience::NeuronOrNeurite>());
     std::swap(vessel_compartment_1, vessel_compartment_2);
   }
+  return vessel_compartment_1->GetAgentPtr<Vessel>();
 }
 
 TEST(TipCellFinder, Container) {
@@ -105,16 +107,26 @@ TEST(TipCellFinder, Container) {
 TEST(TipCellFinder, Finder) {
   neuroscience::InitModule();
   Simulation simulation(TEST_NAME);
-  const Real3 tip1 = {103, 0, 0};
-  const Real3 tip2 = {103, 100, 0};
-  PlaceVessel({0, 0, 0}, {100, 0, 0}, 1);
-  PlaceVessel({0, 100, 0}, {100, 100, 0}, 1);
+  AgentPointer<Vessel> tmp;
+  std::vector<AgentPointer<Vessel>> vessels;
+  tmp = PlaceVessel({0, 0, 0}, {100, 0, 0}, 1);
+  vessels.push_back(tmp);
+  tmp = PlaceVessel({0, 100, 0}, {100, 100, 0}, 1);
+  vessels.push_back(tmp);
   auto* scheduler = Simulation::GetActive()->GetScheduler();
   scheduler->Simulate(1);
 
   TipCellFinder finder;
   // Check the number of tip cells
   EXPECT_EQ(finder.GetNumberOfTipCells(), 2u);
+
+  // Debug
+  for (auto& v : vessels) {
+    std::cout << v->GetMassLocation() << std::endl;
+  }
+  const Real3 tip1 = vessels[0]->GetMassLocation();
+  const Real3 tip2 = vessels[1]->GetMassLocation();
+
   // Check the location of the tip cells
   for (size_t i = 0; i < finder.GetNumberOfTipCells(); i++) {
     auto tip = finder.GetTipCellCenter(i);
@@ -122,11 +134,14 @@ TEST(TipCellFinder, Finder) {
     EXPECT_TRUE(found_tip);
   }
   // Check the IsTipCellInBall function
-  const Real3 test_point_1 = {103, 0, 0};
-  const Real3 test_point_2 = {103, 100, 0};
-  const Real3 test_point_3 = {103, 50, 0};
-  const Real3 test_point_4 = {103, 30, 0};
-  const Real3 test_point_5 = {103, 70, 0};
+  const Real3 test_point_1 = tip1;
+  const Real3 test_point_2 = tip2;
+  const Real3 offset_3 = {0, 50, 0};
+  const Real3 test_point_3 = tip1 + offset_3;
+  const Real3 offset_4 = {0, 30, 0};
+  const Real3 test_point_4 = tip1 + offset_4;
+  const Real3 offset_5 = {0, 70, 0};
+  const Real3 test_point_5 = tip1 + offset_5;
   EXPECT_TRUE(finder.IsTipCellInBall(test_point_1, 1));
   EXPECT_TRUE(finder.IsTipCellInBall(test_point_2, 1));
   EXPECT_TRUE(finder.IsTipCellInBall(test_point_3, 50 + 1e-6));
@@ -137,12 +152,13 @@ TEST(TipCellFinder, Finder) {
   EXPECT_FALSE(finder.IsTipCellInBall(test_point_5, 29));
 
   // Add vessel and update tip cell finder
-  const Real3 tip3 = {106, 0, 0};
-  const Real3 tip4 = {103, 50, 0};  // new vessel hasn't moved
-  const Real3 tip5 = {106, 100, 0};
-  PlaceVessel({0, 50, 0}, {100, 50, 0}, 1);
+  tmp = PlaceVessel({0, 50, 0}, {100, 50, 0}, 1);
+  vessels.push_back(tmp);
   scheduler->Simulate(1);
   finder.Update();
+  const Real3 tip3 = vessels[0]->GetMassLocation();
+  const Real3 tip4 = vessels[1]->GetMassLocation();  // new vessel hasn't moved
+  const Real3 tip5 = vessels[2]->GetMassLocation();
 
   // Check the number of tip cells
   EXPECT_EQ(finder.GetNumberOfTipCells(), 3u);
@@ -154,11 +170,12 @@ TEST(TipCellFinder, Finder) {
                       (tip - tip4).Norm() < 1e-6 || (tip - tip5).Norm() < 1e-6);
     EXPECT_TRUE(found_tip);
   }
-  const Real3 test_point_6 = {106, 0, 0};
-  const Real3 test_point_7 = {106, 100, 0};
-  const Real3 test_point_8 = {103, 50, 0};
-  const Real3 test_point_9 = {103, 30, 0};
-  const Real3 test_point_10 = {103, 70, 0};
+  const Real3 test_point_6 = tip3;
+  const Real3 test_point_7 = tip5;
+  const Real3 test_point_8 = tip5;
+  const Real3 offset_by_20 = {0, 20, 0};
+  const Real3 test_point_9 = tip3 + offset_by_20;
+  const Real3 test_point_10 = tip5 - offset_by_20;
   EXPECT_TRUE(finder.IsTipCellInBall(test_point_6, 1));
   EXPECT_TRUE(finder.IsTipCellInBall(test_point_7, 1));
   EXPECT_TRUE(finder.IsTipCellInBall(test_point_8, 1));
