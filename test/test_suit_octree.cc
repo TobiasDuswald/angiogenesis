@@ -122,9 +122,6 @@ TEST(TipCellFinder, Finder) {
 
   const Real3 tip1 = vessels[0]->GetMassLocation();
   const Real3 tip2 = vessels[1]->GetMassLocation();
-  // Debug print statements
-  std::cout << "Tip 1: " << tip1 << std::endl;
-  std::cout << "Tip 2: " << tip2 << std::endl;
 
   // Check the location of the tip cells
   for (size_t i = 0; i < finder.GetNumberOfTipCells(); i++) {
@@ -141,12 +138,6 @@ TEST(TipCellFinder, Finder) {
   const Real3 test_point_4 = tip1 + offset_4;
   const Real3 offset_5 = {0, 70, 0};
   const Real3 test_point_5 = tip1 + offset_5;
-  // Debug print statements
-  std::cout << "Test point 1: " << test_point_1 << std::endl;
-  std::cout << "Test point 2: " << test_point_2 << std::endl;
-  std::cout << "Test point 3: " << test_point_3 << std::endl;
-  std::cout << "Test point 4: " << test_point_4 << std::endl;
-  std::cout << "Test point 5: " << test_point_5 << std::endl;
   EXPECT_TRUE(finder.IsTipCellInBall(test_point_1, 1));
   EXPECT_TRUE(finder.IsTipCellInBall(test_point_2, 1));
   EXPECT_TRUE(finder.IsTipCellInBall(test_point_3, 50 + 1e-6));
@@ -164,10 +155,6 @@ TEST(TipCellFinder, Finder) {
   const Real3 tip3 = vessels[0]->GetMassLocation();
   const Real3 tip4 = vessels[1]->GetMassLocation();  // new vessel hasn't moved
   const Real3 tip5 = vessels[2]->GetMassLocation();
-  // Debug print statements
-  std::cout << "Tip 3: " << tip3 << std::endl;
-  std::cout << "Tip 4: " << tip4 << std::endl;
-  std::cout << "Tip 5: " << tip5 << std::endl;
 
   // Check the number of tip cells
   EXPECT_EQ(finder.GetNumberOfTipCells(), 3u);
@@ -184,12 +171,6 @@ TEST(TipCellFinder, Finder) {
   const Real3 offset_by_20 = {0, 20, 0};
   const Real3 test_point_9 = tip3 + offset_by_20;
   const Real3 test_point_10 = tip5 + offset_by_20;
-  // Debug print statements
-  std::cout << "Test point 6: " << test_point_6 << std::endl;
-  std::cout << "Test point 7: " << test_point_7 << std::endl;
-  std::cout << "Test point 8: " << test_point_8 << std::endl;
-  std::cout << "Test point 9: " << test_point_9 << std::endl;
-  std::cout << "Test point 10: " << test_point_10 << std::endl;
   EXPECT_TRUE(finder.IsTipCellInBall(test_point_6, 1));
   EXPECT_TRUE(finder.IsTipCellInBall(test_point_7, 1));
   EXPECT_TRUE(finder.IsTipCellInBall(test_point_8, 1));
