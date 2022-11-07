@@ -18,6 +18,7 @@
 #include "core/operation/mechanical_forces_op.h"
 #include "math.h"
 #include "modules/mechanical_forces.h"
+#include "modules/tip_cell_finder_operation.h"
 #include "modules/tumor_cell.h"
 #include "modules/vessel.h"
 #include "neuroscience/neuroscience.h"
@@ -157,7 +158,7 @@ int Simulate(int argc, const char** argv) {
   };
 
   // Initialize the simulation
-  Simulation simulation(argc, argv, set_param);
+  AngiogenesisSimulation simulation(argc, argv, set_param);
   // Get a pointer to the resource manager
   auto* rm = simulation.GetResourceManager();
   // Get a pointer to the param object
@@ -304,7 +305,22 @@ int Simulate(int argc, const char** argv) {
   }
 
   // ---------------------------------------------------------------------------
-  // 8 . Run simulation and visualize results
+  // 8. Track continuum models
+  // ---------------------------------------------------------------------------
+
+  if (sparam->tip_cell_finder_update_frequency <
+      std::numeric_limits<int>::max()) {
+    OperationRegistry::GetInstance()->AddOperationImpl(
+        "update tip-cell finder", OpComputeTarget::kCpu,
+        new UpdateTipCellFinder());
+    auto* update_tip_cell_finder = NewOperation("update tip-cell finder");
+    update_tip_cell_finder->frequency_ =
+        sparam->tip_cell_finder_update_frequency;
+    scheduler->ScheduleOp(update_tip_cell_finder, OpType::kPreSchedule);
+  }
+
+  // ---------------------------------------------------------------------------
+  // 9. Run simulation and visualize results
   // ---------------------------------------------------------------------------
 
   // Finalize initialization

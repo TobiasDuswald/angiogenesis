@@ -72,6 +72,9 @@ struct SimParam : public ParamGroup {
   // Verify that the continuum values are all between 0 and 1
   bool verify_continuum_values{true};
 
+  // Update frequency for TipCellFinder
+  size_t tip_cell_finder_update_frequency{1};
+
   // -----------------------------------------------------------------------
   // TumorCell parameters
   // -----------------------------------------------------------------------
@@ -188,10 +191,10 @@ struct SimParam : public ParamGroup {
   double vegf_consumption_rate_vessel{-0.0000};
 
   // Nutrient supply by vessel (unit Nutrients / (Area * min)])
-  double dox_supply_rate_vessel{0.00001};
+  double dox_supply_rate_vessel{0.0};
 
   // Nutrient supply by vessel (unit Nutrients / (Area * min)])
-  double tra_supply_rate_vessel{0.00001};
+  double tra_supply_rate_vessel{0.0};
 
   // Nutrient consumption by TumorCell (unit Nutrients / (min)])
   double nutrient_consumption_rate_tcell{-0.0001};
@@ -295,6 +298,9 @@ struct SimParam : public ParamGroup {
   // Minimum distance to bifurcatoin or terminal end of vessel to allow
   // sprouting
   double min_dist_to_bifurcation{60.0};
+
+  // Minimum distance to another tip cell to allow sprouting
+  double min_dist_to_tip_cell{60.0};
 
   // Sprouting probability
   double sprouting_probability{0.001};

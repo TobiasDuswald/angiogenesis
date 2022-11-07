@@ -14,6 +14,7 @@
 // -----------------------------------------------------------------------------
 
 #include "vessel.h"
+#include "angiogenesis_simulation.h"
 #include "modules/tumor_cell.h"
 #include "sim_param.h"
 
@@ -65,6 +66,14 @@ void SproutingAngiogenesis::Run(Agent* agent) {
   /// 1. Check if the concentration of VEGF is above a certain threshold
   double my_vegf_concentration = dg_guide_->GetValue(dendrite->GetPosition());
   if (my_vegf_concentration < sparam->vegf_threshold_sprouting) {
+    return;
+  }
+
+  /// 2. Check if the next tip cell is at least a given distance away
+  auto* asim = static_cast<AngiogenesisSimulation*>(sim);
+  auto* finder = asim->GetTipCellFinder();
+  if (finder->IsTipCellInBall(dendrite->GetMassLocation(),
+                              sparam->min_dist_to_tip_cell)) {
     return;
   }
 
