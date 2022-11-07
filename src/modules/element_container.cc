@@ -27,7 +27,7 @@ void TipCellContainer::Update() {
     // element_center_points_
     std::vector<Real3> tmp;
     rm->ForEachAgent([&tmp](Agent* agent) {
-      auto* vessel = bdm_static_cast<Vessel*>(agent);
+      auto* vessel = dynamic_cast<Vessel*>(agent);
       if (vessel && vessel->GetDaughterLeft() == nullptr) {
         tmp.push_back(vessel->GetMassLocation());
       }
