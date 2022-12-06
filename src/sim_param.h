@@ -165,6 +165,7 @@ struct SimParam : public ParamGroup {
 
   // Probability parameters for the transition from H to D modulated by the
   // drug DOX
+  double base_rate_H_D{0.0001};
   double threshold_H_D_DOX{0.1};
   double gamma_H_D_DOX{1.0};
   double alpha_H_D_DOX{0.1};

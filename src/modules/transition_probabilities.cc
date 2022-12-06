@@ -42,7 +42,8 @@ double ComputeProbability_Q_To_D(const double nutrients, const double tra,
 
 double ComputeProbability_H_To_D(const double tra, const double dox,
                                  const double delta_t, const SimParam* sparam) {
-  return P_H_D_DOX(dox, delta_t, sparam) * P_H_D_TRA(tra, delta_t, sparam);
+  return sparam->base_rate_H_D * delta_t * P_H_D_DOX(dox, delta_t, sparam) *
+         P_H_D_TRA(tra, delta_t, sparam);
 };
 
 double P_Q_SG2_N(const double nutrients, const double delta_t,
@@ -106,7 +107,7 @@ double P_H_D_DOX(const double dox, const double delta_t,
   //     dox, sparam->threshold_H_D_DOX, sparam->alpha_H_D_DOX,
   //     sparam->k_H_D_DOX,
   //     delta_t, sparam->gamma_H_D_DOX);
-  return (dox > 0.01) ? 1 : 0;
+  return 1 + dox;
 };
 
 double P_H_D_TRA(const double tra, const double delta_t,
@@ -115,7 +116,7 @@ double P_H_D_TRA(const double tra, const double delta_t,
   //     tra, sparam->threshold_H_D_TRA, sparam->alpha_H_D_TRA,
   //     sparam->k_H_D_TRA,
   //     delta_t, sparam->gamma_H_D_TRA);
-  return (tra > 0.01) ? 1 : 0;
+  return 1 + tra;
 };
 
 }  // namespace bdm
