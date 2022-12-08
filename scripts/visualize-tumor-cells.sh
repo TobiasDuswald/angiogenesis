@@ -7,6 +7,11 @@
 
 set -e
 
+# Define parameters
+BACKGROUND=1 # (0: regular, 1: transparent)
+AXES=0 # (0: off, 1: on)
+COLORBAR=0 # (0: off, 1: on)
+
 # Get the director of the script
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
@@ -44,9 +49,9 @@ do
     # paraview $file
     echo -e "${GREEN}<bash>${NC} State: $file"
     echo -e "${GREEN}<bash>${NC} Render rotation view"
-    $PVPYTHON $DIR/../pysrc/paraview_tumor_rotation.py $file
+    $PVPYTHON $DIR/../pysrc/paraview_tumor_rotation.py $file $BACKGROUND $AXES $COLORBAR
     echo -e "${GREEN}<bash>${NC} Render slice view"
-    $PVPYTHON $DIR/../pysrc/paraview_tumor_slice.py $file
+    $PVPYTHON $DIR/../pysrc/paraview_tumor_slice.py $file $BACKGROUND $AXES $COLORBAR
     # Print elapsed time
     echo -e "${GREEN}<bash>${NC} Elapsed time: $(($(date +%s)-timestamp)) seconds"
 done
@@ -68,6 +73,6 @@ do
     dir=$(dirname $file)
     # Call the script create_movie.sh with the directory of the state file as
     # argument
-    $DIR/create_movie.sh $dir/rotation rotation.mp4 15
-    $DIR/create_movie.sh $dir/slice slice.mp4 15
+    $DIR/create_movie.sh $dir/rotation_bg${BACKGROUND}_cb${COLORBAR}_ax${AXES} rotation.mp4 15
+    $DIR/create_movie.sh $dir/slice_bg${BACKGROUND}_cb${COLORBAR}_ax${AXES} slice.mp4 15
 done

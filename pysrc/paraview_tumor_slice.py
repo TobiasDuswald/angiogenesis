@@ -3,7 +3,11 @@
 # must be used with the paraview python executable. The script in
 # scripts/visualize-tumor-cells.sh wraps this script and can be used to
 # visualize the tumor for multiple runs.
-# Usage: pvpython paraview_tumor_slice.py <state_file>
+# Usage: pvpython paraview_tumor_slice.py <state_file> <transparent_background>
+#                 <show_orientation_axes> <show_color_bar>
+# transparent_background = 0  # 1 = transparent, 0 = grey
+# show_orientation_axes = 1  # 1 = show, 0 = hide
+# show_color_bar = True      # True = show, False = hide
 
 
 # trace generated using paraview version 5.10.0
@@ -18,12 +22,15 @@ import sys
 import shutil
 
 
-def visualize(filename):
+def visualize(
+    filename, transparent_background, show_orientation_axes, show_color_bar
+):
     # hard coded parameters
     output_folder = "slice"
-    transparent_background = 0  # 1 = transparent, 0 = grey
-    show_orientation_axes = 1  # 1 = show, 0 = hide
-    show_color_bar = True  # True = show, False = hide
+    print("<pvpython> Transparent background: {}".format(transparent_background))
+    print("<pvpython> Show orientation axes: {}".format(show_orientation_axes))
+    print("<pvpython> Show color bar: {}".format(show_color_bar))
+
 
     # determine if we are running on an apple system
     is_apple = sys.platform == "darwin"
@@ -1185,7 +1192,7 @@ def visualize(filename):
     Hide(tumorCells, renderView1)
 
     # show color bar/color legend
-    clip2Display.SetScalarBarVisibility(renderView1, True)
+    clip2Display.SetScalarBarVisibility(renderView1, show_color_bar)
 
     # update the view to ensure updated data information
     renderView1.Update()
@@ -1225,7 +1232,7 @@ def visualize(filename):
 
     # save animation
     print("<pvpython> Create folder ..")
-    output_folder = output_folder + "bg{}_cb{}_ax{}".format(
+    output_folder = output_folder + "_bg{}_cb{}_ax{}".format(
         transparent_background, int(show_color_bar), show_orientation_axes
     )
     animation_folder = os.path.join(folder, output_folder)
@@ -1256,15 +1263,23 @@ def visualize(filename):
 
 
 def main(argc, argv):
-    if argc != 2:
-        print("Usage: visualize.py <filename>")
+    if argc != 5:
+        print(
+            "Usage: visualize.py <state_file> <transparent_background> "
+            + "<show_orientation_axes> <show_color_bar>"
+        )
         return
     filename = argv[1]
+    transparent_background = int(argv[2])
+    show_orientation_axes = int(argv[3])
+    show_color_bar = bool(int(argv[4]))
     # check if file filename exists
     if not os.path.isfile(filename):
         print("File {} does not exist".format(filename))
         return
-    visualize(filename)
+    visualize(
+        filename, transparent_background, show_orientation_axes, show_color_bar
+    )
 
 
 if __name__ == "__main__":
