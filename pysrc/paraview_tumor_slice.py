@@ -19,6 +19,12 @@ import shutil
 
 
 def visualize(filename):
+    # hard coded parameters
+    output_folder = "slice"
+    transparent_background = 0  # 1 = transparent, 0 = grey
+    show_orientation_axes = 1  # 1 = show, 0 = hide
+    show_color_bar = True  # True = show, False = hide
+
     # determine if we are running on an apple system
     is_apple = sys.platform == "darwin"
 
@@ -84,6 +90,7 @@ def visualize(filename):
 
     # get display properties
     tumorCellsDisplay = GetDisplayProperties(tumorCells, view=renderView1)
+    renderView1.OrientationAxesVisibility = show_orientation_axes
 
     # set scalar coloring
     ColorBy(tumorCellsDisplay, ("POINTS", "cell_state_"))
@@ -92,7 +99,7 @@ def visualize(filename):
     tumorCellsDisplay.RescaleTransferFunctionToDataRange(True, False)
 
     # show color bar/color legend
-    tumorCellsDisplay.SetScalarBarVisibility(renderView1, True)
+    tumorCellsDisplay.SetScalarBarVisibility(renderView1, show_color_bar)
 
     # get color transfer function/color map for 'cell_state_'
     cell_state_LUT = GetColorTransferFunction("cell_state_")
@@ -759,7 +766,7 @@ def visualize(filename):
     Hide(tumorCells, renderView1)
 
     # show color bar/color legend
-    clip1Display.SetScalarBarVisibility(renderView1, True)
+    clip1Display.SetScalarBarVisibility(renderView1, show_color_bar)
 
     # update the view to ensure updated data information
     renderView1.Update()
@@ -1218,7 +1225,10 @@ def visualize(filename):
 
     # save animation
     print("<pvpython> Create folder ..")
-    animation_folder = os.path.join(folder, "slice")
+    output_folder = output_folder + "bg{}_cb{}_ax{}".format(
+        transparent_background, int(show_color_bar), show_orientation_axes
+    )
+    animation_folder = os.path.join(folder, output_folder)
     if not os.path.exists(animation_folder):
         os.makedirs(animation_folder)
     else:
@@ -1228,7 +1238,7 @@ def visualize(filename):
         print("<pvpython> Create folder ..")
         os.makedirs(animation_folder)
     print("<pvpython> Saving animation ..")
-    animation_path = os.path.join(folder, "slice", "img.png")
+    animation_path = os.path.join(folder, output_folder, "img.png")
     SaveAnimation(
         animation_path,
         renderView1,
@@ -1236,7 +1246,7 @@ def visualize(filename):
         FontScaling="Scale fonts proportionally",
         OverrideColorPalette="",
         StereoMode="No change",
-        TransparentBackground=0,
+        TransparentBackground=transparent_background,
         FrameRate=1,
         FrameWindow=[0, 99],
         # PNG options
