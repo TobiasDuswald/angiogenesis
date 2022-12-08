@@ -27,7 +27,9 @@ def visualize(
 ):
     # hard coded parameters
     output_folder = "rotation"
-    print("<pvpython> Transparent background: {}".format(transparent_background))
+    print(
+        "<pvpython> Transparent background: {}".format(transparent_background)
+    )
     print("<pvpython> Show orientation axes: {}".format(show_orientation_axes))
     print("<pvpython> Show color bar: {}".format(show_color_bar))
 

@@ -27,10 +27,11 @@ def visualize(
 ):
     # hard coded parameters
     output_folder = "slice"
-    print("<pvpython> Transparent background: {}".format(transparent_background))
+    print(
+        "<pvpython> Transparent background: {}".format(transparent_background)
+    )
     print("<pvpython> Show orientation axes: {}".format(show_orientation_axes))
     print("<pvpython> Show color bar: {}".format(show_color_bar))
-
 
     # determine if we are running on an apple system
     is_apple = sys.platform == "darwin"
