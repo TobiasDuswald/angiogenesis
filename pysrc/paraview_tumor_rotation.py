@@ -378,6 +378,21 @@ def visualize(
     renderView1.CameraViewAngle = 23.354564755838638
     renderView1.CameraParallelScale = 759.0092798060535
 
+    # Enable OSPRay for rendering on server
+    if not is_apple:
+        pm = paraview.servermanager.vtkSMProxyManager
+        if pm.GetVersionMajor() == 5 and pm.GetVersionMinor() < 7:
+            renderView1.EnableOSPRay = 1
+            renderView1.OSPRayRenderer = 'pathtracer'
+        else:
+            renderView1.EnableRayTracing = 1
+            renderView1.BackEnd = 'OSPRay pathtracer'
+            renderView1.Denoise = 1
+        # Properties modified on renderView1
+        renderView1.Shadows = 1
+        # Properties modified on renderView1
+        renderView1.SamplesPerPixel = 20
+
     # save animation
     print("<pvpython> Create folder ..")
     output_folder = output_folder + "_bg{}_cb{}_ax{}".format(
