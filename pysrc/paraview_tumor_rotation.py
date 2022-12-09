@@ -23,7 +23,11 @@ import shutil
 
 
 def visualize(
-    filename, transparent_background, show_orientation_axes, show_color_bar
+    filename,
+    transparent_background,
+    show_orientation_axes,
+    show_color_bar,
+    overwrite,
 ):
     # hard coded parameters
     output_folder = "rotation"
@@ -32,6 +36,7 @@ def visualize(
     )
     print("<pvpython> Show orientation axes: {}".format(show_orientation_axes))
     print("<pvpython> Show color bar: {}".format(show_color_bar))
+    print("<pvpython> Overwrite: {}".format(overwrite))
 
     # determine if we are running on an apple system
     is_apple = sys.platform == "darwin"
@@ -383,10 +388,10 @@ def visualize(
         pm = paraview.servermanager.vtkSMProxyManager
         if pm.GetVersionMajor() == 5 and pm.GetVersionMinor() < 7:
             renderView1.EnableOSPRay = 1
-            renderView1.OSPRayRenderer = 'pathtracer'
+            renderView1.OSPRayRenderer = "pathtracer"
         else:
             renderView1.EnableRayTracing = 1
-            renderView1.BackEnd = 'OSPRay pathtracer'
+            renderView1.BackEnd = "OSPRay pathtracer"
             renderView1.Denoise = 1
         # Properties modified on renderView1
         renderView1.Shadows = 1
@@ -403,6 +408,9 @@ def visualize(
         os.makedirs(animation_folder)
     else:
         print("<pvpython> Folder already exists ..")
+        if not overwrite:
+            print("<pvpython> Exit ..")
+            sys.exit(0)
         print("<pvpython> Delete folder ..")
         shutil.rmtree(animation_folder)
         print("<pvpython> Create folder ..")
@@ -451,22 +459,27 @@ def visualize(
 
 
 def main(argc, argv):
-    if argc != 5:
+    if argc != 6:
         print(
             "Usage: visualize.py <filename> <transparent_background> "
-            + "<show_orientation_axes> <show_color_bar>"
+            + "<show_orientation_axes> <show_color_bar> <overwrite>"
         )
         return
     filename = argv[1]
     transparent_background = int(argv[2])
     show_orientation_axes = int(argv[3])
     show_color_bar = bool(int(argv[4]))
+    overwrite = bool(int(argv[5]))
     # check if file filename exists
     if not os.path.isfile(filename):
         print("File {} does not exist".format(filename))
         return
     visualize(
-        filename, transparent_background, show_orientation_axes, show_color_bar
+        filename,
+        transparent_background,
+        show_orientation_axes,
+        show_color_bar,
+        overwrite,
     )
 
 

@@ -8,9 +8,10 @@
 set -e
 
 # Define parameters
-BACKGROUND=1 # (0: regular, 1: transparent)
-AXES=0 # (0: off, 1: on)
-COLORBAR=0 # (0: off, 1: on)
+BACKGROUND=0 # (0: regular, 1: transparent)
+AXES=1 # (0: off, 1: on)
+COLORBAR=1 # (0: off, 1: on)
+OVERWRITE=0 # (0: off, 1: on)
 
 # Get the director of the script
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
@@ -49,9 +50,9 @@ do
     # paraview $file
     echo -e "${GREEN}<bash>${NC} State: $file"
     echo -e "${GREEN}<bash>${NC} Render rotation view"
-    $PVPYTHON $DIR/../pysrc/paraview_tumor_rotation.py $file $BACKGROUND $AXES $COLORBAR
+    $PVPYTHON $DIR/../pysrc/paraview_tumor_rotation.py $file $BACKGROUND $AXES $COLORBAR $OVERWRITE
     echo -e "${GREEN}<bash>${NC} Render slice view"
-    $PVPYTHON $DIR/../pysrc/paraview_tumor_slice.py $file $BACKGROUND $AXES $COLORBAR
+    $PVPYTHON $DIR/../pysrc/paraview_tumor_slice.py $file $BACKGROUND $AXES $COLORBAR $OVERWRITE
     # Print elapsed time
     echo -e "${GREEN}<bash>${NC} Elapsed time: $(($(date +%s)-timestamp)) seconds"
 done
