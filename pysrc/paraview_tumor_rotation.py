@@ -410,7 +410,7 @@ def visualize(
         print("<pvpython> Folder already exists ..")
         if not overwrite:
             print("<pvpython> Exit ..")
-            sys.exit(0)
+            return
         print("<pvpython> Delete folder ..")
         shutil.rmtree(animation_folder)
         print("<pvpython> Create folder ..")
