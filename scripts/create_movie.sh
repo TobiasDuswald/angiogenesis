@@ -51,11 +51,15 @@ else
     echo -e "${GREEN}<bash>${NC} Found $NUM_PNG png files in $DIRECTORY."
 fi
 
-# Create the movie
-echo -e "${GREEN}<bash>${NC} Creating movie $MOVIE_NAME with $FRAMERATE fps."
-ffmpeg -framerate $FRAMERATE -pattern_type glob -i '*.png' \
-  -c:v libx264 -pix_fmt yuv420p $MOVIE_NAME
-echo -e "${GREEN}<bash>${NC} Done. Created movie $MOVIE_NAME."
+# Create the movie if MOVIE_NAME does not exist
+if [ -f "$MOVIE_NAME" ]; then
+    echo -e "${RED}Movie $MOVIE_NAME already exists. Skipping it. ${NC}"
+else
+    echo -e "${GREEN}<bash>${NC} Creating movie $MOVIE_NAME with $FRAMERATE fps."
+    ffmpeg -framerate $FRAMERATE -pattern_type glob -i '*.png' \
+    -c:v libx264 -pix_fmt yuv420p $MOVIE_NAME
+    echo -e "${GREEN}<bash>${NC} Done. Created movie $MOVIE_NAME."
+fi
 
 # Go back to the original directory
 cd $CWD
