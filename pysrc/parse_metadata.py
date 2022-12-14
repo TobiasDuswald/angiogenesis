@@ -1,6 +1,6 @@
-# This script parses the metadata of all simulation output files in a given 
+# This script parses the metadata of all simulation output files in a given
 # folder. The metadata is saved as a csv file.  The metadata is parsed using the
-# json module.  The metadata is stored in a dictionary, where the key is the 
+# json module.  The metadata is stored in a dictionary, where the key is the
 # name of the simulation parameter and the value is the value of the simulation
 # parameter. We export the metadata as a pandas dataframe, where each row is a
 # simulation output file and each column is a simulation parameter.
@@ -25,6 +25,7 @@ flags.DEFINE_string(
 flags.DEFINE_string(
     "filter", "bdm::SimParam", "Filter to apply to the metadata."
 )
+flags.DEFINE_string("filename", "metadata", "Filename for output csv.")
 flags.DEFINE_boolean(
     "simplify", False, "Simplify the metadata, drop identical columns."
 )
@@ -115,7 +116,9 @@ def main(argv):
 
     # Save the dataframe
     print("Saving metadata ..")
-    save_path = os.path.join(dir_path, "..", "metadata.csv")
+    save_path = os.path.join(
+        dir_path, "..", "{}.csv".format(str(FLAGS.filename))
+    )
     df.to_csv(save_path, index=True)
 
 
