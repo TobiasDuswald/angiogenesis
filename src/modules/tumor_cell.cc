@@ -412,6 +412,10 @@ void PointContinuumInteraction::Run(Agent* agent) {
   // If the behaviour is assigned to a vessel and it is not part of the initial
   // vascular network, we do supply the nutrients.
   if (tumor_cell) {
+    if (tumor_cell->GetCellState() == CellState::kDead) {
+      // Dead cells do not interact with the continuum anymore.
+      return;
+    }
     // Get the pointers to the diffusion grids: nutrients, VEGF, DOX, and TRA
     auto* sim = Simulation::GetActive();
     auto* rm = sim->GetResourceManager();
