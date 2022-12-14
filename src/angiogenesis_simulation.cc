@@ -180,7 +180,7 @@ int Simulate(int argc, const char** argv) {
       Substances::kNutrients, "Nutrients", sparam->diffusion_nutrients,
       sparam->decay_rate_nutrients, sparam->diffusion_resolution_nutrients);
   auto SetInitialValuesGridNutrients = [&sparam](double x, double y, double z) {
-    return sparam->hypoxic_threshold * 2;
+    return sparam->initial_concentration_nutrients;
   };
   ModelInitializer::InitializeSubstance(Substances::kNutrients,
                                         SetInitialValuesGridNutrients);
