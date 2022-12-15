@@ -139,6 +139,17 @@ void inline PlaceVessel(Double3 start, Double3 end, double compartment_length) {
   }
 }
 
+double Gaussian(double x, double y, double z) {
+  double mu_x = 0.0;
+  double mu_y = 0.0;
+  double mu_z = 0.0;
+  double sigma = 130.0;
+  double r = std::sqrt(std::pow(x - mu_x, 2) + std::pow(y - mu_y, 2) +
+                       std::pow(z - mu_z, 2));
+
+  return std::exp(-r * r / (2 * sigma * sigma));
+}
+
 // -----------------------------------------------------------------------------
 // MAIN SIMULATION
 // -----------------------------------------------------------------------------
@@ -192,8 +203,12 @@ int Simulate(int argc, const char** argv) {
   auto SetInitialValuesGridVEGF = [&sparam](double x, double y, double z) {
     return sparam->initial_concentration_vegf;
   };
-  ModelInitializer::InitializeSubstance(Substances::kVEGF,
-                                        SetInitialValuesGridVEGF);
+  if (!sparam->initialize_tumor_spheroid && !sparam->initialize_random_cells) {
+    ModelInitializer::InitializeSubstance(Substances::kVEGF, Gaussian);
+  } else {
+    ModelInitializer::InitializeSubstance(Substances::kVEGF,
+                                          SetInitialValuesGridVEGF);
+  }
 
   // Define TRA with constant initial conditions
   ModelInitializer::DefineSubstance(

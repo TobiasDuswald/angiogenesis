@@ -317,6 +317,9 @@ struct SimParam : public ParamGroup {
 
   // Apical growth speed
   double apical_growth_speed{1.0};
+
+  // Quotient threshold (stopping criterion) for apical growth
+  double apical_growth_quotient_threshold{0.2};
 };
 
 }  // namespace bdm
