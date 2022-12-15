@@ -179,12 +179,9 @@ void ApicalGrowth::Run(Agent* agent) {
   }
 
   /// 3. If vessel is close to an Tumor cell, we interrupt the growth as well
-  double distance_for_growth_stop = 40;
-  CountNeighborsFunctor<TumorCell*> cnf(distance_for_growth_stop);
-  auto* ctxt = Simulation::GetActive()->GetExecutionContext();
-  ctxt->ForEachNeighbor(cnf, *dendrite, std::pow(distance_for_growth_stop, 2));
-  if (cnf.GetNumNeighbors() != 0) {
-    dendrite->ProhibitGrowth();
+  double vegf_concentration = dg_guide_->GetValue(dendrite->GetPosition());
+  double decision_quotient = std::abs(gradient.Norm() / vegf_concentration);
+  if (decision_quotient < sparam->apical_growth_quotient_threshold) {
     return;
   }
 
