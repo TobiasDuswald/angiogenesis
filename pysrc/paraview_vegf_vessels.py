@@ -59,30 +59,6 @@ def visualize(
     SetActiveView(renderView1)
 
     # find source
-    tumorCells = FindSource("TumorCells")
-
-    # hide data in view
-    Hide(tumorCells, renderView1)
-
-    # find source
-    nutrientsconcentration = FindSource("Nutrients-concentration")
-
-    # hide data in view
-    Hide(nutrientsconcentration, renderView1)
-
-    # find source
-    dOXconcentration = FindSource("DOX-concentration")
-
-    # hide data in view
-    Hide(dOXconcentration, renderView1)
-
-    # find source
-    tRAconcentration = FindSource("TRA-concentration")
-
-    # hide data in view
-    Hide(tRAconcentration, renderView1)
-
-    # find source
     vEGFconcentration = FindSource("VEGF-concentration")
 
     # hide data in view
@@ -463,6 +439,21 @@ def visualize(
         0.9812865847646836,
     ]
     renderView1.CameraParallelScale = 602.5414923472076
+
+    # Enable OSPRay for rendering on server
+    if not is_apple:
+        pm = paraview.servermanager.vtkSMProxyManager
+        if pm.GetVersionMajor() == 5 and pm.GetVersionMinor() < 7:
+            renderView1.EnableOSPRay = 1
+            renderView1.OSPRayRenderer = "pathtracer"
+        else:
+            renderView1.EnableRayTracing = 1
+            renderView1.BackEnd = "OSPRay pathtracer"
+            renderView1.Denoise = 1
+        # Properties modified on renderView1
+        renderView1.Shadows = 1
+        # Properties modified on renderView1
+        renderView1.SamplesPerPixel = 20
 
     # save animation
     print("<pvpython> Save animation 1 ..")
