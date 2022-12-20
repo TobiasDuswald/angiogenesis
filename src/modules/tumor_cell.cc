@@ -214,8 +214,8 @@ void TumorCell::UpdateCellCycle() {
     // 3.1 Quiescent states stochastically transition into the states
     // proliferative or dead with certain probabilities.
     const double nutrients = dgrid_nutrients->GetValue(GetPosition());
-    const double tra = dgrid_nutrients->GetValue(GetPosition());
-    const double dox = dgrid_nutrients->GetValue(GetPosition());
+    const double tra = dgrid_tra->GetValue(GetPosition());
+    const double dox = dgrid_dox->GetValue(GetPosition());
 
     if (nutrients < sparam->hypoxic_threshold) {
       // 3.2 Deterministic transition into the hypoxic state depending on the
