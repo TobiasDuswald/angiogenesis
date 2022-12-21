@@ -25,6 +25,7 @@ translation_table = {
     "alpha_SG2_SG2_DOX": r"c_{SG2 \rightarrow SG2}",
     "apical_growth_gradient_weight": r"w_1",
     "apical_growth_old_weight": r"w_2",
+    "apical_growth_quotient_threshold": r"d_{\text{stop}}",
     "apical_growth_random_weight": r"w_3",
     "apical_growth_speed": r"not used",
     "base_rate_H_D": r"r_{H \rightarrow D}",
@@ -86,7 +87,11 @@ translation_table = {
     "vegf_grad_threshold_apical_growth": r"\nabla u_v^{thres}",
     "vegf_supply_rate_tcell": r"\alpha_{v}",
     "vegf_threshold_sprouting": r"u_v^{thres}",
-    "viscosity": r"\eta (not present in paper)",
+    "viscosity": r"\eta",
+    "zeta_H_D_DOX": r"\xi_d^{H \rightarrow D}",
+    "zeta_H_D_TRA": r"\xi_t^{H \rightarrow D}",
+    "zeta_Q_D_DOX": r"\xi_d^{Q \rightarrow D}",
+    "zeta_Q_D_TRA": r"\xi_t^{Q \rightarrow D}"
 }
 
 
@@ -113,13 +118,17 @@ def translate_dictionary(parameters):
     for key, value in parameters.items():
         if key in translation_table:
             if translation_table[key] in keys_to_remove:
+                print("Skipping key: " + key)
                 continue
             translated[translation_table[key]] = value
+        else:
+            print("Key not found in translation table: " + key)
     return translated
 
 
-def write_dictionary_to_file(parameters, filename):
+def write_dictionary_to_file(parameters, filename, inputfilename):
     with open(filename, "w", newline="\n") as f:
+        f.write("% {}\n".format(inputfilename))
         for key, value in parameters.items():
             f.write(r"${} = {}$,".format(key, value))
             f.write("\n")
@@ -147,7 +156,7 @@ def main(argv):
     translated = translate_dictionary(metadata)
 
     # Write the metadata to a file
-    write_dictionary_to_file(translated, FLAGS.outputfile)
+    write_dictionary_to_file(translated, FLAGS.outputfile, FLAGS.inputfile)
 
 
 if __name__ == "__main__":
