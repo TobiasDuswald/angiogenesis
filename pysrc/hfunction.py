@@ -19,6 +19,7 @@ flags.DEFINE_float("dt", 0.1, "dt")
 def h(x, a, b, gamma, xx, dt):
     return 1 - np.exp(-(a + 1 / (gamma + np.exp(2 * b * (x - xx)))) * dt)
 
+
 def main(argv):
     # Print parameters
     dt = FLAGS.dt
@@ -40,6 +41,7 @@ def main(argv):
     plt.xlabel(r"$x$")
     plt.ylabel(r"$h(x;a,b,\bar{x})$")
     plt.show()
+
 
 if __name__ == "__main__":
     app.run(main)

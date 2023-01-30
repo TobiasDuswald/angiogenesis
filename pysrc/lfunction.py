@@ -21,6 +21,7 @@ def l(x, c, xxx, dt):
     tmp = np.maximum(tmp, 0)
     return 1 - np.exp(-c * tmp * dt)
 
+
 def main(argv):
     # Print parameters
     dt = FLAGS.dt
@@ -38,6 +39,7 @@ def main(argv):
     plt.xlabel(r"$x$")
     plt.ylabel(r"$l(x;c,\bar{x})$")
     plt.show()
+
 
 if __name__ == "__main__":
     app.run(main)

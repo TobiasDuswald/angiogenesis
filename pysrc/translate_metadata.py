@@ -91,7 +91,7 @@ translation_table = {
     "zeta_H_D_DOX": r"\xi_d^{H \rightarrow D}",
     "zeta_H_D_TRA": r"\xi_t^{H \rightarrow D}",
     "zeta_Q_D_DOX": r"\xi_d^{Q \rightarrow D}",
-    "zeta_Q_D_TRA": r"\xi_t^{Q \rightarrow D}"
+    "zeta_Q_D_TRA": r"\xi_t^{Q \rightarrow D}",
 }
 
 

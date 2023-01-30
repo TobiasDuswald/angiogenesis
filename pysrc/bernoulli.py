@@ -1,4 +1,4 @@
-# This scipts plots the probability of a Bernoulli process with a given 
+# This scipts plots the probability of a Bernoulli process with a given
 # probability p and a given number of steps.
 # usage:
 # python pysrc/bernoulli.py --pmin -6 --pmax -2.5
@@ -14,8 +14,10 @@ FLAGS = flags.FLAGS
 flags.DEFINE_float("pmin", -5, "log10(pmin) (e.g. -5 for pmin=10^{-5}")
 flags.DEFINE_float("pmax", -2.5, "log10(pmax) (e.g. -3 for pmax=10^{-3}")
 
+
 def bernoulli(x, steps):
     return (1 - x) ** steps
+
 
 def main(argv):
     # Print parameters
@@ -42,6 +44,7 @@ def main(argv):
     plt.xlabel(r"$p$")
     plt.ylabel(r"$(1-p)^N$")
     plt.show()
+
 
 if __name__ == "__main__":
     app.run(main)
