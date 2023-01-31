@@ -191,12 +191,7 @@ int Simulate(int argc, const char** argv) {
       Substances::kNutrients, "Nutrients", sparam->diffusion_nutrients,
       sparam->decay_rate_nutrients, sparam->diffusion_resolution_nutrients);
   auto SetInitialValuesGridNutrients = [&sparam](double x, double y, double z) {
-    double r = std::sqrt(std::pow(x, 2) + std::pow(y, 2) + std::pow(z, 2));
-    if (r < 100.0) {
-      return sparam->hypoxic_threshold / 1.5;
-    } else {
-      return sparam->initial_concentration_nutrients;
-    }
+    return sparam->initial_concentration_nutrients;
   };
   ModelInitializer::InitializeSubstance(Substances::kNutrients,
                                         SetInitialValuesGridNutrients);
@@ -208,7 +203,7 @@ int Simulate(int argc, const char** argv) {
   auto SetInitialValuesGridVEGF = [&sparam](double x, double y, double z) {
     return sparam->initial_concentration_vegf;
   };
-  if (sparam->initialize_tumor_spheroid && !sparam->initialize_random_cells) {
+  if (!sparam->initialize_tumor_spheroid && !sparam->initialize_random_cells) {
     ModelInitializer::InitializeSubstance(Substances::kVEGF, Gaussian);
   } else {
     ModelInitializer::InitializeSubstance(Substances::kVEGF,
@@ -257,7 +252,7 @@ int Simulate(int argc, const char** argv) {
 
     if (sparam->initialize_tumor_spheroid) {
       // Place tumor cells in spheroid
-      const uint64_t num_cells = 5000;
+      const uint64_t num_cells = 500;
       const double filled_volume = 0.7;
       const double R =
           std::pow(num_cells * std::pow(sparam->cell_radius, 3) / filled_volume,
