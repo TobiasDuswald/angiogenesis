@@ -107,4 +107,26 @@ void exp_fit() {
   std::cout << "f(x) = exp(" << constant << " + " << slope << " * x)\n"
             << "     = " << exp_constant << " * exp(" << slope << " * x)"
             << std::endl;
+
+  // Give the fit parameters and their errors
+  std::cout << "\nThe fit parameters are: " << std::endl;
+  std::cout << "constant                : " << constant << " +- "
+            << constant_error << " [1]" << std::endl;
+  std::cout << "slope                   : " << slope << " +- " << slope_error
+            << " [1/min]" << std::endl;
+
+  // Convert the constant to the initial volume and give the error via error
+  // propagation (see wikipedia for error propagation formula)
+  const double initial_volume = TMath::Exp(constant);
+  const double initial_volume_error = initial_volume * (constant_error);
+  std::cout << "\nThe initial volume is   : " << initial_volume << " +- "
+            << initial_volume_error << " [mm^3]" << std::endl;
+
+  // Print predicted doubling time and error via error propagation
+  const double doubling_time = TMath::Log(2) / slope;
+  const double doubling_time_error = doubling_time * (slope_error / slope);
+  // Print the result converted to days
+  std::cout << "\nThe doubling time is    : " << doubling_time / 24 / 60
+            << " +- " << doubling_time_error / 24 / 60 << " [days]"
+            << std::endl;
 }
