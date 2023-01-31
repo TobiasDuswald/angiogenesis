@@ -163,13 +163,13 @@ void PlotAndSaveTimeseries() {
   {
     bdm::experimental::LineGraph g1(ts, "TumorCell count", "Time",
                                     "Number of agents", true);
-    g1.Add("q", "Q", "L", kBlue, 1.0);
-    g1.Add("sg2", "SG2", "L", kGreen, 1.0);
-    g1.Add("g1", "G1", "L", kOrange, 1.0);
-    g1.Add("h", "H", "L", kGray, 1.0);
+    g1.Add("q", "Q", "L", kOrange, 1.0);
+    g1.Add("sg2", "SG2", "L", kGreen + 2, 1.0);
+    g1.Add("g1", "G1", "L", kGreen, 1.0);
+    g1.Add("h", "H", "L", kGray + 1, 1.0);
     g1.Add("d", "D", "L", kBlack, 1.0);
     g1.Draw();
-    g1.SaveAs(Concat(sim->GetOutputDir(), "/tumor_cells"), {".svg", ".png"});
+    g1.SaveAs(Concat(sim->GetOutputDir(), "/tumor_cells"), {".pdf", ".png"});
   }
 
   // Create a bdm LineGraph that visualizes the TimeSeries data
@@ -178,7 +178,7 @@ void PlotAndSaveTimeseries() {
                                     "Number of agents", true);
     g2.Add("v", "Vessel", "L", kBlue, 1.0);
     g2.Draw();
-    g2.SaveAs(Concat(sim->GetOutputDir(), "/vessel_agents"), {".svg", ".png"});
+    g2.SaveAs(Concat(sim->GetOutputDir(), "/vessel_agents"), {".pdf", ".png"});
   }
 
   // Add the TimeSeries from the continuum verification to the TimeSeries
@@ -203,7 +203,7 @@ void PlotAndSaveTimeseries() {
       g3.Add("Nutrients_max", "Nutrients (max)", "L", kBlack, 1.0);
       g3.Draw();
       g3.SaveAs(Concat(sim->GetOutputDir(), "/continuum_values_nutrients"),
-                {".svg", ".png"});
+                {".pdf", ".png"});
     }
     {
       // Plot for VEGF
@@ -213,7 +213,7 @@ void PlotAndSaveTimeseries() {
       g3.Add("VEGF_max", "VEGF (max)", "L", kBlack, 1.0);
       g3.Draw();
       g3.SaveAs(Concat(sim->GetOutputDir(), "/continuum_values_vegf"),
-                {".svg", ".png"});
+                {".pdf", ".png"});
     }
     {
       // Plot for DOX
@@ -223,7 +223,7 @@ void PlotAndSaveTimeseries() {
       g3.Add("DOX_max", "DOX (max)", "L", kBlack, 1.0);
       g3.Draw();
       g3.SaveAs(Concat(sim->GetOutputDir(), "/continuum_values_dox"),
-                {".svg", ".png"});
+                {".pdf", ".png"});
     }
     {
       // Plot for TRA
@@ -233,7 +233,7 @@ void PlotAndSaveTimeseries() {
       g3.Add("TRA_max", "TRA (max)", "L", kBlack, 1.0);
       g3.Draw();
       g3.SaveAs(Concat(sim->GetOutputDir(), "/continuum_values_tra"),
-                {".svg", ".png"});
+                {".pdf", ".png"});
     }
   }
 }
