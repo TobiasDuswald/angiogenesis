@@ -26,6 +26,9 @@ include_directories("${CMAKE_SOURCE_DIR}/third_party/unibn-octree")
 # Note that BioDynaMo provides gtest header/libraries in its include/lib dir.
 include(${BDM_USE_FILE})
 
+# Export compile commands for Sonar Lint
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 # Consider all files in src/ for BioDynaMo simulation.
 include_directories("src")
 file(GLOB_RECURSE PROJECT_HEADERS src/*.h)
