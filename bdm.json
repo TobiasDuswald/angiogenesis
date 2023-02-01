@@ -23,7 +23,7 @@
     "nanoflann_depth": 10,
     "opencl_debug": false,
     "output_dir": "output",
-    "progress_bar_time_unit": "s",
+    "progress_bar_time_unit": "h",
     "random_seed": 4357,
     "remove_output_dir_contents": false,
     "restore_file": "",
