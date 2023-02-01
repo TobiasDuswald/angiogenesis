@@ -54,9 +54,10 @@ auto CreateTumorCell(const Double3& position) {
                        (sparam->duration_growth_phase);
   tumor_cell->SetGrowthRate(growth_rate);
   // Add the continuum interactions to the tumor cell.
-  tumor_cell->AddBehavior(new PointContinuumInteraction(
-      sparam->nutrient_consumption_rate_tcell, sparam->vegf_supply_rate_tcell,
-      sparam->dox_consumption_rate_tcell, sparam->tra_consumption_rate_tcell));
+  // tumor_cell->AddBehavior(new PointContinuumInteraction(
+  //     sparam->nutrient_consumption_rate_tcell,
+  //     sparam->vegf_supply_rate_tcell, sparam->dox_consumption_rate_tcell,
+  //     sparam->tra_consumption_rate_tcell));
   // Add cell cycle
   tumor_cell->AddBehavior(new ProgressInCellCycle());
   return tumor_cell;
