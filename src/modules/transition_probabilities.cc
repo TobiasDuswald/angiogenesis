@@ -19,31 +19,28 @@ namespace bdm {
 double ComputeProbability_Q_To_SG2(const double nutrients, const double tra,
                                    const double delta_t,
                                    const SimParam* sparam) {
-  return P_Q_SG2_N(nutrients, delta_t, sparam) *
-         P_Q_SG2_TRA(tra, delta_t, sparam);
+  return 5.3e-05 * delta_t;
 };
 
 double ComputeProbability_SG2_To_SG2(const double dox, const double delta_t,
                                      const SimParam* sparam) {
-  return P_SG2_SG2_DOX(dox, delta_t, sparam);
+  return 0;
 };
 
 double ComputeProbability_SG2_To_D(const double dox, const double delta_t,
                                    const SimParam* sparam) {
-  return P_SG2_D_DOX(dox, delta_t, sparam);
+  return 0;
 };
 
 double ComputeProbability_Q_To_D(const double nutrients, const double tra,
                                  const double dox, const double delta_t,
                                  const SimParam* sparam) {
-  return P_Q_D_N(nutrients, delta_t, sparam) * P_Q_D_TRA(tra, delta_t, sparam) *
-         P_Q_D_DOX(dox, delta_t, sparam);
+  return 0;
 };
 
 double ComputeProbability_H_To_D(const double tra, const double dox,
                                  const double delta_t, const SimParam* sparam) {
-  return sparam->base_rate_H_D * delta_t * P_H_D_DOX(dox, delta_t, sparam) *
-         P_H_D_TRA(tra, delta_t, sparam);
+  return 0;
 };
 
 double P_Q_SG2_N(const double nutrients, const double delta_t,
