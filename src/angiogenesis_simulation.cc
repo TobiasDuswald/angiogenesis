@@ -252,7 +252,7 @@ int Simulate(int argc, const char** argv) {
 
     if (sparam->initialize_tumor_spheroid) {
       // Place tumor cells in spheroid
-      const uint64_t num_cells = 500;
+      const uint64_t num_cells = 600000;
       const double filled_volume = 0.7;
       const double R =
           std::pow(num_cells * std::pow(sparam->cell_radius, 3) / filled_volume,
