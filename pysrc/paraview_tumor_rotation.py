@@ -192,9 +192,9 @@ def visualize(
 
     # Properties modified on cell_state_LUT
     cell_state_LUT.IndexedColors = [
-        0.803921568627451,
-        0.5411764705882353,
-        0.01568627450980392,
+        1.0,
+        0.8627450980392157,
+        0.06666666666666667,
         0.050980392156862744,
         0.3843137254901961,
         0.0,
@@ -391,12 +391,15 @@ def visualize(
             renderView1.OSPRayRenderer = "pathtracer"
         else:
             renderView1.EnableRayTracing = 1
-            renderView1.BackEnd = "OSPRay pathtracer"
+            renderView1.BackEnd = "OSPRay raycaster"
             renderView1.Denoise = 1
         # Properties modified on renderView1
         renderView1.Shadows = 1
         # Properties modified on renderView1
-        renderView1.SamplesPerPixel = 20
+        renderView1.SamplesPerPixel = 10
+        renderView1.AmbientSamples = 2
+        # For unclear reasons, the line below makes our life miserable
+        # renderView1.UseToneMapping = 1
 
     # save animation
     print("<pvpython> Create folder ..")
@@ -417,14 +420,21 @@ def visualize(
         os.makedirs(animation_folder)
     print("<pvpython> Saving animation ..")
     animation_path = os.path.join(folder, output_folder, "img.png")
+
+    # Set a WhiteBackground. Not transparent because raytracing causes problems
+    if transparent_background == 1:
+        override_color_palette = "PrintBackground"
+    else:
+        override_color_palette = ""
+
     SaveAnimation(
         animation_path,
         renderView1,
         ImageResolution=[2704, 1520],
         FontScaling="Scale fonts proportionally",
-        OverrideColorPalette="",
+        OverrideColorPalette=override_color_palette,
         StereoMode="No change",
-        TransparentBackground=transparent_background,
+        TransparentBackground=0,
         FrameRate=1,
         FrameWindow=[0, 99],
         # PNG options
