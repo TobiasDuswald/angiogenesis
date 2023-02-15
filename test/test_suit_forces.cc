@@ -185,4 +185,72 @@ TEST(ForceTest, Displacement) {
               abs(expected_z * tol));
 }
 
+// Test if cells feel each others forces if they do not overlap.
+TEST(ForceTest, CellVisibility) {
+  // Register the simulation parameter
+  Param::RegisterParamGroup(new SimParam());
+  auto set_param = [](Param* param) {
+    param->simulation_time_step = 0.01;
+    param->min_bound = -100;
+    param->max_bound = 100;
+    auto* sparam = param->Get<SimParam>();
+    sparam->viscosity = 2;
+    sparam->max_speed = 10.0;
+    sparam->adhesion_scale_parameter = 0.0489;
+    sparam->repulsive_scale_parameter = 10.0;
+    sparam->upper_bound = 100;
+    sparam->lower_bound = -100;
+  };
+
+  Simulation simulation(TEST_NAME, set_param);
+  auto* rm = simulation.GetResourceManager();
+  auto* scheduler = simulation.GetScheduler();
+  auto* param = simulation.GetParam();
+  auto* sparam = param->Get<SimParam>();
+  auto* env =
+      dynamic_cast<UniformGridEnvironment*>(simulation.GetEnvironment());
+
+  // Set box length manually since diameter_ is not representing the force
+  // range. See PR #7.
+  env->SetBoxLength(static_cast<int32_t>(std::ceil(2 * 30.5)));
+
+  Double3 pos1({0.0, 0.0, 0.0});
+  Double3 pos2({30.0, 0.0, 0.0});
+  TumorCell* t1 = new TumorCell(pos1, 0);
+  TumorCell* t2 = new TumorCell(pos2, 0);
+  AgentPointer<TumorCell> agent = t1->GetAgentPtr<TumorCell>();
+
+  // Set radius, nuclear radius, and action radius.
+  t1->SetRadii(10, 5, 20);
+  t2->SetRadii(10, 5, 20);
+
+  // Check if diameter is set correctly.
+  EXPECT_EQ(t1->GetDiameter(), 20);
+  EXPECT_EQ(t2->GetDiameter(), 20);
+
+  // Add agents to simulation
+  rm->AddAgent(t1);
+  rm->AddAgent(t2);
+
+  // Use custom force implementation.
+  auto* custom_force = new MechanicalInteractionForce(
+      sparam->adhesion_scale_parameter, sparam->repulsive_scale_parameter);
+  auto* op = scheduler->GetOps("mechanical forces")[0];
+  auto* force_implementation = op->GetImplementation<MechanicalForcesOp>();
+  force_implementation->SetInteractionForce(custom_force);
+
+  scheduler->FinalizeInitialization();
+  scheduler->Simulate(1);
+
+  // Compute displacement
+  Double3 new_pos;
+  new_pos = agent->GetPosition();
+  std::cout << new_pos[0] << " " << new_pos[1] << " " << new_pos[2]
+            << std::endl;
+  // Expect displacement along x axis to be positive, zero along y and z axis.
+  EXPECT_GT(new_pos[0], 0);
+  EXPECT_EQ(new_pos[1], 0);
+  EXPECT_EQ(new_pos[2], 0);
+}
+
 }  // namespace bdm
