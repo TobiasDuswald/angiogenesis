@@ -56,4 +56,32 @@ TEST(VectorOperationsTest, VectorOnConeAroundAxis) {
   EXPECT_DOUBLE_EQ(1.0, my_vector.Norm());
 }
 
+TEST(VectorOperationsTest, VectorOnConeAroundZAxis) {
+  // Define parameters
+  const double phi = 2.0;
+  const double theta = 0.75;
+  Double3 rot_axis{0, 0, 1};
+
+  // Get vector in unit sphere
+  Double3 my_vector = VectorOnConeAroundAxis(rot_axis, phi, theta);
+
+  // Checks if the parameter theta is realized correctly
+  double phi_computed = std::atan(my_vector[1] / my_vector[0]);
+  if (my_vector[0] < 0) {
+    phi_computed += Math::kPi;
+  }
+  EXPECT_DOUBLE_EQ(theta, std::acos(rot_axis * my_vector));
+  EXPECT_DOUBLE_EQ(phi, phi_computed);
+  EXPECT_DOUBLE_EQ(1.0, my_vector.Norm());
+
+  rot_axis = {0, 0, -1};
+  my_vector = VectorOnConeAroundAxis(rot_axis, phi, theta);
+  phi_computed = std::atan(my_vector[1] / my_vector[0]);
+  if (my_vector[0] < 0) {
+    phi_computed += Math::kPi;
+  }
+  EXPECT_DOUBLE_EQ(theta, std::acos(rot_axis * my_vector));
+  EXPECT_DOUBLE_EQ(1.0, my_vector.Norm());
+}
+
 }  // namespace bdm

@@ -11,6 +11,7 @@
 
 #include "vector_operations.h"
 #include <cmath>
+#include "core/util/log.h"
 
 namespace bdm {
 
@@ -29,11 +30,27 @@ Double3 VectorOnConeAroundAxis(const Double3& axis, double phi, double theta) {
   Double3 cone_vector_unit_sphere = VectorOnUnitCone(phi, theta);
 
   // Rotate the vector form the unit sphere into the correct
-  Double3 rotation_axis = Math::CrossProduct(z_axis, axis);
-  double rotation_angle = std::acos(z_axis * axis);
-  Double3 result = Math::RotAroundAxis(cone_vector_unit_sphere, rotation_angle,
-                                       rotation_axis);
-  return result;
+  const double axis_norm = axis.Norm();
+  if (axis_norm < 1e-9) {
+    Log::Fatal("VectorOperations::VectorOnConeAroundAxis",
+               "axis has zero norm");
+  }
+  const double scalar_product = z_axis * axis;
+  const double cos = scalar_product / axis_norm;
+  if (cos > 0.99999) {
+    // axis is parallel to z_axis
+    return cone_vector_unit_sphere;
+  } else if (cos < -0.99999) {
+    // axis is anti-parallel to z_axis
+    cone_vector_unit_sphere[2] *= -1;
+    return cone_vector_unit_sphere;
+  } else {
+    Double3 rotation_axis = Math::CrossProduct(z_axis, axis);
+    double rotation_angle = std::acos(z_axis * axis);
+    Double3 result = Math::RotAroundAxis(cone_vector_unit_sphere,
+                                         rotation_angle, rotation_axis);
+    return result;
+  }
 }
 
 }  // namespace bdm
