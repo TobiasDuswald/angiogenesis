@@ -68,6 +68,12 @@ void SproutingAngiogenesis::Run(Agent* agent) {
   if (my_vegf_concentration < sparam->vegf_threshold_sprouting) {
     return;
   }
+  // Get gradient and see if gradient is above a threshold
+  Double3 gradient;
+  dg_guide_->GetGradient(dendrite->GetPosition(), &gradient);
+  if (gradient.Norm() < sparam->vegf_grad_threshold_apical_growth) {
+    return;
+  }
 
   /// 2. Check if the next tip cell is at least a given distance away
   auto* asim = static_cast<AngiogenesisSimulation*>(sim);
@@ -131,10 +137,6 @@ void SproutingAngiogenesis::Run(Agent* agent) {
   ///    sprout with a certain probability growing towards the gradient of
   ///    VEGF (minimum angle).
   if (random->Uniform() < sparam->sprouting_probability) {
-    // Get gradient
-    Double3 gradient;
-    dg_guide_->GetGradient(dendrite->GetPosition(), &gradient);
-
     // Compute sprouting direction on cone around gradient
     double phi = random->Uniform(2 * Math::kPi);
     double theta = random->Uniform(0.25, 0.80);
