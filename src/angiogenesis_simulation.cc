@@ -34,122 +34,26 @@ namespace bdm {
 // simulation parameters anywhere in the simulation.
 const ParamGroupUid SimParam::kUid = ParamGroupUidGenerator::Get()->NewUid();
 
-auto CreateTumorCell(const Double3& position) {
-  // Connect to active simulation, get parameters and a random generator
-  auto* sim = Simulation::GetActive();
-  auto* random = sim->GetRandom();
-  auto* param = sim->GetParam();
-  auto* sparam = param->Get<SimParam>();
-  // Create cells at a random position (randomness through model initializer)
-  // that can divide and are quiescent
-  int cell_state = CellState::kHypoxic;
-  auto* tumor_cell = new TumorCell(position, cell_state);
-  // Set (random) radius, nuclear radius, and action radius
-  double random_radius =
-      random->Gaus(sparam->cell_radius, sparam->cell_radius_sigma);
-  tumor_cell->SetActionRadiusFactor(sparam->action_radius_factor);
-  tumor_cell->SetRadii(random_radius, sparam->cell_nuclear_radius,
-                       sparam->action_radius_factor * random_radius);
-  // Cells gain half their volume during the growth phase.
-  double growth_rate = 2.0 / 3.0 * Math::kPi * pow(random_radius, 3) /
-                       (sparam->duration_growth_phase);
-  tumor_cell->SetGrowthRate(growth_rate);
-  // Add the continuum interactions to the tumor cell.
-  tumor_cell->AddBehavior(new PointContinuumInteraction(
-      sparam->nutrient_consumption_rate_tcell, sparam->vegf_supply_rate_tcell,
-      sparam->dox_consumption_rate_tcell, sparam->tra_consumption_rate_tcell));
-  // Add cell cycle
-  tumor_cell->AddBehavior(new ProgressInCellCycle());
-  return tumor_cell;
-}
+// -----------------------------------------------------------------------------
+// Helper function (structure; implementation below main simulation)
+// -----------------------------------------------------------------------------
 
-void PlaceTumorCells(std::vector<Double3>& positions) {
-  auto* rm = Simulation::GetActive()->GetResourceManager();
-  for (auto pos : positions) {
-    auto* tumor_cell = CreateTumorCell(pos);
-    rm->AddAgent(tumor_cell);
-  }
-}
+/// Function to create a TumorCell with random properties. This function is
+/// passed on to the ModelInitializer creating random positions according to
+/// some distribution.
+TumorCell* CreateTumorCell(const Double3& position);
 
-void inline PlaceVessel(Double3 start, Double3 end, double compartment_length) {
-  auto* rm = Simulation::GetActive()->GetResourceManager();
-  auto* param = Simulation::GetActive()->GetParam();
-  auto* sparam = param->Get<SimParam>();
+/// Wrapper to multiple call to CreateTumorCell.
+void PlaceTumorCells(std::vector<Double3>& positions);
 
-  // Compute parameters for straight line between start and end.
-  Double3 direction = end - start;
-  double distance = direction.Norm();
-  direction.Normalize();
-  int n_compartments = std::floor(distance / compartment_length);
+/// @brief  This function places a vessel in the simulation
+/// @param start Beginning of the vessel
+/// @param end end of the vessel
+/// @param compartment_length Length of the individual compartments (agents)
+void PlaceVessel(Double3 start, Double3 end, double compartment_length);
 
-  // Warn if chosen parameters are not selected ideally
-  if (abs(n_compartments * compartment_length - distance) > 1e-2) {
-    Log::Warning("PlaceVessel", "Vessel will be shorter than expected.");
-  }
-
-  // The setup requires us to define a NeuronSoma, which is kind of a left over
-  // from the neuroscience module.
-  const Double3 tmp = start;
-  auto* soma = new neuroscience::NeuronSoma(tmp);
-  rm->AddAgent(soma);
-
-  // Define a first neurite
-  Vessel v;  // Used for prototype argument (virtual+template not supported c++)
-  auto* vessel_compartment_1 =
-      dynamic_cast<Vessel*>(soma->ExtendNewNeurite(direction, &v));
-  vessel_compartment_1->SetPosition(start +
-                                    direction * compartment_length * 0.5);
-  vessel_compartment_1->SetMassLocation(start + direction * compartment_length);
-  vessel_compartment_1->SetActualLength(compartment_length);
-  vessel_compartment_1->SetDiameter(15);
-  vessel_compartment_1->ProhibitGrowth();
-
-  Vessel* vessel_compartment_2{nullptr};
-  for (int i = 1; i < n_compartments; i++) {
-    // Compute location of next vessel element
-    Double3 agent_position =
-        start + direction * compartment_length * (static_cast<double>(i) + 0.5);
-    Double3 agent_end_position =
-        start + direction * compartment_length * (static_cast<double>(i) + 1.0);
-    // Create new vessel
-    vessel_compartment_2 = new Vessel();
-    // Set position an length
-    vessel_compartment_2->SetPosition(agent_position);
-    vessel_compartment_2->SetMassLocation(agent_end_position);
-    vessel_compartment_2->SetActualLength(compartment_length);
-    vessel_compartment_2->SetRestingLength(compartment_length);
-    vessel_compartment_2->SetSpringAxis(direction);
-    vessel_compartment_2->SetDiameter(15);
-    vessel_compartment_2->ProhibitGrowth();
-    // Add behaviours
-    vessel_compartment_2->AddBehavior(new SproutingAngiogenesis());
-    vessel_compartment_2->AddBehavior(new ApicalGrowth());
-    vessel_compartment_2->AddBehavior(new LineContinuumInteraction(
-        sparam->nutrient_supply_rate_vessel,
-        sparam->vegf_consumption_rate_vessel, sparam->dox_supply_rate_vessel,
-        sparam->tra_supply_rate_vessel));
-    // Add Agent to the resource manager
-    rm->AddAgent(vessel_compartment_2);
-    // Connect vessels (AgentPtr API is currently bounded to base
-    // classes but this is a 'cosmetic' problem)
-    vessel_compartment_1->SetDaughterLeft(
-        vessel_compartment_2->GetAgentPtr<neuroscience::NeuriteElement>());
-    vessel_compartment_2->SetMother(
-        vessel_compartment_1->GetAgentPtr<neuroscience::NeuronOrNeurite>());
-    std::swap(vessel_compartment_1, vessel_compartment_2);
-  }
-}
-
-double Gaussian(double x, double y, double z) {
-  double mu_x = 0.0;
-  double mu_y = 0.0;
-  double mu_z = 0.0;
-  double sigma = 130.0;
-  double r = std::sqrt(std::pow(x - mu_x, 2) + std::pow(y - mu_y, 2) +
-                       std::pow(z - mu_z, 2));
-
-  return std::exp(-r * r / (2 * sigma * sigma));
-}
+/// @brief 3D Gaussian function
+double Gaussian(double x, double y, double z);
 
 /// @brief  This function sets up the experiment
 /// @param experiment experiment to be set up
@@ -169,94 +73,17 @@ void SetUpExperiment(const Experiment experiment,
                      bool& initialize_random_cells,
                      bool& initialize_tumor_spheroid,
                      bool& initialize_vasculature, const Param* param,
-                     const SimParam* sparam) {
-  // No use case for random cells at the moment
-  initialize_random_cells = false;
+                     const SimParam* sparam);
 
-  // Computation for Experiment::kVesselsCoupling which is not working as
-  // expected in the switch statement below
-  const double interval = param->max_bound - param->min_bound;
-  const double slope = 1.0 / interval;
-  const double offset = -slope * param->min_bound;
-
-  switch (experiment) {
-    case Experiment::kAvascularTumorSpheroid:
-      initialize_tumor_spheroid = true;
-      initialize_vasculature = false;
-      break;
-    case Experiment::kPorousTumorSpheroid:
-      fn = [&sparam](double x, double y, double z) {
-        // Compute distance to center (0,0,0)
-        double r = std::sqrt(x * x + y * y + z * z);
-        if (r > 100) {
-          return sparam->initial_concentration_nutrients;
-        } else {
-          return 0.0;
-        }
-      };
-      initialize_tumor_spheroid = true;
-      initialize_vasculature = false;
-      break;
-    case Experiment::kSpheroidTreatment:
-      initialize_tumor_spheroid = true;
-      initialize_vasculature = false;
-      break;
-    case Experiment::kVesselsToCenter:
-      fv = Gaussian;
-      initialize_tumor_spheroid = false;
-      initialize_vasculature = true;
-      break;
-    case Experiment::kVesselsCoupling:
-      fv = [slope, offset](double x, double, double) {
-        return slope * x + offset;
-      };
-      initialize_tumor_spheroid = false;
-      initialize_vasculature = true;
-      break;
-    case Experiment::kSimplifiedGrowth:
-      Log::Fatal("SetUpExperiment", "Not implemented yet");
-      break;
-    case Experiment::kFullScaleModel:
-      Log::Fatal("SetUpExperiment", "Not implemented yet");
-      break;
-    default:
-      Log::Fatal("SetUpExperiment", "Unknown experiment");
-  };
-
-  // Check if all functions are set
-  if (!fn || !fv || !fd || !ft) {
-    Log::Fatal("SetUpExperiment", "Not all functions are set");
-  }
-};
-
-void InitializeVessels(const Experiment experiment, const SimParam* sparam) {
-  switch (experiment) {
-    case Experiment::kVesselsToCenter:
-      PlaceVessel({-200, 0, -400}, {-200, 0, 400},
-                  sparam->default_vessel_length);
-      PlaceVessel({200, 0, -400}, {200, 0, 400}, sparam->default_vessel_length);
-      PlaceVessel({0, -400, 200}, {0, 400, 200}, sparam->default_vessel_length);
-      PlaceVessel({0, -400, -200}, {0, 400, -200},
-                  sparam->default_vessel_length);
-      break;
-    case Experiment::kVesselsCoupling:
-      PlaceVessel({0, 0, -400}, {0, 0, 400}, sparam->default_vessel_length);
-      break;
-    case Experiment::kFullScaleModel:
-      Log::Fatal("InitializeVessels", "Not implemented yet");
-      break;
-
-    default:
-      Log::Fatal("InitializeVessels",
-                 "No vessel structure defined for this "
-                 "experiment");
-      break;
-  }
-}
+/// @brief  This function initializes the vessel structure in the simulation
+/// @param experiment experiment to be set up
+/// @param sparam Simulation parameters
+void InitializeVessels(const Experiment experiment, const SimParam* sparam);
 
 // -----------------------------------------------------------------------------
 // MAIN SIMULATION
 // -----------------------------------------------------------------------------
+
 int Simulate(int argc, const char** argv) {
   // Register the simulation parameter
   Param::RegisterParamGroup(new SimParam());
@@ -475,6 +302,220 @@ int Simulate(int argc, const char** argv) {
   PlotAndSaveTimeseries();
 
   return 0;
+}
+
+// -----------------------------------------------------------------------------
+// Helper functions
+// -----------------------------------------------------------------------------
+
+TumorCell* CreateTumorCell(const Double3& position) {
+  // Connect to active simulation, get parameters and a random generator
+  auto* sim = Simulation::GetActive();
+  auto* random = sim->GetRandom();
+  auto* param = sim->GetParam();
+  auto* sparam = param->Get<SimParam>();
+  // Create cells at a random position (randomness through model initializer)
+  // that can divide and are quiescent
+  int cell_state = CellState::kHypoxic;
+  auto* tumor_cell = new TumorCell(position, cell_state);
+  // Set (random) radius, nuclear radius, and action radius
+  double random_radius =
+      random->Gaus(sparam->cell_radius, sparam->cell_radius_sigma);
+  tumor_cell->SetActionRadiusFactor(sparam->action_radius_factor);
+  tumor_cell->SetRadii(random_radius, sparam->cell_nuclear_radius,
+                       sparam->action_radius_factor * random_radius);
+  // Cells gain half their volume during the growth phase.
+  double growth_rate = 2.0 / 3.0 * Math::kPi * pow(random_radius, 3) /
+                       (sparam->duration_growth_phase);
+  tumor_cell->SetGrowthRate(growth_rate);
+  // Add the continuum interactions to the tumor cell.
+  tumor_cell->AddBehavior(new PointContinuumInteraction(
+      sparam->nutrient_consumption_rate_tcell, sparam->vegf_supply_rate_tcell,
+      sparam->dox_consumption_rate_tcell, sparam->tra_consumption_rate_tcell));
+  // Add cell cycle
+  tumor_cell->AddBehavior(new ProgressInCellCycle());
+  return tumor_cell;
+}
+
+void PlaceTumorCells(std::vector<Double3>& positions) {
+  auto* rm = Simulation::GetActive()->GetResourceManager();
+  for (auto pos : positions) {
+    auto* tumor_cell = CreateTumorCell(pos);
+    rm->AddAgent(tumor_cell);
+  }
+}
+
+void PlaceVessel(Double3 start, Double3 end, double compartment_length) {
+  auto* rm = Simulation::GetActive()->GetResourceManager();
+  auto* param = Simulation::GetActive()->GetParam();
+  auto* sparam = param->Get<SimParam>();
+
+  // Compute parameters for straight line between start and end.
+  Double3 direction = end - start;
+  double distance = direction.Norm();
+  direction.Normalize();
+  int n_compartments = std::floor(distance / compartment_length);
+
+  // Warn if chosen parameters are not selected ideally
+  if (abs(n_compartments * compartment_length - distance) > 1e-2) {
+    Log::Warning("PlaceVessel", "Vessel will be shorter than expected.");
+  }
+
+  // The setup requires us to define a NeuronSoma, which is kind of a left over
+  // from the neuroscience module.
+  const Double3 tmp = start;
+  auto* soma = new neuroscience::NeuronSoma(tmp);
+  rm->AddAgent(soma);
+
+  // Define a first neurite
+  Vessel v;  // Used for prototype argument (virtual+template not supported c++)
+  auto* vessel_compartment_1 =
+      dynamic_cast<Vessel*>(soma->ExtendNewNeurite(direction, &v));
+  vessel_compartment_1->SetPosition(start +
+                                    direction * compartment_length * 0.5);
+  vessel_compartment_1->SetMassLocation(start + direction * compartment_length);
+  vessel_compartment_1->SetActualLength(compartment_length);
+  vessel_compartment_1->SetDiameter(15);
+  vessel_compartment_1->ProhibitGrowth();
+
+  Vessel* vessel_compartment_2{nullptr};
+  for (int i = 1; i < n_compartments; i++) {
+    // Compute location of next vessel element
+    Double3 agent_position =
+        start + direction * compartment_length * (static_cast<double>(i) + 0.5);
+    Double3 agent_end_position =
+        start + direction * compartment_length * (static_cast<double>(i) + 1.0);
+    // Create new vessel
+    vessel_compartment_2 = new Vessel();
+    // Set position an length
+    vessel_compartment_2->SetPosition(agent_position);
+    vessel_compartment_2->SetMassLocation(agent_end_position);
+    vessel_compartment_2->SetActualLength(compartment_length);
+    vessel_compartment_2->SetRestingLength(compartment_length);
+    vessel_compartment_2->SetSpringAxis(direction);
+    vessel_compartment_2->SetDiameter(15);
+    vessel_compartment_2->ProhibitGrowth();
+    // Add behaviours
+    vessel_compartment_2->AddBehavior(new SproutingAngiogenesis());
+    vessel_compartment_2->AddBehavior(new ApicalGrowth());
+    vessel_compartment_2->AddBehavior(new LineContinuumInteraction(
+        sparam->nutrient_supply_rate_vessel,
+        sparam->vegf_consumption_rate_vessel, sparam->dox_supply_rate_vessel,
+        sparam->tra_supply_rate_vessel));
+    // Add Agent to the resource manager
+    rm->AddAgent(vessel_compartment_2);
+    // Connect vessels (AgentPtr API is currently bounded to base
+    // classes but this is a 'cosmetic' problem)
+    vessel_compartment_1->SetDaughterLeft(
+        vessel_compartment_2->GetAgentPtr<neuroscience::NeuriteElement>());
+    vessel_compartment_2->SetMother(
+        vessel_compartment_1->GetAgentPtr<neuroscience::NeuronOrNeurite>());
+    std::swap(vessel_compartment_1, vessel_compartment_2);
+  }
+}
+
+double Gaussian(double x, double y, double z) {
+  double mu_x = 0.0;
+  double mu_y = 0.0;
+  double mu_z = 0.0;
+  double sigma = 130.0;
+  double r = std::sqrt(std::pow(x - mu_x, 2) + std::pow(y - mu_y, 2) +
+                       std::pow(z - mu_z, 2));
+
+  return std::exp(-r * r / (2 * sigma * sigma));
+}
+
+void SetUpExperiment(const Experiment experiment,
+                     std::function<double(double, double, double)>& fn,
+                     std::function<double(double, double, double)>& fv,
+                     std::function<double(double, double, double)>& fd,
+                     std::function<double(double, double, double)>& ft,
+                     bool& initialize_random_cells,
+                     bool& initialize_tumor_spheroid,
+                     bool& initialize_vasculature, const Param* param,
+                     const SimParam* sparam) {
+  // No use case for random cells at the moment
+  initialize_random_cells = false;
+
+  // Computation for Experiment::kVesselsCoupling which is not working as
+  // expected in the switch statement below
+  const double interval = param->max_bound - param->min_bound;
+  const double slope = 1.0 / interval;
+  const double offset = -slope * param->min_bound;
+
+  switch (experiment) {
+    case Experiment::kAvascularTumorSpheroid:
+      initialize_tumor_spheroid = true;
+      initialize_vasculature = false;
+      break;
+    case Experiment::kPorousTumorSpheroid:
+      fn = [&sparam](double x, double y, double z) {
+        // Compute distance to center (0,0,0)
+        double r = std::sqrt(x * x + y * y + z * z);
+        if (r > 100) {
+          return sparam->initial_concentration_nutrients;
+        } else {
+          return 0.0;
+        }
+      };
+      initialize_tumor_spheroid = true;
+      initialize_vasculature = false;
+      break;
+    case Experiment::kSpheroidTreatment:
+      initialize_tumor_spheroid = true;
+      initialize_vasculature = false;
+      break;
+    case Experiment::kVesselsToCenter:
+      fv = Gaussian;
+      initialize_tumor_spheroid = false;
+      initialize_vasculature = true;
+      break;
+    case Experiment::kVesselsCoupling:
+      fv = [slope, offset](double x, double, double) {
+        return slope * x + offset;
+      };
+      initialize_tumor_spheroid = false;
+      initialize_vasculature = true;
+      break;
+    case Experiment::kSimplifiedGrowth:
+      Log::Fatal("SetUpExperiment", "Not implemented yet");
+      break;
+    case Experiment::kFullScaleModel:
+      Log::Fatal("SetUpExperiment", "Not implemented yet");
+      break;
+    default:
+      Log::Fatal("SetUpExperiment", "Unknown experiment");
+  };
+
+  // Check if all functions are set
+  if (!fn || !fv || !fd || !ft) {
+    Log::Fatal("SetUpExperiment", "Not all functions are set");
+  }
+};
+
+void InitializeVessels(const Experiment experiment, const SimParam* sparam) {
+  switch (experiment) {
+    case Experiment::kVesselsToCenter:
+      PlaceVessel({-200, 0, -400}, {-200, 0, 400},
+                  sparam->default_vessel_length);
+      PlaceVessel({200, 0, -400}, {200, 0, 400}, sparam->default_vessel_length);
+      PlaceVessel({0, -400, 200}, {0, 400, 200}, sparam->default_vessel_length);
+      PlaceVessel({0, -400, -200}, {0, 400, -200},
+                  sparam->default_vessel_length);
+      break;
+    case Experiment::kVesselsCoupling:
+      PlaceVessel({0, 0, -400}, {0, 0, 400}, sparam->default_vessel_length);
+      break;
+    case Experiment::kFullScaleModel:
+      Log::Fatal("InitializeVessels", "Not implemented yet");
+      break;
+
+    default:
+      Log::Fatal("InitializeVessels",
+                 "No vessel structure defined for this "
+                 "experiment");
+      break;
+  }
 }
 
 }  // namespace bdm

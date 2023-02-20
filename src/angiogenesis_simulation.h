@@ -19,14 +19,6 @@
 
 namespace bdm {
 
-// Function to create a TumorCell with random properties. This function is
-// passed on to the ModelInitializer creating random positions according to some
-// distribution.
-auto CreateTumorCell(const Double3& position);
-
-// Wrapper to multiple call to CreateTumorCell.
-void PlaceTumorCells();
-
 // This function contains the core simulation code. It creates the agents in
 // an environment and simulates the system for multiple timesteps.
 int Simulate(int argc, const char** argv);
