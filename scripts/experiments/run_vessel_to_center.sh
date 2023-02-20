@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# This script is used to run the avascular spheroid simulation.
-# Usage: ./scripts/experiments/run_avascular_spheroid.sh
+# This script is used to run the vessel to center growth simulation.
+# Usage: ./scripts/experiments/run_vessel_to_center.sh
 
 # Exit on error
 set -e

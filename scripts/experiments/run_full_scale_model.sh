@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# This script is used to run the avascular spheroid simulation.
-# Usage: ./scripts/experiments/run_avascular_spheroid.sh
+# This script is used to run the full scale simulation.
+# Usage: ./scripts/experiments/run_full_scale_model.sh
 
 # Exit on error
 set -e

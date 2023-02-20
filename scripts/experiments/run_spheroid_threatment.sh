@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# This script is used to run the avascular spheroid simulation.
-# Usage: ./scripts/experiments/run_avascular_spheroid.sh
+# This script is used to run the spheroid treatment simulation.
+# Usage: ./scripts/experiments/run_spheroid_threatment.sh
 
 # Exit on error
 set -e

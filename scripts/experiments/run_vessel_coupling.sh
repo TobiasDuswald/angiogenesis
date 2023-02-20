@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# This script is used to run the avascular spheroid simulation.
+# This script is used to run the vessel coupling simulation.
 # Usage: ./scripts/experiments/run_avascular_spheroid.sh
 
 # Exit on error

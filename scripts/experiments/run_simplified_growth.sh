@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# This script is used to run the avascular spheroid simulation.
-# Usage: ./scripts/experiments/run_avascular_spheroid.sh
+# This script is used to run the simplified growth model.
+# Usage: ./scripts/experiments/run_simplified_growth.sh
 
 # Exit on error
 set -e

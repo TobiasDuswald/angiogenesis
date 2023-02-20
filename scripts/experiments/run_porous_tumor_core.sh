@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# This script is used to run the avascular spheroid simulation.
-# Usage: ./scripts/experiments/run_avascular_spheroid.sh
+# This script is used to run the porous tumor core simulation.
+# Usage: ./scripts/experiments/run_porous_tumor_core.sh
 
 # Exit on error
 set -e
