@@ -161,7 +161,7 @@ void PlotAndSaveTimeseries() {
 
   // Create a bdm LineGraph that visualizes the TimeSeries data
   {
-    bdm::experimental::LineGraph g1(ts, "TumorCell count", "Time",
+    bdm::experimental::LineGraph g1(ts, "TumorCell count", "Time [min]",
                                     "Number of agents", true);
     g1.Add("q", "Q", "L", kOrange, 1.0);
     g1.Add("sg2", "SG2", "L", kGreen + 2, 1.0);
@@ -170,6 +170,57 @@ void PlotAndSaveTimeseries() {
     g1.Add("d", "D", "L", kBlack, 1.0);
     g1.Draw();
     g1.SaveAs(Concat(sim->GetOutputDir(), "/tumor_cells"), {".pdf", ".png"});
+  }
+
+  // Transform the data of the timeseries by scaling the x-axis from minutes to
+  // days
+  constexpr double min_to_days = 1.0 / 60.0 / 24.0;
+  bdm::experimental::LinearTransformer lt;
+  lt.SetXSlope(min_to_days);
+  ts->AddTransformedData("q", "q_days", lt);
+  ts->AddTransformedData("sg2", "sg2_days", lt);
+  ts->AddTransformedData("g1", "g1_days", lt);
+  ts->AddTransformedData("h", "h_days", lt);
+  ts->AddTransformedData("d", "d_days", lt);
+
+  // Create line graph that visualizes the TimeSeries data in days
+  {
+    bdm::experimental::LineGraph g1(ts, "TumorCell count", "Time [days]",
+                                    "Number of agents", true);
+    g1.Add("q_days", "Q", "L", kOrange, 1.0);
+    g1.Add("sg2_days", "SG2", "L", kGreen + 2, 1.0);
+    g1.Add("g1_days", "G1", "L", kGreen, 1.0);
+    g1.Add("h_days", "H", "L", kGray + 1, 1.0);
+    g1.Add("d_days", "D", "L", kBlack, 1.0);
+    g1.Draw();
+    g1.SaveAs(Concat(sim->GetOutputDir(), "/tumor_cells_days"),
+              {".pdf", ".png"});
+  }
+
+  // Tranform the data of the timeseries to volume by multiplying the number of
+  // agents with the volume of a single cell
+  constexpr double volume = 4.0 / 3.0 * M_PI * 0.01 * 0.01 * 0.01;  // mm^3
+  bdm::experimental::LinearTransformer lt2;
+  lt2.SetXSlope(min_to_days);
+  lt2.SetYSlope(volume);
+  ts->AddTransformedData("q", "q_volume", lt2);
+  ts->AddTransformedData("sg2", "sg2_volume", lt2);
+  ts->AddTransformedData("g1", "g1_volume", lt2);
+  ts->AddTransformedData("h", "h_volume", lt2);
+  ts->AddTransformedData("d", "d_volume", lt2);
+
+  // Create line graph that visualizes the TimeSeries data in volume
+  {
+    bdm::experimental::LineGraph g1(ts, "Tumor volume", "Time [days]",
+                                    "Volume [mm^3]", true);
+    g1.Add("q_volume", "Q", "L", kOrange, 1.0);
+    g1.Add("sg2_volume", "SG2", "L", kGreen + 2, 1.0);
+    g1.Add("g1_volume", "G1", "L", kGreen, 1.0);
+    g1.Add("h_volume", "H", "L", kGray + 1, 1.0);
+    g1.Add("d_volume", "D", "L", kBlack, 1.0);
+    g1.Draw();
+    g1.SaveAs(Concat(sim->GetOutputDir(), "/tumor_cells_volume"),
+              {".pdf", ".png"});
   }
 
   // Create a bdm LineGraph that visualizes the TimeSeries data
