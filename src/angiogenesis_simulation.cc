@@ -93,7 +93,7 @@ int Simulate(int argc, const char** argv) {
   // 1. Define parameters and initialize simulation
   // ---------------------------------------------------------------------------
 
-  constexpr Experiment experiment = Experiment::kVesselsCoupling;
+  constexpr Experiment experiment = Experiment::kAvascularTumorSpheroid;
 
   // ---------------------------------------------------------------------------
   // 1. Define parameters and initialize simulation
