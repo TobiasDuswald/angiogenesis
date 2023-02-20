@@ -26,6 +26,17 @@ namespace bdm {
 // Available substances in Simulation
 enum Substances { kNutrients, kVEGF, kTRA, kDOX };
 
+// Different setups for the computational experiments.
+enum class Experiment {
+  kAvascularTumorSpheroid,
+  kPorousTumorSpheroid,
+  kSpheroidTreatment,
+  kVesselsToCenter,
+  kVesselsCoupling,
+  kSimplifiedGrowth,
+  kFullScaleModel
+};
+
 // This class defines parameters that are specific to this simulation. The unit
 // h refers to hours.
 struct SimParam : public ParamGroup {

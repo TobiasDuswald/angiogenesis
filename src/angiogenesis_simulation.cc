@@ -13,6 +13,7 @@
 
 #include "angiogenesis_simulation.h"
 #include <fstream>
+#include <functional>
 #include <iostream>
 #include "core/environment/uniform_grid_environment.h"
 #include "core/operation/mechanical_forces_op.h"
@@ -150,6 +151,109 @@ double Gaussian(double x, double y, double z) {
   return std::exp(-r * r / (2 * sigma * sigma));
 }
 
+/// @brief  This function sets up the experiment
+/// @param experiment experiment to be set up
+/// @param fn Initial concentration of nutrients
+/// @param fv Initial concentration of VEGF
+/// @param fd Initial concentration of DOX
+/// @param ft Initial concentration of TRA
+/// @param initialize_random_cells Whether to initialize cells randomly
+/// @param initialize_tumor_spheroid Whether to initialize tumor spheroid
+/// @param initialize_vasculature Whether to initialize vasculature
+/// @param sparam
+void SetUpExperiment(const Experiment experiment,
+                     std::function<double(double, double, double)>& fn,
+                     std::function<double(double, double, double)>& fv,
+                     std::function<double(double, double, double)>& fd,
+                     std::function<double(double, double, double)>& ft,
+                     bool& initialize_random_cells,
+                     bool& initialize_tumor_spheroid,
+                     bool& initialize_vasculature, const Param* param,
+                     const SimParam* sparam) {
+  // No use case for random cells at the moment
+  initialize_random_cells = false;
+
+  // Computation for Experiment::kVesselsCoupling which is not working as
+  // expected in the switch statement below
+  const double interval = param->max_bound - param->min_bound;
+  const double slope = 1.0 / interval;
+  const double offset = -slope * param->min_bound;
+
+  switch (experiment) {
+    case Experiment::kAvascularTumorSpheroid:
+      initialize_tumor_spheroid = true;
+      initialize_vasculature = false;
+      break;
+    case Experiment::kPorousTumorSpheroid:
+      fn = [&sparam](double x, double y, double z) {
+        // Compute distance to center (0,0,0)
+        double r = std::sqrt(x * x + y * y + z * z);
+        if (r > 100) {
+          return sparam->initial_concentration_nutrients;
+        } else {
+          return 0.0;
+        }
+      };
+      initialize_tumor_spheroid = true;
+      initialize_vasculature = false;
+      break;
+    case Experiment::kSpheroidTreatment:
+      initialize_tumor_spheroid = true;
+      initialize_vasculature = false;
+      break;
+    case Experiment::kVesselsToCenter:
+      fv = Gaussian;
+      initialize_tumor_spheroid = false;
+      initialize_vasculature = true;
+      break;
+    case Experiment::kVesselsCoupling:
+      fv = [slope, offset](double x, double, double) {
+        return slope * x + offset;
+      };
+      initialize_tumor_spheroid = false;
+      initialize_vasculature = true;
+      break;
+    case Experiment::kSimplifiedGrowth:
+      Log::Fatal("SetUpExperiment", "Not implemented yet");
+      break;
+    case Experiment::kFullScaleModel:
+      Log::Fatal("SetUpExperiment", "Not implemented yet");
+      break;
+    default:
+      Log::Fatal("SetUpExperiment", "Unknown experiment");
+  };
+
+  // Check if all functions are set
+  if (!fn || !fv || !fd || !ft) {
+    Log::Fatal("SetUpExperiment", "Not all functions are set");
+  }
+};
+
+void InitializeVessels(const Experiment experiment, const SimParam* sparam) {
+  switch (experiment) {
+    case Experiment::kVesselsToCenter:
+      PlaceVessel({-200, 0, -400}, {-200, 0, 400},
+                  sparam->default_vessel_length);
+      PlaceVessel({200, 0, -400}, {200, 0, 400}, sparam->default_vessel_length);
+      PlaceVessel({0, -400, 200}, {0, 400, 200}, sparam->default_vessel_length);
+      PlaceVessel({0, -400, -200}, {0, 400, -200},
+                  sparam->default_vessel_length);
+      break;
+    case Experiment::kVesselsCoupling:
+      PlaceVessel({0, 0, -400}, {0, 0, 400}, sparam->default_vessel_length);
+      break;
+    case Experiment::kFullScaleModel:
+      Log::Fatal("InitializeVessels", "Not implemented yet");
+      break;
+
+    default:
+      Log::Fatal("InitializeVessels",
+                 "No vessel structure defined for this "
+                 "experiment");
+      break;
+  }
+}
+
 // -----------------------------------------------------------------------------
 // MAIN SIMULATION
 // -----------------------------------------------------------------------------
@@ -157,6 +261,12 @@ int Simulate(int argc, const char** argv) {
   // Register the simulation parameter
   Param::RegisterParamGroup(new SimParam());
   neuroscience::InitModule();
+
+  // ---------------------------------------------------------------------------
+  // 1. Define parameters and initialize simulation
+  // ---------------------------------------------------------------------------
+
+  constexpr Experiment experiment = Experiment::kVesselsCoupling;
 
   // ---------------------------------------------------------------------------
   // 1. Define parameters and initialize simulation
@@ -183,6 +293,38 @@ int Simulate(int argc, const char** argv) {
       dynamic_cast<UniformGridEnvironment*>(simulation.GetEnvironment());
 
   // ---------------------------------------------------------------------------
+  // 2. Get setup for experiment
+  // ---------------------------------------------------------------------------
+  std::function<double(double, double, double)> initial_nutrient_concentration =
+      [&sparam](double, double, double) {
+        return sparam->initial_concentration_nutrients;
+      };
+  std::function<double(double, double, double)> initial_vegf_concentration =
+      [&sparam](double, double, double) {
+        return sparam->initial_concentration_vegf;
+      };
+  std::function<double(double, double, double)> initial_dox_concentration =
+      [&sparam](double, double, double) {
+        return sparam->initial_concentration_dox;
+      };
+  std::function<double(double, double, double)> initial_tra_concentration =
+      [&sparam](double, double, double) {
+        return sparam->initial_concentration_tra;
+      };
+  // Initialize cells randomly at the beginning of the simulation
+  bool initialize_random_cells = false;
+  // Initialize tumor spheroid at the beginning of the simulation
+  bool initialize_tumor_spheroid = false;
+  // Initialize vasculature at the beginning of the simulation
+  bool initialize_vasculature = false;
+
+  SetUpExperiment(experiment, initial_nutrient_concentration,
+                  initial_vegf_concentration, initial_dox_concentration,
+                  initial_tra_concentration, initialize_random_cells,
+                  initialize_tumor_spheroid, initialize_vasculature, param,
+                  sparam);
+
+  // ---------------------------------------------------------------------------
   // 2. Define continuum models for nutrients and VEGF
   // ---------------------------------------------------------------------------
 
@@ -190,45 +332,29 @@ int Simulate(int argc, const char** argv) {
   ModelInitializer::DefineSubstance(
       Substances::kNutrients, "Nutrients", sparam->diffusion_nutrients,
       sparam->decay_rate_nutrients, sparam->diffusion_resolution_nutrients);
-  auto SetInitialValuesGridNutrients = [&sparam](double x, double y, double z) {
-    return sparam->initial_concentration_nutrients;
-  };
   ModelInitializer::InitializeSubstance(Substances::kNutrients,
-                                        SetInitialValuesGridNutrients);
+                                        initial_nutrient_concentration);
 
   // Define VEGF with constant initial conditions
   ModelInitializer::DefineSubstance(
       Substances::kVEGF, "VEGF", sparam->diffusion_vegf,
       sparam->decay_rate_vegf, sparam->diffusion_resolution_vegf);
-  auto SetInitialValuesGridVEGF = [&sparam](double x, double y, double z) {
-    return sparam->initial_concentration_vegf;
-  };
-  if (!sparam->initialize_tumor_spheroid && !sparam->initialize_random_cells) {
-    ModelInitializer::InitializeSubstance(Substances::kVEGF, Gaussian);
-  } else {
-    ModelInitializer::InitializeSubstance(Substances::kVEGF,
-                                          SetInitialValuesGridVEGF);
-  }
+  ModelInitializer::InitializeSubstance(Substances::kVEGF,
+                                        initial_vegf_concentration);
 
   // Define TRA with constant initial conditions
   ModelInitializer::DefineSubstance(
       Substances::kTRA, "TRA", sparam->diffusion_tra, sparam->decay_rate_tra,
       sparam->diffusion_resolution_tra);
-  auto SetInitialValuesGridTRA = [&sparam](double x, double y, double z) {
-    return sparam->initial_concentration_tra;
-  };
   ModelInitializer::InitializeSubstance(Substances::kTRA,
-                                        SetInitialValuesGridTRA);
+                                        initial_tra_concentration);
 
   // Define DOX with constant initial conditions
   ModelInitializer::DefineSubstance(
       Substances::kDOX, "DOX", sparam->diffusion_dox, sparam->decay_rate_dox,
       sparam->diffusion_resolution_dox);
-  auto SetInitialValuesGridDOX = [&sparam](double x, double y, double z) {
-    return sparam->initial_concentration_dox;
-  };
   ModelInitializer::InitializeSubstance(Substances::kDOX,
-                                        SetInitialValuesGridDOX);
+                                        initial_dox_concentration);
 
   // Define upper and lower threshold for nutrients
   rm->ForEachDiffusionGrid([&](DiffusionGrid* grid) {
@@ -242,7 +368,7 @@ int Simulate(int argc, const char** argv) {
   {
     Timing timer_set_up("Initialize agents");
 
-    if (sparam->initialize_random_cells) {
+    if (initialize_random_cells) {
       // Old single cell initialization
       std::vector<Double3> cell_positions = {
           {0, 50, 0},        {0, 30, 20},      {0, 70, 50},
@@ -250,7 +376,7 @@ int Simulate(int argc, const char** argv) {
       PlaceTumorCells(cell_positions);
     }
 
-    if (sparam->initialize_tumor_spheroid) {
+    if (initialize_tumor_spheroid) {
       // Place tumor cells in spheroid
       const uint64_t num_cells = 500;
       const double filled_volume = 0.7;
@@ -261,14 +387,8 @@ int Simulate(int argc, const char** argv) {
                                                  CreateTumorCell);
     }
 
-    if (sparam->initialize_vasculature) {
-      // Place vessels
-      PlaceVessel({-200, 0, -400}, {-200, 0, 400},
-                  sparam->default_vessel_length);
-      PlaceVessel({200, 0, -400}, {200, 0, 400}, sparam->default_vessel_length);
-      PlaceVessel({0, -400, 200}, {0, 400, 200}, sparam->default_vessel_length);
-      PlaceVessel({0, -400, -200}, {0, 400, -200},
-                  sparam->default_vessel_length);
+    if (initialize_vasculature) {
+      InitializeVessels(experiment, sparam);
     }
   }
 
