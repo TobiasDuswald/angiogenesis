@@ -477,7 +477,8 @@ void SetUpExperiment(const Experiment experiment,
       Log::Fatal("SetUpExperiment", "Not implemented yet");
       break;
     case Experiment::kFullScaleModel:
-      Log::Fatal("SetUpExperiment", "Not implemented yet");
+      initialize_tumor_spheroid = true;
+      initialize_vasculature = true;
       break;
     default:
       Log::Fatal("SetUpExperiment", "Unknown experiment");
@@ -503,7 +504,14 @@ void InitializeVessels(const Experiment experiment, const SimParam* sparam) {
       PlaceVessel({0, 0, -400}, {0, 0, 400}, sparam->default_vessel_length);
       break;
     case Experiment::kFullScaleModel:
-      Log::Fatal("InitializeVessels", "Not implemented yet");
+      // ToDo: find better vessel setup. This is roughly compatible with
+      // 1000 initial cells and four vessels
+      PlaceVessel({-200, 0, -400}, {-200, 0, 400},
+                  sparam->default_vessel_length);
+      PlaceVessel({200, 0, -400}, {200, 0, 400}, sparam->default_vessel_length);
+      PlaceVessel({0, -400, 200}, {0, 400, 200}, sparam->default_vessel_length);
+      PlaceVessel({0, -400, -200}, {0, 400, -200},
+                  sparam->default_vessel_length);
       break;
 
     default:
