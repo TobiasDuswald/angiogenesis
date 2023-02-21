@@ -10,7 +10,7 @@ set -e
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 # Get paths, compile BioDynaMo and the simulation, reset changes to bdm.json
-source $DIR/compile.sh
+source $DIR/compile.sh kVesselsToCenter
 
 # Change to the simulation directory
 echo -e "${GREEN}<bash>${NC} Change to directory: $BDM_SCRIPT_DIR"

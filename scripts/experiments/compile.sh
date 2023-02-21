@@ -5,11 +5,10 @@
 # BPE_NO_CLEANBUILD to 1. Usage:
 # ./scripts/experiments/compile.sh
 # or when including the script in another script:
-# source ./scripts/experiments/compile.sh
+# source ./scripts/experiments/compile.sh <ExperimentID>
 
 # Exit on error
 set -e
-
 
 # Get the path to the current directory and to the project root directory
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
@@ -42,6 +41,14 @@ fi
 echo -e "${GREEN}<bash>${NC} Source ${EXAMPLES_DIR}/util/main.sh"
 source $EXAMPLES_DIR/util/main.sh
 
+# Change to BDM_SCRIPT_DIR
+echo -e "${GREEN}<bash>${NC} Change to $BDM_SCRIPT_DIR"
+
+# Replace "experiment = Experiment::kAvascularTumorSpheroid" with 
+# "experiment = Experiment::<ExperimentID>" in src/angiogenesis_simulation.cc
+echo -e "${GREEN}<bash>${NC} Set experiment to $1"
+replace $BDM_SCRIPT_DIR/src/angiogenesis_simulation.cc "experiment = Experiment::kAvascularTumorSpheroid" "experiment = Experiment::$1"
+
 # Build biodynamo and the simulation
 echo -e "${GREEN}<bash>${NC} Build biodynamo and the simulation"
-source $EXAMPLES_DIR/util/default-compile-script.sh "-DCMAKE_BUILD_TYPE=Release" "-DCMAKE_BUILD_TYPE=Release"
+source $EXAMPLES_DIR/util/default-compile-script.sh "-DCMAKE_BUILD_TYPE=Release -Djemalloc=off" "-DCMAKE_BUILD_TYPE=Release -Djemalloc=off"

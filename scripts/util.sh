@@ -59,7 +59,7 @@ function replace() {
         echo -e "${RED}Error: Replacement failed${NC}"
         return 1
     else
-        echo -e "${GREEN}Replacement successful${NC}"
+        echo -e "${GREEN}Success: <$2> replaced with <$3>${NC}"
     fi
     return 0
 }
