@@ -71,15 +71,6 @@ struct SimParam : public ParamGroup {
   // keep them in the simulation.
   bool keep_dead_cells{true};
 
-  // Initialize tumor spheroid at the beginning
-  bool initialize_tumor_spheroid{true};
-
-  // Initialize vasculature at the beginning
-  bool initialize_vasculature{true};
-
-  // Set random cells (~ 10) somewhere in the domain
-  bool initialize_random_cells{false};
-
   // Verify that the continuum values are all between 0 and 1
   bool verify_continuum_values{true};
 
