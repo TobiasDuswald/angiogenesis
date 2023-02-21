@@ -57,9 +57,12 @@ struct SimParam : public ParamGroup {
   // paraview visualization, e.g. the interval between exports in unit [min].
   double visualization_interval{1.0};
 
-  // // Number of (Tumor)Cells that we create in the domain at the beginning of
-  // // the simulation (uint [1])
-  // u_int64_t no_cells{1000};
+  // Number of (Tumor)Cells that we create in the domain at the beginning of
+  // the simulation (uint [1])
+  u_int64_t num_cells{1000};
+
+  // Volume filling for the tumor spheroid (unit [1])
+  double filled_volume{0.7};
 
   // Lower bound for the domain (applies to x,y,z; unit [\mu m])
   double lower_bound{-500.0};
@@ -305,6 +308,16 @@ struct SimParam : public ParamGroup {
 
   // Quotient threshold (stopping criterion) for apical growth
   double apical_growth_quotient_threshold{0.2};
+
+  // -----------------------------------------------------------------------
+  // Functions
+  // -----------------------------------------------------------------------
+
+  double GetSpheroidRadius() const {
+    return std::pow(num_cells * std::pow(cell_radius, 3) / filled_volume,
+                    1.0 / 3.0);
+    ;
+  }
 };
 
 }  // namespace bdm

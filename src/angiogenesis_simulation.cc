@@ -205,13 +205,9 @@ int Simulate(int argc, const char** argv) {
 
     if (initialize_tumor_spheroid) {
       // Place tumor cells in spheroid
-      const uint64_t num_cells = 500;
-      const double filled_volume = 0.7;
-      const double R =
-          std::pow(num_cells * std::pow(sparam->cell_radius, 3) / filled_volume,
-                   1.0 / 3.0);
-      ModelInitializer::CreateAgentsInSphereRndm({0, 0, 0}, R, num_cells,
-                                                 CreateTumorCell);
+      ModelInitializer::CreateAgentsInSphereRndm(
+          {0, 0, 0}, sparam->GetSpheroidRadius(), sparam->num_cells,
+          CreateTumorCell);
     }
 
     if (initialize_vasculature) {
