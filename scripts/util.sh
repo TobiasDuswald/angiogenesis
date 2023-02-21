@@ -38,10 +38,15 @@ function replace() {
         echo -e "${RED}Usage: replace <file> <string to replace> <replacement>${NC}"
         return 1
     fi
+    # Verify that file exists
+    if [[ ! -f "$1" ]]; then
+        echo -e "${RED}Error: File <$1> does not exist${NC}"
+        return 1
+    fi
     # Check if <string to replace> is in <file>
     if ! grep -q "$2" "$1"; then
         echo -e "${RED}Error: <$2> not found in $1${NC}"
-        return 1
+        return 1htop
     fi
     # Call sed with the appropriate arguments
     if [[ "$OSTYPE" == "darwin"* ]]; then
@@ -53,6 +58,8 @@ function replace() {
     if ! grep -q "$3" "$1"; then
         echo -e "${RED}Error: Replacement failed${NC}"
         return 1
+    else
+        echo -e "${GREEN}Replacement successful${NC}"
     fi
     return 0
 }
