@@ -235,6 +235,12 @@ struct SimParam : public ParamGroup {
   // exponential decay for each point in the diffusion grid.
   double decay_rate_nutrients{0.00001};
 
+  // Boundary condition for nutrients (glucose) diffusion grid. Gets forwarded
+  // to DiffusionGrid constructor. This is the constant value that is set on the
+  // boundary. Neumann and dirichlet boundary conditions are specified via the
+  // experiment parameter.
+  double boundary_condition_nutrients{0.0};
+
   // Resolution of the nutrients VEGF grid. Gets forwarded to
   // DiffusionGrid constructor
   int diffusion_resolution_vegf{50};
@@ -247,6 +253,12 @@ struct SimParam : public ParamGroup {
 
   // Decay constant for VEGF
   double decay_rate_vegf{0.0};
+
+  // Boundary condition for VEGF diffusion grid. Gets forwarded to
+  // DiffusionGrid constructor. This is the constant value that is set on the
+  // boundary. Neumann and dirichlet boundary conditions are specified via the
+  // experiment parameter.
+  double boundary_condition_vegf{0.0};
 
   // Resolution of the nutrients TRA grid. Gets forwarded to
   // DiffusionGrid constructor
@@ -261,6 +273,12 @@ struct SimParam : public ParamGroup {
   // Decay constant for TRA
   double decay_rate_tra{0.0};
 
+  // Boundary condition for TRA diffusion grid. Gets forwarded to
+  // DiffusionGrid constructor. This is the constant value that is set on the
+  // boundary. Neumann and dirichlet boundary conditions are specified via the
+  // experiment parameter.
+  double boundary_condition_tra{0.0};
+
   // Resolution of the nutrients DOX grid. Gets forwarded to
   // DiffusionGrid constructor
   int diffusion_resolution_dox{3};
@@ -273,6 +291,12 @@ struct SimParam : public ParamGroup {
 
   // Decay constant for DOX
   double decay_rate_dox{0.0};
+
+  // Boundary condition for DOX diffusion grid. Gets forwarded to
+  // DiffusionGrid constructor. This is the constant value that is set on the
+  // boundary. Neumann and dirichlet boundary conditions are specified via the
+  // experiment parameter.
+  double boundary_condition_dox{0.0};
 
   // -----------------------------------------------------------------------
   // Vessel parameters

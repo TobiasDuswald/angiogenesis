@@ -55,12 +55,16 @@ void PlaceVessel(Double3 start, Double3 end, double compartment_length);
 /// @brief 3D Gaussian function
 double Gaussian(double x, double y, double z);
 
-/// @brief  This function sets up the experiment
+/// @brief  This function sets up the experiments.
 /// @param experiment experiment to be set up
 /// @param fn Initial concentration of nutrients
 /// @param fv Initial concentration of VEGF
 /// @param fd Initial concentration of DOX
 /// @param ft Initial concentration of TRA
+/// @param bct_n Boundary condition type for nutrients
+/// @param bct_v Boundary condition type for VEGF
+/// @param bct_d Boundary condition type for DOX
+/// @param bct_t Boundary condition type for TRA
 /// @param initialize_random_cells Whether to initialize cells randomly
 /// @param initialize_tumor_spheroid Whether to initialize tumor spheroid
 /// @param initialize_vasculature Whether to initialize vasculature
@@ -70,6 +74,8 @@ void SetUpExperiment(const Experiment experiment,
                      std::function<double(double, double, double)>& fv,
                      std::function<double(double, double, double)>& fd,
                      std::function<double(double, double, double)>& ft,
+                     BoundaryConditionType& bct_n, BoundaryConditionType& bct_v,
+                     BoundaryConditionType& bct_d, BoundaryConditionType& bct_t,
                      bool& initialize_random_cells,
                      bool& initialize_tumor_spheroid,
                      bool& initialize_vasculature, const Param* param,
@@ -122,6 +128,8 @@ int Simulate(int argc, const char** argv) {
   // ---------------------------------------------------------------------------
   // 2. Get setup for experiment
   // ---------------------------------------------------------------------------
+
+  // Initial concentrations of the different substances
   std::function<double(double, double, double)> initial_nutrient_concentration =
       [&sparam](double, double, double) {
         return sparam->initial_concentration_nutrients;
@@ -138,6 +146,23 @@ int Simulate(int argc, const char** argv) {
       [&sparam](double, double, double) {
         return sparam->initial_concentration_tra;
       };
+
+  // Boundary conditions for the substances
+  auto bc_nutrients = std::make_unique<ConstantBoundaryCondition>(
+      sparam->boundary_condition_nutrients);
+  auto bc_vegf = std::make_unique<ConstantBoundaryCondition>(
+      sparam->boundary_condition_vegf);
+  auto bc_dox = std::make_unique<ConstantBoundaryCondition>(
+      sparam->boundary_condition_dox);
+  auto bc_tra = std::make_unique<ConstantBoundaryCondition>(
+      sparam->boundary_condition_tra);
+
+  // Boudary condition types for the substances
+  auto bc_type_nutrients = BoundaryConditionType::kNeumann;
+  auto bc_type_vegf = BoundaryConditionType::kNeumann;
+  auto bc_type_dox = BoundaryConditionType::kNeumann;
+  auto bc_type_tra = BoundaryConditionType::kNeumann;
+
   // Initialize cells randomly at the beginning of the simulation
   bool initialize_random_cells = false;
   // Initialize tumor spheroid at the beginning of the simulation
@@ -145,11 +170,11 @@ int Simulate(int argc, const char** argv) {
   // Initialize vasculature at the beginning of the simulation
   bool initialize_vasculature = false;
 
-  SetUpExperiment(experiment, initial_nutrient_concentration,
-                  initial_vegf_concentration, initial_dox_concentration,
-                  initial_tra_concentration, initialize_random_cells,
-                  initialize_tumor_spheroid, initialize_vasculature, param,
-                  sparam);
+  SetUpExperiment(
+      experiment, initial_nutrient_concentration, initial_vegf_concentration,
+      initial_dox_concentration, initial_tra_concentration, bc_type_nutrients,
+      bc_type_vegf, bc_type_dox, bc_type_tra, initialize_random_cells,
+      initialize_tumor_spheroid, initialize_vasculature, param, sparam);
 
   // ---------------------------------------------------------------------------
   // 2. Define continuum models for nutrients and VEGF
@@ -161,6 +186,8 @@ int Simulate(int argc, const char** argv) {
       sparam->decay_rate_nutrients, sparam->diffusion_resolution_nutrients);
   ModelInitializer::InitializeSubstance(Substances::kNutrients,
                                         initial_nutrient_concentration);
+  ModelInitializer::AddBoundaryConditions(
+      Substances::kNutrients, bc_type_nutrients, std::move(bc_nutrients));
 
   // Define VEGF with constant initial conditions
   ModelInitializer::DefineSubstance(
@@ -168,6 +195,8 @@ int Simulate(int argc, const char** argv) {
       sparam->decay_rate_vegf, sparam->diffusion_resolution_vegf);
   ModelInitializer::InitializeSubstance(Substances::kVEGF,
                                         initial_vegf_concentration);
+  ModelInitializer::AddBoundaryConditions(Substances::kVEGF, bc_type_vegf,
+                                          std::move(bc_vegf));
 
   // Define TRA with constant initial conditions
   ModelInitializer::DefineSubstance(
@@ -175,6 +204,8 @@ int Simulate(int argc, const char** argv) {
       sparam->diffusion_resolution_tra);
   ModelInitializer::InitializeSubstance(Substances::kTRA,
                                         initial_tra_concentration);
+  ModelInitializer::AddBoundaryConditions(Substances::kTRA, bc_type_tra,
+                                          std::move(bc_tra));
 
   // Define DOX with constant initial conditions
   ModelInitializer::DefineSubstance(
@@ -182,6 +213,8 @@ int Simulate(int argc, const char** argv) {
       sparam->diffusion_resolution_dox);
   ModelInitializer::InitializeSubstance(Substances::kDOX,
                                         initial_dox_concentration);
+  ModelInitializer::AddBoundaryConditions(Substances::kDOX, bc_type_dox,
+                                          std::move(bc_dox));
 
   // Define upper and lower threshold for nutrients
   rm->ForEachDiffusionGrid([&](DiffusionGrid* grid) {
@@ -426,6 +459,8 @@ void SetUpExperiment(const Experiment experiment,
                      std::function<double(double, double, double)>& fv,
                      std::function<double(double, double, double)>& fd,
                      std::function<double(double, double, double)>& ft,
+                     BoundaryConditionType& bct_n, BoundaryConditionType& bct_v,
+                     BoundaryConditionType& bct_d, BoundaryConditionType& bct_t,
                      bool& initialize_random_cells,
                      bool& initialize_tumor_spheroid,
                      bool& initialize_vasculature, const Param* param,
@@ -441,6 +476,10 @@ void SetUpExperiment(const Experiment experiment,
 
   switch (experiment) {
     case Experiment::kAvascularTumorSpheroid:
+      bct_n = BoundaryConditionType::kDirichlet;
+      bct_v = BoundaryConditionType::kNeumann;
+      bct_d = BoundaryConditionType::kOpenBoundaries;
+      bct_t = BoundaryConditionType::kOpenBoundaries;
       initialize_tumor_spheroid = true;
       initialize_vasculature = false;
       break;
@@ -454,15 +493,27 @@ void SetUpExperiment(const Experiment experiment,
           return 0.0;
         }
       };
+      bct_n = BoundaryConditionType::kDirichlet;
+      bct_v = BoundaryConditionType::kNeumann;
+      bct_d = BoundaryConditionType::kOpenBoundaries;
+      bct_t = BoundaryConditionType::kOpenBoundaries;
       initialize_tumor_spheroid = true;
       initialize_vasculature = false;
       break;
     case Experiment::kSpheroidTreatment:
+      bct_n = BoundaryConditionType::kClosedBoundaries;
+      bct_v = BoundaryConditionType::kClosedBoundaries;
+      bct_v = BoundaryConditionType::kClosedBoundaries;
+      bct_d = BoundaryConditionType::kClosedBoundaries;
       initialize_tumor_spheroid = true;
       initialize_vasculature = false;
       break;
     case Experiment::kVesselsToCenter:
       fv = Gaussian;
+      bct_n = BoundaryConditionType::kOpenBoundaries;
+      bct_v = BoundaryConditionType::kDirichlet;
+      bct_v = BoundaryConditionType::kOpenBoundaries;
+      bct_d = BoundaryConditionType::kOpenBoundaries;
       initialize_tumor_spheroid = false;
       initialize_vasculature = true;
       break;
@@ -470,6 +521,10 @@ void SetUpExperiment(const Experiment experiment,
       fv = [slope, offset](double x, double, double) {
         return slope * x + offset;
       };
+      bct_n = BoundaryConditionType::kNeumann;
+      bct_v = BoundaryConditionType::kOpenBoundaries;
+      bct_v = BoundaryConditionType::kOpenBoundaries;
+      bct_d = BoundaryConditionType::kOpenBoundaries;
       initialize_tumor_spheroid = false;
       initialize_vasculature = true;
       break;
@@ -477,6 +532,10 @@ void SetUpExperiment(const Experiment experiment,
       Log::Fatal("SetUpExperiment", "Not implemented yet");
       break;
     case Experiment::kFullScaleModel:
+      bct_n = BoundaryConditionType::kNeumann;
+      bct_v = BoundaryConditionType::kNeumann;
+      bct_v = BoundaryConditionType::kNeumann;
+      bct_d = BoundaryConditionType::kNeumann;
       initialize_tumor_spheroid = true;
       initialize_vasculature = true;
       break;
