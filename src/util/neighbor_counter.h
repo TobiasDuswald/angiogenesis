@@ -19,22 +19,22 @@ namespace bdm {
 template <class AgentToCount>
 class CountNeighborsFunctor : public Functor<void, Agent*, double> {
  private:
-  size_t num_neighbors_;
-  double squared_distance_;
+  size_t num_neighbors_{0};
+  double squared_distance_{0};
 
  public:
-  CountNeighborsFunctor(double distance)
-      : num_neighbors_(0), squared_distance_(std::pow(distance, 2.0)) {}
+  explicit CountNeighborsFunctor(double distance)
+      : squared_distance_(std::pow(distance, 2.0)) {}
 
   // This is called once for each neighbor that is found
-  void operator()(Agent* neighbor, double squared_distance) {
+  void operator()(Agent* neighbor, double squared_distance) override {
     if (dynamic_cast<AgentToCount>(neighbor) &&
         squared_distance < squared_distance_)
 #pragma omp atomic
       num_neighbors_ += 1;
   }
 
-  double GetNumNeighbors() { return num_neighbors_; }
+  double GetNumNeighbors() const { return num_neighbors_; }
 
   void Reset() { num_neighbors_ = 0; }
 };

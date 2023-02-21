@@ -15,7 +15,7 @@
 #define ANGIOGENESIS_SIMULATION_H_
 
 #include "biodynamo.h"
-#include "modules/element_finder.h"
+#include "modules/tipcell_finder.h"
 
 namespace bdm {
 
@@ -29,7 +29,7 @@ class AngiogenesisSimulation : public Simulation {
                          const std::function<void(Param*)>& set_param)
       : Simulation(argc, argv, set_param){};
 
-  AngiogenesisSimulation(const std::string& simulation_name)
+  explicit AngiogenesisSimulation(const std::string& simulation_name)
       : Simulation(simulation_name){};
 
   const TipCellFinder* GetTipCellFinder() const { return &tip_cell_finder_; }

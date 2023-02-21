@@ -28,11 +28,11 @@ class Vessel : public NeuriteElement {
   BDM_AGENT_HEADER(Vessel, NeuriteElement, 1);
 
  public:
-  Vessel() : can_grow_(true){};
+  Vessel() = default;
 
   void AllowGrowth() { can_grow_ = true; }
   void ProhibitGrowth() { can_grow_ = false; }
-  bool CanGrow() { return can_grow_; }
+  bool CanGrow() const { return can_grow_; }
 
   /// Method called by default discretization operation
   void RunDiscretization() override;
@@ -40,10 +40,10 @@ class Vessel : public NeuriteElement {
   /// Returns the surface area of the cylinder
   double GetSurfaceArea() const;
 
- protected:
+ private:
   /// Parameter to decide if a vessel compartment can grow towards a higher
   /// VEGF concentration (used to fix initial vessel configuration)
-  bool can_grow_;
+  bool can_grow_{true};
 };
 
 /// Behaviour to create a new bifurcation if external VEGF concentarion is
@@ -51,7 +51,7 @@ class Vessel : public NeuriteElement {
 class SproutingAngiogenesis : public Behavior {
   BDM_BEHAVIOR_HEADER(SproutingAngiogenesis, Behavior, 1);
   SproutingAngiogenesis() { AlwaysCopyToNew(); }
-  virtual ~SproutingAngiogenesis() {}
+  ~SproutingAngiogenesis() override = default;
 
   void Initialize(const NewAgentEvent& event) override;
 
@@ -69,7 +69,7 @@ class SproutingAngiogenesis : public Behavior {
 class ApicalGrowth : public Behavior {
   BDM_BEHAVIOR_HEADER(ApicalGrowth, Behavior, 1);
   ApicalGrowth() { AlwaysCopyToNew(); }
-  virtual ~ApicalGrowth() {}
+  ~ApicalGrowth() override = default;
 
   void Initialize(const NewAgentEvent& event) override;
 
@@ -99,7 +99,7 @@ class LineContinuumInteraction : public Behavior {
     AlwaysCopyToNew();
   }
 
-  virtual ~LineContinuumInteraction() = default;
+  ~LineContinuumInteraction() override = default;
 
   void Initialize(const NewAgentEvent& event) override;
 

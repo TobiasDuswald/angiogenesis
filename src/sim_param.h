@@ -338,7 +338,8 @@ struct SimParam : public ParamGroup {
   // -----------------------------------------------------------------------
 
   double GetSpheroidRadius() const {
-    return std::pow(num_cells * std::pow(cell_radius, 3) / filled_volume,
+    return std::pow(static_cast<double>(num_cells) * std::pow(cell_radius, 3) /
+                        filled_volume,
                     1.0 / 3.0);
     ;
   }

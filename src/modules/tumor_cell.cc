@@ -121,7 +121,8 @@ void TumorCell::SetRadii(double radius, double nuclear_radius,
   SetActionRadius(action_radius);
 }
 
-inline void TumorCell::LimitDisplacementAtBoundary(Double3& displacement) {
+inline void TumorCell::LimitDisplacementAtBoundary(
+    Double3& displacement) const {
   const auto* param = Simulation::GetActive()->GetParam();
   const auto* sparam = param->Get<SimParam>();
   const double min = sparam->lower_bound;
@@ -162,12 +163,12 @@ Double3 TumorCell::CalculateDisplacement(const InteractionForce* force,
   squared_radius = pow(static_cast<double>(env->GetBoxLength()), 2.0);
 
   // 2. Cast the force to our custom force
-  const MechanicalInteractionForce* interaction_force =
+  const auto* interaction_force =
       dynamic_cast<const MechanicalInteractionForce*>(force);
 
   // 3. Iterate over all neighbours and compute forces onto this agent.
   auto calculate_neighbor_forces =
-      L2F([&](Agent* neighbor, double squared_distance) {
+      L2F([this, &interaction_force, &force_on_cell](Agent* neighbor, double) {
         Double4 neighbor_force = interaction_force->Calculate(this, neighbor);
         Add4dTo3dVector(force_on_cell, neighbor_force);
       });
@@ -192,15 +193,15 @@ Double3 TumorCell::CalculateDisplacement(const InteractionForce* force,
 void TumorCell::UpdateCellCycle() {
   // 1. Get necessary objects for computation
   auto* sim = Simulation::GetActive();
-  auto* rm = sim->GetResourceManager();
+  const auto* rm = sim->GetResourceManager();
   auto* random = sim->GetRandom();
   const auto* param = sim->GetParam();
   const auto* sparam = param->Get<SimParam>();
 
   // 1.1 Get all necessary diffusion grids
-  auto* dgrid_nutrients = rm->GetDiffusionGrid(Substances::kNutrients);
-  auto* dgrid_tra = rm->GetDiffusionGrid(Substances::kTRA);
-  auto* dgrid_dox = rm->GetDiffusionGrid(Substances::kDOX);
+  const auto* dgrid_nutrients = rm->GetDiffusionGrid(Substances::kNutrients);
+  const auto* dgrid_tra = rm->GetDiffusionGrid(Substances::kTRA);
+  const auto* dgrid_dox = rm->GetDiffusionGrid(Substances::kDOX);
 
   // 2. Compute the time since the last state transition
   const double current_time =
@@ -369,7 +370,7 @@ void UpdateHypoxic::Run(Agent* agent) {
   auto* tumor_cell = dynamic_cast<TumorCell*>(agent);
   if (tumor_cell) {
     auto* sparam = Simulation::GetActive()->GetParam()->Get<SimParam>();
-    auto* dgrid_nutrients =
+    const auto* dgrid_nutrients =
         Simulation::GetActive()->GetResourceManager()->GetDiffusionGrid(
             Substances::kNutrients);
     auto nutrients = dgrid_nutrients->GetValue(tumor_cell->GetPosition());
@@ -392,7 +393,7 @@ void HypoxicSecretion::Initialize(const NewAgentEvent& event) {
 }
 
 void HypoxicSecretion::Run(Agent* agent) {
-  auto* tumor_cell = dynamic_cast<TumorCell*>(agent);
+  const auto* tumor_cell = dynamic_cast<TumorCell*>(agent);
   if (tumor_cell && tumor_cell->GetCellState() == CellState::kHypoxic) {
     auto& secretion_position = agent->GetPosition();
     dgrid_->ChangeConcentrationBy(secretion_position, quantity_);
@@ -401,13 +402,13 @@ void HypoxicSecretion::Run(Agent* agent) {
 
 void PointContinuumInteraction::Initialize(const NewAgentEvent& event) {
   Base::Initialize(event);
-  auto* other =
+  const auto* other =
       dynamic_cast<PointContinuumInteraction*>(event.existing_behavior);
   interaction_rate_ = other->interaction_rate_;
 }
 
 void PointContinuumInteraction::Run(Agent* agent) {
-  auto* tumor_cell = dynamic_cast<TumorCell*>(agent);
+  const auto* tumor_cell = dynamic_cast<TumorCell*>(agent);
 
   // If the behaviour is assigned to a vessel and it is not part of the initial
   // vascular network, we do supply the nutrients.
@@ -418,7 +419,7 @@ void PointContinuumInteraction::Run(Agent* agent) {
     }
     // Get the pointers to the diffusion grids: nutrients, VEGF, DOX, and TRA
     auto* sim = Simulation::GetActive();
-    auto* rm = sim->GetResourceManager();
+    const auto* rm = sim->GetResourceManager();
     auto* param = sim->GetParam();
     const double simulation_time_step = param->simulation_time_step;
     auto* dg_nutrients = bdm_static_cast<DiffusionGrid*>(

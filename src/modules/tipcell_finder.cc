@@ -11,7 +11,7 @@
 //
 // -----------------------------------------------------------------------------
 
-#include "element_finder.h"
+#include "tipcell_finder.h"
 #include <cassert>
 #include <chrono>
 #include <iostream>
@@ -20,13 +20,13 @@
 
 namespace bdm {
 
-TipCellFinder::TipCellFinder() : octree_(nullptr), update_container_(false) {
-  octree_ = new unibn::Octree<Real3, TipCellContainer>();
+TipCellFinder::TipCellFinder() {
+  octree_ = std::make_unique<unibn::Octree<Real3, TipCellContainer>>();
   Update();
 }
 
 int TipCellFinder::FindClosestTipCell(const Real3& x) const {
-  return static_cast<int>(octree_->findNeighbor<unibn::L2Distance<Real3>>(x));
+  return octree_->findNeighbor<unibn::L2Distance<Real3>>(x);
 }
 
 Real3 TipCellFinder::GetTipCellCenter(int element_id) const {

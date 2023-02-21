@@ -37,11 +37,11 @@ void VerifyContinuum::operator()() {
     // Compute min, max and avg of the current grid
     auto &cn = grid->GetContinuumName();
     const real_t *data = grid->GetAllConcentrations();
-    int num_elements = grid->GetNumBoxes();
+    size_t num_elements = grid->GetNumBoxes();
     real_t min = data[0];
     real_t max = data[0];
     real_t sum = 0;
-    for (int i = 0; i < num_elements; i++) {
+    for (size_t i = 0; i < num_elements; i++) {
       min = std::min(min, data[i]);
       max = std::max(max, data[i]);
       sum += data[i];
@@ -49,7 +49,7 @@ void VerifyContinuum::operator()() {
     // Add the results to the results map
     results_[cn + "_min"].push_back(min);
     results_[cn + "_max"].push_back(max);
-    results_[cn + "_avg"].push_back(sum / num_elements);
+    results_[cn + "_avg"].push_back(sum / static_cast<double>(num_elements));
   });
 };
 
@@ -197,7 +197,7 @@ void PlotAndSaveTimeseries() {
               {".pdf", ".png"});
   }
 
-  // Tranform the data of the timeseries to volume by multiplying the number of
+  // Transform the data of the timeseries to volume by multiplying the number of
   // agents with the volume of a single cell
   constexpr double volume = 4.0 / 3.0 * M_PI * 0.01 * 0.01 * 0.01;  // mm^3
   bdm::experimental::LinearTransformer lt2;
@@ -235,9 +235,9 @@ void PlotAndSaveTimeseries() {
   // Add the TimeSeries from the continuum verification to the TimeSeries
   if (sparam->verify_continuum_values) {
     auto *op = scheduler->GetOps("VerifyContinuum")[0];
-    auto *results_continuum =
+    auto const *results_continuum =
         op->GetImplementation<VerifyContinuum>()->GetResults();
-    auto *sim_time =
+    auto const *sim_time =
         op->GetImplementation<VerifyContinuum>()->GetSimulatedTime();
     // Add all key values pairs to the TimeSeries
     for (auto &pair : *results_continuum) {

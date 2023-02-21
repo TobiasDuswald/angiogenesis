@@ -104,11 +104,11 @@ int Simulate(int argc, const char** argv) {
   // ---------------------------------------------------------------------------
   // 1. Define parameters and initialize simulation
   // ---------------------------------------------------------------------------
-  auto set_param = [&](Param* param) {
+  auto set_param = [](Param* param) {
     param->calculate_gradients = true;
-    param->visualization_interval =
-        param->Get<SimParam>()->visualization_interval /
-        param->simulation_time_step;
+    param->visualization_interval = static_cast<uint32_t>(std::floor(
+        static_cast<double>(param->Get<SimParam>()->visualization_interval) /
+        param->simulation_time_step));
   };
 
   // Initialize the simulation
@@ -217,7 +217,7 @@ int Simulate(int argc, const char** argv) {
                                           std::move(bc_dox));
 
   // Define upper and lower threshold for nutrients
-  rm->ForEachDiffusionGrid([&](DiffusionGrid* grid) {
+  rm->ForEachDiffusionGrid([](DiffusionGrid* grid) {
     grid->SetUpperThreshold(1.0);
     grid->SetLowerThreshold(0.0);
   });
@@ -368,7 +368,7 @@ TumorCell* CreateTumorCell(const Double3& position) {
 
 void PlaceTumorCells(std::vector<Double3>& positions) {
   auto* rm = Simulation::GetActive()->GetResourceManager();
-  for (auto pos : positions) {
+  for (const auto& pos : positions) {
     auto* tumor_cell = CreateTumorCell(pos);
     rm->AddAgent(tumor_cell);
   }
@@ -383,7 +383,8 @@ void PlaceVessel(Double3 start, Double3 end, double compartment_length) {
   Double3 direction = end - start;
   double distance = direction.Norm();
   direction.Normalize();
-  int n_compartments = std::floor(distance / compartment_length);
+  auto n_compartments =
+      static_cast<int>(std::floor(distance / compartment_length));
 
   // Warn if chosen parameters are not selected ideally
   if (abs(n_compartments * compartment_length - distance) > 1e-2) {

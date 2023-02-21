@@ -33,35 +33,29 @@ class TumorCell : public Cell {
 
  private:
   // Cell state representing, for instance, quiescent, proliferative, or dead.
-  int cell_state_;
+  int cell_state_{0};
   // Time of the last state transition.
-  double t_last_state_transition_;
+  double t_last_state_transition_{0};
   // Radius of the cell.
-  double radius_;
+  double radius_{10};
   // Radius of the nucleus.
-  double nuclear_radius_;
+  double nuclear_radius_{5};
   // Action radius of the cell.
-  double action_radius_;
+  double action_radius_{12.14};
   // Action radius factor: action_radius_ = action_radius_factor_ * radius_
-  double action_radius_factor_;
+  double action_radius_factor_{1.214};
   // Growth rate of this specific cell.
-  double growth_rate_;
+  double growth_rate_{0};
   // Max radius that can be achieved for this cell.
-  double max_radius_;
+  double max_radius_{20.0};
   // Factor to modify the displacement.
-  double displacement_scale_factor_;
+  double displacement_scale_factor_{4.0};
 
  public:
-  TumorCell() {}
+  TumorCell() = default;
   explicit TumorCell(const Double3& position, int cell_state)
-      : Base(position), cell_state_{cell_state} {
-    action_radius_factor_ = 1.214;
-    growth_rate_ = 0;
-    max_radius_ = 20.0;
-    displacement_scale_factor_ = 4.0;
-    t_last_state_transition_ = 0.0;
-  }
-  virtual ~TumorCell() {}
+      : Base(position), cell_state_{cell_state} {}
+  virtual ~TumorCell() = default;
 
   // If TumorCell divides, the daughter has to initialize its attributes. This
   // member is called in that case.
@@ -73,7 +67,7 @@ class TumorCell : public Cell {
 
   // This function is called by the function CalculateDisplacement and prevents
   // cells leaving the defined simulation boundaries
-  void LimitDisplacementAtBoundary(Double3& displacement);
+  void LimitDisplacementAtBoundary(Double3& displacement) const;
 
   // This member function implements the stochastic and deterministic cell state
   // transitions as outlined in Lima 2021.
@@ -93,7 +87,7 @@ class TumorCell : public Cell {
   // Getter and Setter functions
   //////////////////////////////////////////////////////////////////////////////
   void SetCellState(int cell_state) { cell_state_ = cell_state; }
-  int GetCellState() { return cell_state_; };
+  int GetCellState() const { return cell_state_; };
 
   void SetRadius(double radius) {
     radius_ = radius;
@@ -116,18 +110,20 @@ class TumorCell : public Cell {
   void SetActionRadiusFactor(double action_radius_factor) {
     action_radius_factor_ = action_radius_factor;
   }
-  double GetActionRadiusFactor() { return action_radius_factor_; }
+  double GetActionRadiusFactor() const { return action_radius_factor_; }
 
   void SetGrowthRate(double growth_rate) { growth_rate_ = growth_rate; }
-  double GetGrowthRate() { return growth_rate_; }
+  double GetGrowthRate() const { return growth_rate_; }
 
   void SetMaxRadius(double max_radius) { max_radius_ = max_radius; }
-  double GetMaxRadius() { return max_radius_; }
+  double GetMaxRadius() const { return max_radius_; }
 
   void SetDisplacementScaleFactor(double displacement_scale_factor) {
     displacement_scale_factor_ = displacement_scale_factor;
   }
-  double GetDisplacementScaleFactor() { return displacement_scale_factor_; }
+  double GetDisplacementScaleFactor() const {
+    return displacement_scale_factor_;
+  }
 
   void SetRadii(double radius, double nuclear_radius, double action_radius);
 };
@@ -155,7 +151,7 @@ struct UpdateHypoxic : public Behavior {
 
   void Run(Agent* agent) override;
 
- protected:
+ private:
   int substance_id_ = 0;
 };
 
@@ -183,7 +179,7 @@ class HypoxicSecretion : public Behavior {
 
   void Run(Agent* agent) override;
 
- protected:
+ private:
   std::string substance_;
   DiffusionGrid* dgrid_ = nullptr;
   double quantity_ = 1;

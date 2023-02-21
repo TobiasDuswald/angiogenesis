@@ -205,7 +205,7 @@ void ApicalGrowth::Run(Agent* agent) {
 
 void LineContinuumInteraction::Initialize(const NewAgentEvent& event) {
   Base::Initialize(event);
-  auto* other =
+  const auto* other =
       dynamic_cast<LineContinuumInteraction*>(event.existing_behavior);
   interaction_rate_ = other->interaction_rate_;
 }
@@ -224,7 +224,7 @@ void LineContinuumInteraction::Run(Agent* agent) {
 
     // Get the pointers to the diffusion grids: nutrients, VEGF, DOX, and TRA
     auto* sim = Simulation::GetActive();
-    auto* rm = sim->GetResourceManager();
+    const auto* rm = sim->GetResourceManager();
     auto* param = sim->GetParam();
     const double simulation_time_step = param->simulation_time_step;
     auto* dg_nutrients = bdm_static_cast<DiffusionGrid*>(
@@ -242,14 +242,14 @@ void LineContinuumInteraction::Run(Agent* agent) {
     // vessel is in the same scale as the diffusion grid, or smaller.
 
     bool skip_first_weight = false;
-    auto* mother_ptr = dynamic_cast<Vessel*>(vessel->GetMother().Get());
+    const auto* mother_ptr = dynamic_cast<Vessel*>(vessel->GetMother().Get());
     if (mother_ptr &&
         (vessel->GetAgentPtr<Vessel>() == mother_ptr->GetDaughterRight())) {
       skip_first_weight = true;
     }
 
     // Get start and and point
-    const auto end = vessel->GetMassLocation();
+    const auto& end = vessel->GetMassLocation();
     Double3 start;
     if (mother_ptr) {
       start = mother_ptr->GetMassLocation();
@@ -326,9 +326,9 @@ void LineContinuumInteraction::ComputeSamplePoints(const Double3& start,
   // The sample points are equally spaced.
   sample_points_.resize(n_sample_points_);
   Double3 direction = end - start;
-  direction /= (n_sample_points_ - 1);
+  direction /= static_cast<double>(n_sample_points_ - 1);
   for (size_t i = 0; i < n_sample_points_; i++) {
-    sample_points_[i] = start + direction * i;
+    sample_points_[i] = start + direction * static_cast<double>(i);
   }
 }
 

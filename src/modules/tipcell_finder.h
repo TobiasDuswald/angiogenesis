@@ -11,24 +11,23 @@
 //
 // -----------------------------------------------------------------------------
 
-#ifndef ELEMENT_FINDER_H_
-#define ELEMENT_FINDER_H_
+#ifndef TIPCELL_FINDER_H_
+#define TIPCELL_FINDER_H_
 
 #include <limits>
-#include "modules/element_container.h"
+#include <memory>
+#include "modules/tipcell_container.h"
 #include "unibn_octree.h"
 
 namespace bdm {
 
 /// The TipCellFinder is a Octree based search engine to identify the closest
-/// center of an element relative to a given vector.
+/// center of a TipCell relative to a given vector.
 class TipCellFinder {
  public:
-  /// Constructing a TipCellFinder requires a mfem::Mesh. During this call, the
+  /// Constructor. During this call, the
   /// Octree is build for fast searches.
   TipCellFinder();
-
-  ~TipCellFinder() { delete octree_; };
 
   /// Calls back to FindClosestTipCell(mfem::Vector&).
   int FindClosestTipCell(const Real3& x) const;
@@ -47,7 +46,7 @@ class TipCellFinder {
 
  private:
   /// Octree for spatial searches
-  unibn::Octree<Real3, TipCellContainer>* octree_ = nullptr;
+  std::unique_ptr<unibn::Octree<Real3, TipCellContainer>> octree_ = nullptr;
 
   /// Wraps the access to a mfem::Mesh for octree search
   TipCellContainer tip_cell_container_;
@@ -58,4 +57,4 @@ class TipCellFinder {
 
 }  // namespace bdm
 
-#endif  // ELEMENT_FINDER_H_
+#endif  // TIPCELL_FINDER_H_

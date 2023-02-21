@@ -21,7 +21,7 @@ namespace bdm {
 /// Helper function for VectorOnConeAroundAxis.
 Double3 VectorOnUnitCone(double phi, double theta);
 
-/// Retruns a unit vector that lies on the cone defined by (phi, theta) around
+/// Returns a unit vector that lies on the cone defined by (phi, theta) around
 /// axis. Intended for behaviors where phi is random.
 Double3 VectorOnConeAroundAxis(const Double3& axis, double phi, double theta);
 

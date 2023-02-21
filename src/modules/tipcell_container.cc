@@ -11,7 +11,7 @@
 //
 // -----------------------------------------------------------------------------
 
-#include "element_container.h"
+#include "tipcell_container.h"
 #include <cassert>
 #include "modules/vessel.h"
 
@@ -26,13 +26,14 @@ void TipCellContainer::Update() {
     // Iterate over all agents and add tip cell position to
     // element_center_points_
     std::vector<Real3> tmp;
+    // ToDo (Tobias): parallelize!
     rm->ForEachAgent([&tmp](Agent* agent) {
-      auto* vessel = dynamic_cast<Vessel*>(agent);
+      const auto* vessel = dynamic_cast<Vessel*>(agent);
       if (vessel && vessel->GetDaughterLeft() == nullptr) {
         tmp.push_back(vessel->GetMassLocation());
       }
     });
-    element_center_points_ = tmp;
+    element_center_points_ = std::move(tmp);
   }
 }
 

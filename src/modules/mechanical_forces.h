@@ -65,7 +65,7 @@ class MechanicalInteractionForce : public InteractionForce {
                              double repulsive_scale_parameter)
       : adhesion_scale_parameter_(adhesion_scale_parameter),
         repulsive_scale_parameter_(repulsive_scale_parameter){};
-  virtual ~MechanicalInteractionForce() {}
+  ~MechanicalInteractionForce() override = default;
 
   // Calculate the interaction force between two agents.
   Double4 Calculate(const Agent* lhs, const Agent* rhs) const override;
