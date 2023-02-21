@@ -17,7 +17,7 @@ OVERWRITE=1 # (0: off, 1: on)
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 # Source colors
-. $DIR/colors.sh
+. $DIR/util.sh
 
 # Check if BioDynaMo is sourced by checking if the environment variable 
 # BDMSYS is set

@@ -12,7 +12,7 @@ set -e
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 # Source colors
-. $DIR/colors.sh
+. $DIR/util.sh
 
 # Check if we receive exactly one argument and save it in the variable INPUT_DIR
 if [ $# -ne 1 ]; then

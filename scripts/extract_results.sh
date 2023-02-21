@@ -11,7 +11,7 @@ set -e
 
 # Get the path of this script
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-source $DIR/colors.sh
+source $DIR/util.sh
 
 # Check if the number of arguments is correct
 if [ $# -ne 2 ]; then

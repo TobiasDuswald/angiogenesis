@@ -26,7 +26,7 @@ fi
 CWD=$(pwd)
 
 # Load the colors
-source scripts/colors.sh
+source scripts/util.sh
 
 # Check if the directory exists
 if [ ! -d "$DIRECTORY" ]; then

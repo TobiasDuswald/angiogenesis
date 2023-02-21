@@ -21,8 +21,7 @@ PROJECT_ROOT_DIR=$BDM_SCRIPT_DIR/../../..
 PROJECT_ROOT_DIR=$(realpath $PROJECT_ROOT_DIR)
 
 # Source some utility scripts
-source $BDM_SCRIPT_DIR/scripts/colors.sh
-source $BDM_SCRIPT_DIR/scripts/replace.sh
+source $BDM_SCRIPT_DIR/scripts/util.sh
 
 # Print previously defined variables
 echo -e "${GREEN}<bash>${NC} BDM_SCRIPT_DIR: $BDM_SCRIPT_DIR"
@@ -40,6 +39,7 @@ else
 fi
 
 # Source the main utility script
+echo -e "${GREEN}<bash>${NC} Source ${EXAMPLES_DIR}/util/main.sh"
 source $EXAMPLES_DIR/util/main.sh
 
 # Build biodynamo and the simulation
