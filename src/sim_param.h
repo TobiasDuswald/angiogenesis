@@ -80,6 +80,9 @@ struct SimParam : public ParamGroup {
   // Update frequency for TipCellFinder
   size_t tip_cell_finder_update_frequency{1};
 
+  // Number of random vessels in full scale model
+  int num_vessels{20};
+
   // -----------------------------------------------------------------------
   // TumorCell parameters
   // -----------------------------------------------------------------------
@@ -302,6 +305,22 @@ struct SimParam : public ParamGroup {
   // Vessel parameters
   // -----------------------------------------------------------------------
 
+  // Number of modes for random vessels
+  int random_vessel_num_modes{10};
+
+  // Exponent for random vessels
+  double random_vessel_exponent{1.0};
+
+  // Maximum deviation factor for random vessels (unit [1], 0 <= x <= 1).
+  // Multiplies with vessel length to get the maximum deviation.
+  double random_vessel_max_deviation{0.2};
+
+  // Mean of the normal distribution for sinusoidal frequencies
+  double random_vessel_frequency_mean{3.1415};
+
+  // Standard deviation of the normal distribution for sinusoidal frequencies
+  double random_vessel_frequency_std{4.0};
+
   // Length of vessels at initialization
   double default_vessel_length{10};
 
@@ -331,7 +350,7 @@ struct SimParam : public ParamGroup {
   double apical_growth_speed{1.0};
 
   // Quotient threshold (stopping criterion) for apical growth
-  double apical_growth_quotient_threshold{0.2};
+  double apical_growth_quotient_threshold{0.01};
 
   // -----------------------------------------------------------------------
   // Functions

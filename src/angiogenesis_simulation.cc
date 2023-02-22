@@ -25,7 +25,9 @@
 #include "neuroscience/neuroscience.h"
 #include "sim_param.h"
 #include "util/analysis.h"
+#include "util/random_field.h"
 #include "util/timeseries_counters.h"
+#include "util/vector_operations.h"
 
 namespace bdm {
 
@@ -50,7 +52,14 @@ void PlaceTumorCells(std::vector<Double3>& positions);
 /// @param start Beginning of the vessel
 /// @param end end of the vessel
 /// @param compartment_length Length of the individual compartments (agents)
-void PlaceVessel(Double3 start, Double3 end, double compartment_length);
+void PlaceStraightVessel(Double3 start, Double3 end, double compartment_length);
+
+/// @brief This function places a random vessel in the simulation. Uses
+/// parameters from the simulation parameters.
+/// @param start Beginning of the vessel
+/// @param end end of the vessel
+/// @param param Simulation parameters
+void PlaceRandomVessel(Double3 start, Double3 end);
 
 /// @brief 3D Gaussian function
 double Gaussian(double x, double y, double z);
@@ -84,7 +93,8 @@ void SetUpExperiment(const Experiment experiment,
 /// @brief  This function initializes the vessel structure in the simulation
 /// @param experiment experiment to be set up
 /// @param sparam Simulation parameters
-void InitializeVessels(const Experiment experiment, const SimParam* sparam);
+void InitializeVessels(const Experiment experiment, const Param* param,
+                       const SimParam* sparam);
 
 // -----------------------------------------------------------------------------
 // MAIN SIMULATION
@@ -244,7 +254,7 @@ int Simulate(int argc, const char** argv) {
     }
 
     if (initialize_vasculature) {
-      InitializeVessels(experiment, sparam);
+      InitializeVessels(experiment, param, sparam);
     }
   }
 
@@ -345,7 +355,7 @@ TumorCell* CreateTumorCell(const Double3& position) {
   auto* sparam = param->Get<SimParam>();
   // Create cells at a random position (randomness through model initializer)
   // that can divide and are quiescent
-  int cell_state = CellState::kHypoxic;
+  int cell_state = CellState::kQuiescent;
   auto* tumor_cell = new TumorCell(position, cell_state);
   // Set (random) radius, nuclear radius, and action radius
   double random_radius =
@@ -374,7 +384,8 @@ void PlaceTumorCells(std::vector<Double3>& positions) {
   }
 }
 
-void PlaceVessel(Double3 start, Double3 end, double compartment_length) {
+void PlaceStraightVessel(Double3 start, Double3 end,
+                         double compartment_length) {
   auto* rm = Simulation::GetActive()->GetResourceManager();
   auto* param = Simulation::GetActive()->GetParam();
   auto* sparam = param->Get<SimParam>();
@@ -388,7 +399,8 @@ void PlaceVessel(Double3 start, Double3 end, double compartment_length) {
 
   // Warn if chosen parameters are not selected ideally
   if (abs(n_compartments * compartment_length - distance) > 1e-2) {
-    Log::Warning("PlaceVessel", "Vessel will be shorter than expected.");
+    Log::Warning("PlaceStraightVessel",
+                 "Vessel will be shorter than expected.");
   }
 
   // The setup requires us to define a NeuronSoma, which is kind of a left over
@@ -443,6 +455,105 @@ void PlaceVessel(Double3 start, Double3 end, double compartment_length) {
     std::swap(vessel_compartment_1, vessel_compartment_2);
   }
 }
+
+void PlaceRandomVessel(Double3 start, Double3 end) {
+  // Get parameters
+  auto* rm = Simulation::GetActive()->GetResourceManager();
+  auto* param = Simulation::GetActive()->GetParam();
+  auto* sparam = param->Get<SimParam>();
+  auto* nparam = param->Get<neuroscience::Param>();
+
+  // Compute parameters for straight line between start and end.
+  Double3 global_direction = end - start;
+  double distance = global_direction.Norm();
+  global_direction.Normalize();
+
+  // Get an orthogonal system to the direction vector
+  Double3 ortho1;
+  Double3 ortho2;
+  GetOrthogonalSystem(global_direction, ortho1, ortho2);
+
+  // Get two random fields realizations for the vessel
+  RandomField rf(sparam->random_vessel_num_modes, distance,
+                 2 * nparam->neurite_min_length, sparam->random_vessel_exponent,
+                 sparam->random_vessel_max_deviation * distance,
+                 sparam->random_vessel_frequency_mean,
+                 sparam->random_vessel_frequency_std, 1);
+  std::vector<double> random_field_1;
+  std::vector<double> random_field_2;
+  rf.GetRealization(random_field_1);
+  rf.GetRealization(random_field_2);
+
+  // Compute the discretization length along the straight line
+  const double discretization_length = distance / rf.GetNumPoints();
+
+  // The setup requires us to define a NeuronSoma, which is kind of a left over
+  // from the neuroscience module.
+  const Double3 tmp = start;
+  auto* soma = new neuroscience::NeuronSoma(tmp);
+  rm->AddAgent(soma);
+
+  // Define positions and lengths of the agent
+  Double3 agent_position_start = start;
+  Double3 offset = ortho1 * random_field_1[1] + ortho2 * random_field_2[1];
+  Double3 agent_position_end =
+      start + global_direction * discretization_length + offset;
+  Double3 agent_direction = agent_position_end - agent_position_start;
+  double compartment_length = agent_direction.Norm();
+
+  // Define a first neurite
+  Vessel v;  // Used for prototype argument (virtual+template not supported c++)
+  auto* vessel_compartment_1 =
+      dynamic_cast<Vessel*>(soma->ExtendNewNeurite(agent_direction, &v));
+  vessel_compartment_1->SetPosition(start +
+                                    agent_direction * compartment_length * 0.5);
+  vessel_compartment_1->SetMassLocation(start +
+                                        agent_direction * compartment_length);
+  vessel_compartment_1->SetActualLength(compartment_length);
+  vessel_compartment_1->SetDiameter(15);
+  vessel_compartment_1->ProhibitGrowth();
+
+  Vessel* vessel_compartment_2{nullptr};
+  for (int i = 1; i < rf.GetNumPoints() - 2; i++) {
+    // Compute location of next vessel element
+    agent_position_start = agent_position_end;
+    offset = ortho1 * random_field_1[i + 1] + ortho2 * random_field_2[i + 1];
+    agent_position_end =
+        start + global_direction * (i + 1) * discretization_length + offset;
+    agent_direction = agent_position_end - agent_position_start;
+    compartment_length = agent_direction.Norm();
+
+    Double3 agent_position =
+        agent_position_start + agent_direction * compartment_length * 0.5;
+    Double3 agent_mass_position = agent_position_end;
+    // Create new vessel
+    vessel_compartment_2 = new Vessel();
+    // Set position an length
+    vessel_compartment_2->SetPosition(agent_position);
+    vessel_compartment_2->SetMassLocation(agent_mass_position);
+    vessel_compartment_2->SetActualLength(compartment_length);
+    vessel_compartment_2->SetRestingLength(compartment_length);
+    vessel_compartment_2->SetSpringAxis(agent_direction);
+    vessel_compartment_2->SetDiameter(15);
+    vessel_compartment_2->ProhibitGrowth();
+    // Add behaviours
+    vessel_compartment_2->AddBehavior(new SproutingAngiogenesis());
+    vessel_compartment_2->AddBehavior(new ApicalGrowth());
+    vessel_compartment_2->AddBehavior(new LineContinuumInteraction(
+        sparam->nutrient_supply_rate_vessel,
+        sparam->vegf_consumption_rate_vessel, sparam->dox_supply_rate_vessel,
+        sparam->tra_supply_rate_vessel));
+    // Add Agent to the resource manager
+    rm->AddAgent(vessel_compartment_2);
+    // Connect vessels (AgentPtr API is currently bounded to base
+    // classes but this is a 'cosmetic' problem)
+    vessel_compartment_1->SetDaughterLeft(
+        vessel_compartment_2->GetAgentPtr<neuroscience::NeuriteElement>());
+    vessel_compartment_2->SetMother(
+        vessel_compartment_1->GetAgentPtr<neuroscience::NeuronOrNeurite>());
+    std::swap(vessel_compartment_1, vessel_compartment_2);
+  }
+};
 
 double Gaussian(double x, double y, double z) {
   double mu_x = 0.0;
@@ -550,28 +661,36 @@ void SetUpExperiment(const Experiment experiment,
   }
 };
 
-void InitializeVessels(const Experiment experiment, const SimParam* sparam) {
+void InitializeVessels(const Experiment experiment, const Param* param,
+                       const SimParam* sparam) {
+  auto* rnd = Simulation::GetActive()->GetRandom();
+  const auto min = param->min_bound;
+  const auto max = param->max_bound;
+  const int num_vessels = sparam->num_vessels;
+
   switch (experiment) {
     case Experiment::kVesselsToCenter:
-      PlaceVessel({-200, 0, -400}, {-200, 0, 400},
-                  sparam->default_vessel_length);
-      PlaceVessel({200, 0, -400}, {200, 0, 400}, sparam->default_vessel_length);
-      PlaceVessel({0, -400, 200}, {0, 400, 200}, sparam->default_vessel_length);
-      PlaceVessel({0, -400, -200}, {0, 400, -200},
-                  sparam->default_vessel_length);
+      PlaceStraightVessel({-200, 0, -400}, {-200, 0, 400},
+                          sparam->default_vessel_length);
+      PlaceStraightVessel({200, 0, -400}, {200, 0, 400},
+                          sparam->default_vessel_length);
+      PlaceStraightVessel({0, -400, 200}, {0, 400, 200},
+                          sparam->default_vessel_length);
+      PlaceStraightVessel({0, -400, -200}, {0, 400, -200},
+                          sparam->default_vessel_length);
       break;
     case Experiment::kVesselsCoupling:
-      PlaceVessel({0, 0, -400}, {0, 0, 400}, sparam->default_vessel_length);
+      PlaceStraightVessel({0, 0, -400}, {0, 0, 400},
+                          sparam->default_vessel_length);
       break;
     case Experiment::kFullScaleModel:
-      // ToDo: find better vessel setup. This is roughly compatible with
-      // 1000 initial cells and four vessels
-      PlaceVessel({-200, 0, -400}, {-200, 0, 400},
-                  sparam->default_vessel_length);
-      PlaceVessel({200, 0, -400}, {200, 0, 400}, sparam->default_vessel_length);
-      PlaceVessel({0, -400, 200}, {0, 400, 200}, sparam->default_vessel_length);
-      PlaceVessel({0, -400, -200}, {0, 400, -200},
-                  sparam->default_vessel_length);
+      // ToDo: find better vessel setup.
+      for (int i = 0; i < num_vessels; i++) {
+        PlaceRandomVessel({rnd->Uniform(min, max), rnd->Uniform(min, max),
+                           rnd->Uniform(min, max)},
+                          {rnd->Uniform(min, max), rnd->Uniform(min, max),
+                           rnd->Uniform(min, max)});
+      }
       break;
 
     default:
