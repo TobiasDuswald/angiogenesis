@@ -53,4 +53,19 @@ Double3 VectorOnConeAroundAxis(const Double3& axis, double phi, double theta) {
   }
 }
 
+void GetOrthogonalSystem(const Double3& a, Double3& b, Double3& c) {
+  // Get a vector orthogonal to a
+  Double3 b_tmp{0, 0, 0};
+  if (std::abs(a[0]) > std::abs(a[1])) {
+    b_tmp[1] = 1;
+  } else {
+    b_tmp[0] = 1;
+  }
+  b = Math::CrossProduct(a, b_tmp);
+  b.Normalize();
+  // Get a vector orthogonal to a and b
+  c = Math::CrossProduct(a, b);
+  c.Normalize();
+}
+
 }  // namespace bdm

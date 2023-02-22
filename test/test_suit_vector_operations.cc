@@ -84,4 +84,34 @@ TEST(VectorOperationsTest, VectorOnConeAroundZAxis) {
   EXPECT_DOUBLE_EQ(1.0, my_vector.Norm());
 }
 
+TEST(VectorOperationsTest, GetOrthogonalSystem) {
+  std::vector<Double3> vectors{{1, 0, 0}, {0, 1, 0},  {0, 0, 1},
+                               {1, 1, 1}, {1, 1, 0},  {1, 0, 1},
+                               {0, 1, 1}, {1, 1, -1}, {1.23, -0.75, 2.0}};
+
+  // Push back 10 random vectors
+  Random random;
+  for (int i = 0; i < 10; i++) {
+    vectors.push_back(random.UniformArray<3>(-1, 1));
+  }
+
+  for (const auto& a : vectors) {
+    // Define parameters
+    // Double3 a{1.23, -0.75, 2.0};
+    // a.Normalize();
+    Double3 b{0, 0, 0};
+    Double3 c{0, 0, 0};
+
+    // Get orthogonal system
+    GetOrthogonalSystem(a, b, c);
+
+    // Checks
+    EXPECT_DOUBLE_EQ(1.0, b.Norm());
+    EXPECT_DOUBLE_EQ(1.0, c.Norm());
+    EXPECT_LT(std::abs(a * b), 1e-14);
+    EXPECT_LT(std::abs(a * c), 1e-14);
+    EXPECT_LT(std::abs(b * c), 1e-14);
+  }
+}
+
 }  // namespace bdm

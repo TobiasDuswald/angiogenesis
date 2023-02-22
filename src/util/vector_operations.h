@@ -25,6 +25,10 @@ Double3 VectorOnUnitCone(double phi, double theta);
 /// axis. Intended for behaviors where phi is random.
 Double3 VectorOnConeAroundAxis(const Double3& axis, double phi, double theta);
 
+/// Takes three vectors and fills the latter two such that they are orthogonal
+/// and normalized.
+void GetOrthogonalSystem(const Double3& a, Double3& b, Double3& c);
+
 }  // namespace bdm
 
 #endif  // VECTOR_OPERATIONS_H_
