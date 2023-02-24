@@ -112,7 +112,7 @@ int Simulate(int argc, const char** argv) {
   constexpr Experiment experiment = Experiment::kAvascularTumorSpheroid;
 
   // ---------------------------------------------------------------------------
-  // 1. Define parameters and initialize simulation
+  // 2. Define parameters and initialize simulation
   // ---------------------------------------------------------------------------
   auto set_param = [](Param* param) {
     param->calculate_gradients = true;
@@ -136,7 +136,7 @@ int Simulate(int argc, const char** argv) {
       dynamic_cast<UniformGridEnvironment*>(simulation.GetEnvironment());
 
   // ---------------------------------------------------------------------------
-  // 2. Get setup for experiment
+  // 3. Get setup for experiment
   // ---------------------------------------------------------------------------
 
   // Initial concentrations of the different substances
@@ -187,7 +187,7 @@ int Simulate(int argc, const char** argv) {
       initialize_tumor_spheroid, initialize_vasculature, param, sparam);
 
   // ---------------------------------------------------------------------------
-  // 2. Define continuum models for nutrients and VEGF
+  // 4. Define continuum models for nutrients and VEGF
   // ---------------------------------------------------------------------------
 
   // Define nutrients with constant initial conditions
@@ -233,7 +233,7 @@ int Simulate(int argc, const char** argv) {
   });
 
   // ---------------------------------------------------------------------------
-  // 3. Define initial configurations of agents
+  // 5. Define initial configurations of agents
   // ---------------------------------------------------------------------------
   {
     Timing timer_set_up("Initialize agents");
@@ -259,14 +259,14 @@ int Simulate(int argc, const char** argv) {
   }
 
   // ---------------------------------------------------------------------------
-  // 4. Track simulation results over time with timeseries objects
+  // 6. Track simulation results over time with timeseries objects
   // ---------------------------------------------------------------------------
 
   // Collect the number of Cells in different states over time
   DefineAndRegisterCollectors();
 
   // ---------------------------------------------------------------------------
-  // 5. Use force module typically used by UT Austin
+  // 7. Use force module typically used by UT Austin
   // ---------------------------------------------------------------------------
 
   // Use custom force module implemented in MechanicalInteractionForce
@@ -279,7 +279,7 @@ int Simulate(int argc, const char** argv) {
   force_implementation->SetInteractionForce(custom_force);
 
   // ---------------------------------------------------------------------------
-  // 6. Specific fix for force and environment combination
+  // 8. Specific fix for force and environment combination
   // ---------------------------------------------------------------------------
 
   // Set box length manually because our interaction range is larger than the
@@ -295,7 +295,14 @@ int Simulate(int argc, const char** argv) {
   env->SetBoxLength(static_cast<int32_t>(box_length));
 
   // ---------------------------------------------------------------------------
-  // 7. Track continuum models
+  // 9. Load balance (Linux only)
+  // ---------------------------------------------------------------------------
+#ifdef __linux__
+  scheduler->GetOps("load balancing")[0]->frequency_ = 20;
+#endif  // __linux__
+
+  // ---------------------------------------------------------------------------
+  // 10. Track continuum models
   // ---------------------------------------------------------------------------
 
   if (sparam->verify_continuum_values) {
@@ -306,7 +313,7 @@ int Simulate(int argc, const char** argv) {
   }
 
   // ---------------------------------------------------------------------------
-  // 8. Track continuum models
+  // 11. Track continuum models
   // ---------------------------------------------------------------------------
 
   if (sparam->tip_cell_finder_update_frequency <
@@ -321,7 +328,7 @@ int Simulate(int argc, const char** argv) {
   }
 
   // ---------------------------------------------------------------------------
-  // 9. Run simulation and visualize results
+  // 12. Run simulation and visualize results
   // ---------------------------------------------------------------------------
 
   // Finalize initialization
