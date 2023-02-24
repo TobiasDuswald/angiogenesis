@@ -59,7 +59,7 @@ void PlaceStraightVessel(Double3 start, Double3 end, double compartment_length);
 /// @param start Beginning of the vessel
 /// @param end end of the vessel
 /// @param param Simulation parameters
-void PlaceRandomVessel(Double3 start, Double3 end);
+void PlaceRandomVessel(Double3 start, Double3 end, unsigned int random_seed);
 
 /// @brief 3D Gaussian function
 double Gaussian(double x, double y, double z);
@@ -456,7 +456,7 @@ void PlaceStraightVessel(Double3 start, Double3 end,
   }
 }
 
-void PlaceRandomVessel(Double3 start, Double3 end) {
+void PlaceRandomVessel(Double3 start, Double3 end, unsigned int random_seed) {
   // Get parameters
   auto* rm = Simulation::GetActive()->GetResourceManager();
   auto* param = Simulation::GetActive()->GetParam();
@@ -689,7 +689,8 @@ void InitializeVessels(const Experiment experiment, const Param* param,
         PlaceRandomVessel({rnd->Uniform(min, max), rnd->Uniform(min, max),
                            rnd->Uniform(min, max)},
                           {rnd->Uniform(min, max), rnd->Uniform(min, max),
-                           rnd->Uniform(min, max)});
+                           rnd->Uniform(min, max)},
+                          static_cast<int>(2 * i));
       }
       break;
 

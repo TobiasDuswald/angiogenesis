@@ -39,7 +39,7 @@ class RandomField {
   /// @param random_seed Random seed
   RandomField(int num_modes, double interval_length, double discretization_goal,
               double exponent, double max_abs_value, double nu, double sigma,
-              uint32_t random_seed);
+              unsigned int random_seed);
 
   /// Get a random field realization
   void GetRealization(std::vector<double>& random_field);
@@ -71,7 +71,7 @@ class RandomField {
   // The number of modes
   int num_modes_ = 0;
   // Random seed
-  uint32_t random_seed_ = 0;
+  unsigned int random_seed_ = 0;
 };
 
 }  // namespace bdm

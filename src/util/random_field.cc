@@ -19,7 +19,7 @@ namespace bdm {
 RandomField::RandomField(int num_modes, double interval_length,
                          double discretization_goal, double exponent,
                          double max_abs_value, double nu, double sigma,
-                         uint32_t random_seed)
+                         unsigned int random_seed)
     : max_abs_value_(max_abs_value),
       interval_length_(interval_length),
       exponent_(exponent),
