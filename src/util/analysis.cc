@@ -12,6 +12,7 @@
 // --------------------------------------------------------------------------
 
 #include "util/analysis.h"
+#include "TH1D.h"
 #include "modules/tumor_cell.h"
 #include "modules/vessel.h"
 #include "sim_param.h"
@@ -288,4 +289,42 @@ void PlotAndSaveTimeseries() {
     }
   }
 }
+
+void PlotAndSaveHistogram(const std::vector<double> &data,
+                          const std::string &filename) {
+  // Get active simulation
+  const auto *sim = Simulation::GetActive();
+  // Get min and max value of vector
+  auto minmax = std::minmax_element(data.begin(), data.end());
+  double min = *minmax.first;
+  double max = *minmax.second;
+  // Get the number of bins
+  int bins = std::ceil(std::sqrt(data.size()));
+  // Create a histogram
+  auto *h = new TH1D("h", "Data Histogram", bins, min, max);
+  for (auto &d : data) {
+    h->Fill(d);
+  }
+  // Create a canvas
+  auto *c = new TCanvas("c", "c", 800, 600);
+  c->cd();
+  // Draw the histogram
+  h->Draw();
+  // Add a grid to the histogram
+  h->SetFillColor(kBlue);
+  h->SetFillStyle(3001);
+  h->SetLineWidth(2);
+  h->SetLineColor(kBlue);
+  h->GetXaxis()->CenterTitle();
+  h->GetYaxis()->CenterTitle();
+  // Save the canvas
+  std::string png_path = Concat(sim->GetOutputDir(), "/", filename, ".png");
+  std::string pdf_path = Concat(sim->GetOutputDir(), "/", filename, ".pdf");
+  c->SaveAs(png_path.c_str());
+  c->SaveAs(pdf_path.c_str());
+  // Clean up
+  delete c;
+  delete h;
+}
+
 }  // namespace bdm

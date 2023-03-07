@@ -56,6 +56,11 @@ void DefineAndRegisterCollectors();
 /// series.
 void PlotAndSaveTimeseries();
 
+/// @brief This function takes a std::vector of doubles and a string (filename)
+/// to create a Histogram with ROOT and save it as a .png file.
+void PlotAndSaveHistogram(const std::vector<double>& data,
+                          const std::string& filename);
+
 }  // namespace bdm
 
 #endif  // ANALYSIS_H_
