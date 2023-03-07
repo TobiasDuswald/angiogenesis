@@ -11,6 +11,7 @@
 //
 // -----------------------------------------------------------------------------
 
+#include <Math/Integrator.h>
 #include <gtest/gtest.h>
 #include "biodynamo.h"
 #include "core/util/random.h"
@@ -292,6 +293,24 @@ TEST(PDF, WALD_RNG) {
   // Compare the values
   EXPECT_NEAR(mean, expected_mean, 1.0);
   EXPECT_NEAR(std_dev, expected_std_dev, 1.5);
+}
+
+TEST(PDF, GEV_NORM) {
+  ROOT::Math::IntegratorOneDim integrator;
+  auto g = [](double x) { return gev_pdf(x, 0.0, 1.0, 1.0); };
+  integrator.SetFunction(g);
+  auto norm = integrator.Integral();
+
+  EXPECT_NEAR(norm, 1.0, 1e-8);
+}
+
+TEST(PDF, WALD_NORM) {
+  ROOT::Math::IntegratorOneDim integrator;
+  auto g = [](double x) { return wald_pdf(x, 0.0, 1.0); };
+  integrator.SetFunction(g);
+  auto norm = integrator.Integral();
+
+  EXPECT_NEAR(norm, 1.0, 1e-8);
 }
 
 }  // namespace bdm
