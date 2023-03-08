@@ -12,6 +12,7 @@
 // -----------------------------------------------------------------------------
 
 #include "angiogenesis_simulation.h"
+#include <Math/Integrator.h>
 #include <fstream>
 #include <functional>
 #include <iostream>
@@ -25,6 +26,7 @@
 #include "neuroscience/neuroscience.h"
 #include "sim_param.h"
 #include "util/analysis.h"
+#include "util/pdf.h"
 #include "util/random_field.h"
 #include "util/timeseries_counters.h"
 #include "util/vector_operations.h"
@@ -48,18 +50,23 @@ TumorCell* CreateTumorCell(const Double3& position);
 /// Wrapper to multiple call to CreateTumorCell.
 void PlaceTumorCells(std::vector<Double3>& positions);
 
+/// Compute the volume of a cylinder with given diameter and length
+double CylinderVolume(double diameter, double length);
+
 /// @brief  This function places a vessel in the simulation
 /// @param start Beginning of the vessel
 /// @param end end of the vessel
 /// @param compartment_length Length of the individual compartments (agents)
-void PlaceStraightVessel(Double3 start, Double3 end, double compartment_length);
+double PlaceStraightVessel(Double3 start, Double3 end,
+                           double compartment_length, double diameter);
 
 /// @brief This function places a random vessel in the simulation. Uses
 /// parameters from the simulation parameters.
 /// @param start Beginning of the vessel
 /// @param end end of the vessel
 /// @param param Simulation parameters
-void PlaceRandomVessel(Double3 start, Double3 end, unsigned int random_seed);
+double PlaceRandomVessel(Double3 start, Double3 end, double diameter,
+                         unsigned int random_seed);
 
 /// @brief 3D Gaussian function
 double Gaussian(double x, double y, double z);
@@ -109,7 +116,7 @@ int Simulate(int argc, const char** argv) {
   // 1. Define parameters and initialize simulation
   // ---------------------------------------------------------------------------
 
-  constexpr Experiment experiment = Experiment::kAvascularTumorSpheroid;
+  constexpr Experiment experiment = Experiment::kFullScaleModel;
 
   // ---------------------------------------------------------------------------
   // 2. Define parameters and initialize simulation
@@ -391,8 +398,12 @@ void PlaceTumorCells(std::vector<Double3>& positions) {
   }
 }
 
-void PlaceStraightVessel(Double3 start, Double3 end,
-                         double compartment_length) {
+double CylinderVolume(double diameter, double length) {
+  return Math::kPi * diameter * diameter * length / 4.0;
+}
+
+double PlaceStraightVessel(Double3 start, Double3 end,
+                           double compartment_length, double diameter) {
   auto* rm = Simulation::GetActive()->GetResourceManager();
   auto* param = Simulation::GetActive()->GetParam();
   auto* sparam = param->Get<SimParam>();
@@ -404,11 +415,13 @@ void PlaceStraightVessel(Double3 start, Double3 end,
   auto n_compartments =
       static_cast<int>(std::floor(distance / compartment_length));
 
-  // Warn if chosen parameters are not selected ideally
-  if (abs(n_compartments * compartment_length - distance) > 1e-2) {
-    Log::Warning("PlaceStraightVessel",
-                 "Vessel will be shorter than expected.");
-  }
+  double vessel_volume = CylinderVolume(diameter, distance);
+
+  // // Warn if chosen parameters are not selected ideally
+  // if (abs(n_compartments * compartment_length - distance) > 1e-2) {
+  //   Log::Warning("PlaceStraightVessel",
+  //                "Vessel will be shorter than expected.");
+  // }
 
   // The setup requires us to define a NeuronSoma, which is kind of a left over
   // from the neuroscience module.
@@ -424,7 +437,7 @@ void PlaceStraightVessel(Double3 start, Double3 end,
                                     direction * compartment_length * 0.5);
   vessel_compartment_1->SetMassLocation(start + direction * compartment_length);
   vessel_compartment_1->SetActualLength(compartment_length);
-  vessel_compartment_1->SetDiameter(15);
+  vessel_compartment_1->SetDiameter(diameter);
   vessel_compartment_1->ProhibitGrowth();
 
   Vessel* vessel_compartment_2{nullptr};
@@ -442,7 +455,7 @@ void PlaceStraightVessel(Double3 start, Double3 end,
     vessel_compartment_2->SetActualLength(compartment_length);
     vessel_compartment_2->SetRestingLength(compartment_length);
     vessel_compartment_2->SetSpringAxis(direction);
-    vessel_compartment_2->SetDiameter(15);
+    vessel_compartment_2->SetDiameter(diameter);
     vessel_compartment_2->ProhibitGrowth();
     // Add behaviours
     vessel_compartment_2->AddBehavior(new SproutingAngiogenesis());
@@ -461,14 +474,20 @@ void PlaceStraightVessel(Double3 start, Double3 end,
         vessel_compartment_1->GetAgentPtr<neuroscience::NeuronOrNeurite>());
     std::swap(vessel_compartment_1, vessel_compartment_2);
   }
+
+  return vessel_volume;
 }
 
-void PlaceRandomVessel(Double3 start, Double3 end, unsigned int random_seed) {
+double PlaceRandomVessel(Double3 start, Double3 end, double diameter,
+                         unsigned int random_seed) {
   // Get parameters
   auto* rm = Simulation::GetActive()->GetResourceManager();
   auto* param = Simulation::GetActive()->GetParam();
   auto* sparam = param->Get<SimParam>();
   auto* nparam = param->Get<neuroscience::Param>();
+
+  // Track vessel volume
+  double vessel_volume = 0.0;
 
   // Compute parameters for straight line between start and end.
   Double3 global_direction = end - start;
@@ -485,7 +504,7 @@ void PlaceRandomVessel(Double3 start, Double3 end, unsigned int random_seed) {
                  2 * nparam->neurite_min_length, sparam->random_vessel_exponent,
                  sparam->random_vessel_max_deviation * distance,
                  sparam->random_vessel_frequency_mean,
-                 sparam->random_vessel_frequency_std, 1);
+                 sparam->random_vessel_frequency_std, random_seed);
   std::vector<double> random_field_1;
   std::vector<double> random_field_2;
   rf.GetRealization(random_field_1);
@@ -508,6 +527,9 @@ void PlaceRandomVessel(Double3 start, Double3 end, unsigned int random_seed) {
   Double3 agent_direction = agent_position_end - agent_position_start;
   double compartment_length = agent_direction.Norm();
 
+  // Track vessel volume
+  vessel_volume += CylinderVolume(compartment_length, diameter);
+
   // Define a first neurite
   Vessel v;  // Used for prototype argument (virtual+template not supported c++)
   auto* vessel_compartment_1 =
@@ -517,7 +539,7 @@ void PlaceRandomVessel(Double3 start, Double3 end, unsigned int random_seed) {
   vessel_compartment_1->SetMassLocation(start +
                                         agent_direction * compartment_length);
   vessel_compartment_1->SetActualLength(compartment_length);
-  vessel_compartment_1->SetDiameter(15);
+  vessel_compartment_1->SetDiameter(diameter);
   vessel_compartment_1->ProhibitGrowth();
 
   Vessel* vessel_compartment_2{nullptr};
@@ -530,6 +552,9 @@ void PlaceRandomVessel(Double3 start, Double3 end, unsigned int random_seed) {
     agent_direction = agent_position_end - agent_position_start;
     compartment_length = agent_direction.Norm();
 
+    // Track vessel volume
+    vessel_volume += CylinderVolume(compartment_length, diameter);
+
     Double3 agent_position =
         agent_position_start + agent_direction * compartment_length * 0.5;
     Double3 agent_mass_position = agent_position_end;
@@ -541,7 +566,7 @@ void PlaceRandomVessel(Double3 start, Double3 end, unsigned int random_seed) {
     vessel_compartment_2->SetActualLength(compartment_length);
     vessel_compartment_2->SetRestingLength(compartment_length);
     vessel_compartment_2->SetSpringAxis(agent_direction);
-    vessel_compartment_2->SetDiameter(15);
+    vessel_compartment_2->SetDiameter(diameter);
     vessel_compartment_2->ProhibitGrowth();
     // Add behaviours
     vessel_compartment_2->AddBehavior(new SproutingAngiogenesis());
@@ -560,6 +585,7 @@ void PlaceRandomVessel(Double3 start, Double3 end, unsigned int random_seed) {
         vessel_compartment_1->GetAgentPtr<neuroscience::NeuronOrNeurite>());
     std::swap(vessel_compartment_1, vessel_compartment_2);
   }
+  return vessel_volume;
 };
 
 double Gaussian(double x, double y, double z) {
@@ -670,42 +696,134 @@ void SetUpExperiment(const Experiment experiment,
 
 void InitializeVessels(const Experiment experiment, const Param* param,
                        const SimParam* sparam) {
-  auto* rnd = Simulation::GetActive()->GetRandom();
-  const auto min = param->min_bound;
-  const auto max = param->max_bound;
-  const int num_vessels = sparam->num_vessels;
+  if (experiment == Experiment::kVesselsToCenter) {
+    PlaceStraightVessel({-200, 0, -400}, {-200, 0, 400},
+                        sparam->default_vessel_length, 15);
+    PlaceStraightVessel({200, 0, -400}, {200, 0, 400},
+                        sparam->default_vessel_length, 15);
+    PlaceStraightVessel({0, -400, 200}, {0, 400, 200},
+                        sparam->default_vessel_length, 15);
+    PlaceStraightVessel({0, -400, -200}, {0, 400, -200},
+                        sparam->default_vessel_length, 15);
+  } else if (experiment == Experiment::kVesselsCoupling) {
+    PlaceStraightVessel({0, 0, -400}, {0, 0, 400},
+                        sparam->default_vessel_length, 15);
+  } else if (experiment == Experiment::kFullScaleModel) {
+    auto* rnd = Simulation::GetActive()->GetRandom();
 
-  switch (experiment) {
-    case Experiment::kVesselsToCenter:
-      PlaceStraightVessel({-200, 0, -400}, {-200, 0, 400},
-                          sparam->default_vessel_length);
-      PlaceStraightVessel({200, 0, -400}, {200, 0, 400},
-                          sparam->default_vessel_length);
-      PlaceStraightVessel({0, -400, 200}, {0, 400, 200},
-                          sparam->default_vessel_length);
-      PlaceStraightVessel({0, -400, -200}, {0, 400, -200},
-                          sparam->default_vessel_length);
-      break;
-    case Experiment::kVesselsCoupling:
-      PlaceStraightVessel({0, 0, -400}, {0, 0, 400},
-                          sparam->default_vessel_length);
-      break;
-    case Experiment::kFullScaleModel:
-      // ToDo: find better vessel setup.
-      for (int i = 0; i < num_vessels; i++) {
-        PlaceRandomVessel({rnd->Uniform(min, max), rnd->Uniform(min, max),
-                           rnd->Uniform(min, max)},
-                          {rnd->Uniform(min, max), rnd->Uniform(min, max),
-                           rnd->Uniform(min, max)},
-                          static_cast<int>(2 * i));
+    // Parameters extracted from rat brain (Secomb)
+    constexpr double vessels_per_volume = 104.0;
+    constexpr double volume = 550 * 550 * 230;  // in um^3
+    constexpr double gev_location = 7.53401234807571;
+    constexpr double gev_scale = 2.3153691046974907;
+    constexpr double gev_xi = -0.3292535751714517;
+    constexpr double gev_min = 5.0;   // for numerical integration
+    constexpr double gev_max = 50.0;  // for numerical integration
+    constexpr double wald_location = 10.977589465183868;
+    constexpr double wald_scale = 63.81303941790211;
+    constexpr double wald_min = 100;     // for numerical integration
+    constexpr double wald_max = 1000.0;  // for numerical integration
+    constexpr double random_vessel_threshold = 200;
+
+    // Compute the fraction of the vessels that we want to neglect (because to
+    // small). Typical numbers: wald_min = 50 -> 45%, wald_min = 100 -> 78%.
+    // Use Gauss-Kronrod 21-point integration rule.
+    ROOT::Math::IntegratorOneDim integrator;
+    auto g = [](double x) { return wald_pdf(x, wald_location, wald_scale); };
+    double wald_integral_to_min = integrator.Integral(g, 0.0, wald_min);
+
+    // Parameters
+    const auto min = param->min_bound;
+    const auto max = param->max_bound;
+    const double simulation_volume = std::pow(max - min, 3);
+
+    // Compute number of vessels
+    const int num_vessels = static_cast<int>(
+        std::ceil(vessels_per_volume * (1 - wald_integral_to_min) *
+                  simulation_volume / volume));
+
+    // Print computed info
+    std::cout << "Number of vessels: " << num_vessels << std::endl;
+    std::cout << "Simulation volume: " << simulation_volume << std::endl;
+    std::cout << "Volume: " << volume << std::endl;
+    std::cout << "Min: " << min << std::endl;
+    std::cout << "Max: " << max << std::endl;
+    std::cout << "Wald integral to min: " << wald_integral_to_min << std::endl;
+
+    // Generate random vessel diameters, lengths, and starting points
+    std::vector<double> vessel_diameters(num_vessels);
+    std::vector<double> vessel_lengths(num_vessels);
+    std::vector<Double3> vessel_start_points(num_vessels);
+    std::vector<Double3> vessel_end_points(num_vessels);
+
+    // Track vessel volume
+    double vessel_volume = 0.0;
+
+    // Generate random vessel diameters via the GENEXTREME distribution
+    auto gev_distribution = [](const double* x, const double* params) {
+      return gev_pdf(x[0], params[0], params[1], params[2]);
+    };
+    auto rng_gev = rnd->GetUserDefinedDistRng1D(
+        gev_distribution, {gev_location, gev_scale, gev_xi}, gev_min, gev_max);
+    for (int i = 0; i < num_vessels; i++) {
+      vessel_diameters[i] = rng_gev.Sample();
+    }
+
+    // Generate random vessel lengths via the WALD distribution
+    auto wald_distribution = [](const double* x, const double* params) {
+      return wald_pdf(x[0], params[0], params[1]);
+    };
+    auto rng_wald = rnd->GetUserDefinedDistRng1D(
+        wald_distribution, {wald_location, wald_scale}, wald_min, wald_max);
+    for (int i = 0; i < num_vessels; i++) {
+      vessel_lengths[i] = rng_wald.Sample();
+    }
+
+    // Generate random vessel starting points
+    for (int i = 0; i < num_vessels; i++) {
+      vessel_start_points[i] = {rnd->Uniform(min, max), rnd->Uniform(min, max),
+                                rnd->Uniform(min, max)};
+      // Generate random vessel end points
+      vessel_end_points[i] =
+          rnd->Sphere(vessel_lengths[i]) + vessel_start_points[i];
+      while (vessel_end_points[i][0] < min || vessel_end_points[i][0] > max ||
+             vessel_end_points[i][1] < min || vessel_end_points[i][1] > max ||
+             vessel_end_points[i][2] < min || vessel_end_points[i][2] > max) {
+        vessel_end_points[i] =
+            rnd->Sphere(vessel_lengths[i]) + vessel_start_points[i];
       }
-      break;
+    }
 
-    default:
-      Log::Fatal("InitializeVessels",
-                 "No vessel structure defined for this "
-                 "experiment");
-      break;
+    // Plot histogram of the diameters and lengths
+    std::string diameters_file = "diameters";
+    std::string lengths_file = "lengths";
+    PlotAndSaveHistogram(vessel_diameters, diameters_file);
+    PlotAndSaveHistogram(vessel_lengths, lengths_file);
+
+    // Define random seed
+    unsigned int seed = 0;
+
+    for (int i = 0; i < num_vessels; i++) {
+      const auto& start = vessel_start_points[i];
+      const auto& end = vessel_end_points[i];
+      const auto& length = vessel_lengths[i];
+      const auto& diameter = vessel_diameters[i];
+      // const auto diameter = 15;
+      if (length < random_vessel_threshold) {
+        vessel_volume += PlaceStraightVessel(
+            start, end, sparam->default_vessel_length, diameter);
+      } else {
+        vessel_volume += PlaceRandomVessel(start, end, diameter, seed++);
+      }
+    }
+    // Print vessel volumen and vessel volume fraction
+    std::cout << "Vessel volume: " << vessel_volume << std::endl;
+    std::cout << "Vessel volume fraction: " << vessel_volume / simulation_volume
+              << std::endl;
+  } else {
+    Log::Fatal("InitializeVessels",
+               "No vessel structure defined for this "
+               "experiment");
   }
 }
 
