@@ -137,13 +137,13 @@ struct SimParam : public ParamGroup {
   // drug DOX, e.g. probability to be trapped in SG2 due to drug DOX
   double threshold_SG2_SG2_DOX{0.1};
   double alpha_SG2_SG2_DOX{0.001};
-  double k_SG2_SG2_DOX{30.0};
+  // double k_SG2_SG2_DOX{30.0};
 
   // Probability parameters for the transition from SG2 to D modulated by the
   // drug DOX
   double threshold_SG2_D_DOX{0.1};
   double alpha_SG2_D_DOX{0.001};
-  double k_SG2_D_DOX{30.0};
+  // double k_SG2_D_DOX{30.0};
 
   // Probability parameters for the transition from H to D modulated by the
   // drugs DOX and TRA
@@ -323,8 +323,8 @@ struct SimParam : public ParamGroup {
   // Minimum distance to another tip cell to allow sprouting
   double min_dist_to_tip_cell{60.0};
 
-  // Sprouting probability
-  double sprouting_probability{0.001};
+  // Sprouting probability [1/min]
+  double sprouting_rate{0.001};
 
   // Weight for random direction of the apical growth
   double apical_growth_random_weight{0.2};

@@ -136,7 +136,9 @@ void SproutingAngiogenesis::Run(Agent* agent) {
   /// 3. If both criteria are satisfied (i.e. we reach this point), create a
   ///    sprout with a certain probability growing towards the gradient of
   ///    VEGF (minimum angle).
-  if (random->Uniform() < sparam->sprouting_probability) {
+  const double sprouting_probability =
+      sparam->sprouting_rate * sim->GetParam()->simulation_time_step;
+  if (random->Uniform() < sprouting_probability) {
     // Compute sprouting direction on cone around gradient
     double phi = random->Uniform(2 * Math::kPi);
     double theta = random->Uniform(0.25, 0.80);
