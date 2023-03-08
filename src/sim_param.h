@@ -80,9 +80,6 @@ struct SimParam : public ParamGroup {
   // Update frequency for TipCellFinder
   size_t tip_cell_finder_update_frequency{1};
 
-  // Number of random vessels in full scale model
-  int num_vessels{20};
-
   // -----------------------------------------------------------------------
   // TumorCell parameters
   // -----------------------------------------------------------------------
@@ -322,7 +319,7 @@ struct SimParam : public ParamGroup {
   double random_vessel_frequency_std{4.0};
 
   // Length of vessels at initialization
-  double default_vessel_length{10};
+  double default_vessel_length{5};
 
   // VEGF gradient threshold for apical growth
   double vegf_grad_threshold_apical_growth{1e-5};
