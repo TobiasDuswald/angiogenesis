@@ -53,22 +53,18 @@ struct SimParam : public ParamGroup {
   // specify the days in  <days>*<24 hours>*<60 minutes>.
   double total_sim_time{0.01 * 24 * 60};
 
-  // If running on linux, this parameter determines how often we export a
-  // paraview visualization, e.g. the interval between exports in unit [min].
+  // This parameter determines how often we export a paraview visualization,
+  // e.g. the interval between exports in unit [min]. Used to set
+  // bdm::Param::visualization_interval.
   double visualization_interval{1.0};
 
   // Number of (Tumor)Cells that we create in the domain at the beginning of
   // the simulation (uint [1])
   u_int64_t num_cells{1000};
 
-  // Volume filling for the tumor spheroid (unit [1])
+  // Volume filling for the tumor spheroid (unit [1]). Used to determine the
+  // initial radius of the tumor spheroid.
   double filled_volume{0.7};
-
-  // Lower bound for the domain (applies to x,y,z; unit [\mu m])
-  double lower_bound{-500.0};
-
-  // Upper bound for the domain (applies to x,y,z; unit [\mu m])
-  double upper_bound{500.0};
 
   // Parameter to decide if dead cells decrease in size and are removed or if we
   // keep them in the simulation.

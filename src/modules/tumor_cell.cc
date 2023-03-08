@@ -125,8 +125,8 @@ inline void TumorCell::LimitDisplacementAtBoundary(
     Double3& displacement) const {
   const auto* param = Simulation::GetActive()->GetParam();
   const auto* sparam = param->Get<SimParam>();
-  const double min = sparam->lower_bound;
-  const double max = sparam->upper_bound;
+  const double min = param->min_bound;
+  const double max = param->max_bound;
   const double r = this->radius_;
   const Double3 next_position = this->GetPosition() + displacement;
   for (int i = 0; i < 3; i++) {

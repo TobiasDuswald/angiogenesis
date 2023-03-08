@@ -122,8 +122,6 @@ TEST(ForceTest, Displacement) {
     sparam->max_speed = 10.0;
     sparam->adhesion_scale_parameter = 0.0489;
     sparam->repulsive_scale_parameter = 10.0;
-    sparam->upper_bound = 100;
-    sparam->lower_bound = -100;
   };
 
   Simulation simulation(TEST_NAME, set_param);
@@ -198,8 +196,6 @@ TEST(ForceTest, CellVisibility) {
     sparam->max_speed = 10.0;
     sparam->adhesion_scale_parameter = 0.0489;
     sparam->repulsive_scale_parameter = 10.0;
-    sparam->upper_bound = 100;
-    sparam->lower_bound = -100;
   };
 
   Simulation simulation(TEST_NAME, set_param);

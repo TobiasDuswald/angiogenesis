@@ -32,8 +32,6 @@ TEST(TumorCellTest, CellDivision) {
     param->min_bound = -100;
     param->max_bound = 100;
     auto* sparam = param->Get<SimParam>();
-    sparam->upper_bound = 100;
-    sparam->lower_bound = -100;
   };
 
   // Create simulation
