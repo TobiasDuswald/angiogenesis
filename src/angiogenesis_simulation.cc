@@ -296,8 +296,7 @@ int Simulate(int argc, const char** argv) {
   // UniformGrid.
   double distance_for_growth_stop = 60;
   double box_length =
-      std::ceil(2 * sparam->action_radius_factor *
-                (sparam->cell_radius + 5 * sparam->cell_radius_sigma));
+      std::ceil(2 * sparam->action_radius_factor * sparam->cell_radius);
   box_length = std::max(box_length, distance_for_growth_stop);
   env->SetBoxLength(static_cast<int32_t>(box_length));
 
@@ -364,21 +363,18 @@ int Simulate(int argc, const char** argv) {
 TumorCell* CreateTumorCell(const Double3& position) {
   // Connect to active simulation, get parameters and a random generator
   auto* sim = Simulation::GetActive();
-  auto* random = sim->GetRandom();
   auto* param = sim->GetParam();
   auto* sparam = param->Get<SimParam>();
   // Create cells at a random position (randomness through model initializer)
   // that can divide and are quiescent
   int cell_state = CellState::kQuiescent;
   auto* tumor_cell = new TumorCell(position, cell_state);
-  // Set (random) radius, nuclear radius, and action radius
-  double random_radius =
-      random->Gaus(sparam->cell_radius, sparam->cell_radius_sigma);
+  // Set radius, nuclear radius, and action radius
   tumor_cell->SetActionRadiusFactor(sparam->action_radius_factor);
-  tumor_cell->SetRadii(random_radius, sparam->cell_nuclear_radius,
-                       sparam->action_radius_factor * random_radius);
+  tumor_cell->SetRadii(sparam->cell_radius, sparam->cell_nuclear_radius,
+                       sparam->action_radius_factor * sparam->cell_radius);
   // Cells gain half their volume during the growth phase.
-  double growth_rate = 2.0 / 3.0 * Math::kPi * pow(random_radius, 3) /
+  double growth_rate = 2.0 / 3.0 * Math::kPi * pow(sparam->cell_radius, 3) /
                        (sparam->duration_growth_phase);
   tumor_cell->SetGrowthRate(growth_rate);
   // Add the continuum interactions to the tumor cell.

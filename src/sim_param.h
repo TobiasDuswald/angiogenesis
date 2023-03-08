@@ -83,10 +83,6 @@ struct SimParam : public ParamGroup {
   // Cell radius (unit [\mu m])
   double cell_radius{9.953};
 
-  // Cell radius standard deviation for random gaussian initialization
-  // (unit [\mu m])
-  double cell_radius_sigma{0.4};
-
   // Radius of nucleus (unit [\mu m])
   double cell_nuclear_radius{5.296};
 
