@@ -124,7 +124,6 @@ void TumorCell::SetRadii(double radius, double nuclear_radius,
 inline void TumorCell::LimitDisplacementAtBoundary(
     Double3& displacement) const {
   const auto* param = Simulation::GetActive()->GetParam();
-  const auto* sparam = param->Get<SimParam>();
   const double min = param->min_bound;
   const double max = param->max_bound;
   const double r = this->radius_;
