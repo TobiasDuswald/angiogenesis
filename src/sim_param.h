@@ -335,8 +335,8 @@ struct SimParam : public ParamGroup {
   // Weight for gradient direction of the apical growth
   double apical_growth_gradient_weight{0.3};
 
-  // Apical growth speed
-  double apical_growth_speed{1.0};
+  // Apical growth speed [\mu m / min]
+  double apical_growth_speed{0.033};
 
   // Quotient threshold (stopping criterion) for apical growth
   double apical_growth_quotient_threshold{0.01};
