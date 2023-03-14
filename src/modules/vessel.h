@@ -37,6 +37,15 @@ class Vessel : public NeuriteElement {
   /// Method called by default discretization operation
   void RunDiscretization() override;
 
+  /// Deactivate displacement calculation. Our force does not consider forces
+  /// on the vessel itself, but the displacement calculation triggers a
+  /// ForEachNeighbor call, which is not necessary. This effectively saves us
+  /// one ForEachNeighbor call per vessel agent.
+  Real3 CalculateDisplacement(const InteractionForce* force,
+                              real_t squared_radius, real_t dt) override {
+    return Real3({0, 0, 0});
+  }
+
   /// Returns the surface area of the cylinder
   double GetSurfaceArea() const;
 
