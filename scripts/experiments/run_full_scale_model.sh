@@ -21,7 +21,7 @@ echo -e "${GREEN}<bash>${NC} Define parameters for the simulation"
 if [ -f bdm.json ]; then
   mv bdm.json bdm.json.bak
 fi
-cp $BDM_SCRIPT_DIR/scripts/experiments/parameters/full_scale.json bdm.json
+cp $BDM_SCRIPT_DIR/scripts/experiments/parameter/full_scale.json bdm.json
 
 # Run the simulation (ToDo: Modify to meet experiment requirements)
 echo -e "${GREEN}<bash>${NC} Run the simulation"
