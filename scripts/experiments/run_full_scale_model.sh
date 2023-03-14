@@ -30,3 +30,7 @@ bdm run
 # Reset changes to bdm.json
 echo -e "${GREEN}<bash>${NC} Reset changes to bdm.json"
 mv bdm.json.bak bdm.json
+
+# Reset changes to src/angiogenesis_simulation.cc
+echo -e "${GREEN}<bash>${NC} Reset changes to src/angiogenesis_simulation.cc"
+git checkout $BDM_SCRIPT_DIR/src/angiogenesis_simulation.cc

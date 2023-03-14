@@ -47,7 +47,7 @@ echo -e "${GREEN}<bash>${NC} Change to $BDM_SCRIPT_DIR"
 # Replace "experiment = Experiment::kAvascularTumorSpheroid" with 
 # "experiment = Experiment::<ExperimentID>" in src/angiogenesis_simulation.cc
 echo -e "${GREEN}<bash>${NC} Set experiment to $1"
-replace $BDM_SCRIPT_DIR/src/angiogenesis_simulation.cc "experiment = Experiment::kAvascularTumorSpheroid" "experiment = Experiment::$1"
+replace $BDM_SCRIPT_DIR/src/angiogenesis_simulation.cc "experiment = Experiment::kFullScaleModel" "experiment = Experiment::$1"
 
 # Build biodynamo and the simulation
 echo -e "${GREEN}<bash>${NC} Build biodynamo and the simulation"
