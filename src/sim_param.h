@@ -155,21 +155,14 @@ struct SimParam : public ParamGroup {
   // Agent-Continuum interaction parameters
   // -----------------------------------------------------------------------
 
-  // Uptake rate of glucose by cells (unit [min^{-1}])
-  double uptake_rate_glucose{0.0483 / 60.0};
-
-  // Secretion rate tumor cells, i.e.how much VEGF is released by a tumor cell
-  // per minute.
-  double secretion_rate_vegf{0.03 / 60.0};
-
   // VEGF threshold for sprouting
   double vegf_threshold_sprouting{1e-3};
 
   // Nutrient supply by vessel (unit Nutrients / (Area * min)])
-  double nutrient_supply_rate_vessel{0.0001};
+  double nutrient_supply_rate_vessel{13.0};
 
   // VEGF consumption by vessel (unit Nutrients / (Area * min)])
-  double vegf_consumption_rate_vessel{-0.0000};
+  double vegf_consumption_rate_vessel{-4.0};
 
   // Nutrient supply by vessel (unit Nutrients / (Area * min)])
   double dox_supply_rate_vessel{0.0};
@@ -178,16 +171,16 @@ struct SimParam : public ParamGroup {
   double tra_supply_rate_vessel{0.0};
 
   // Nutrient consumption by TumorCell (unit Nutrients / (min)])
-  double nutrient_consumption_rate_tcell{-0.0001};
+  double nutrient_consumption_rate_tcell{-320.0};
 
   // VEGF supply by TumorCell (unit Nutrients / (min)])
-  double vegf_supply_rate_tcell{0.0001};
+  double vegf_supply_rate_tcell{100.0};
 
   // Nutrient supply by TumorCell (unit Nutrients / (min)])
-  double dox_consumption_rate_tcell{-0.00000};
+  double dox_consumption_rate_tcell{0.00000};
 
   // Nutrient supply by TumorCell (unit Nutrients / (min)])
-  double tra_consumption_rate_tcell{-0.00000};
+  double tra_consumption_rate_tcell{-125.0};
 
   // -----------------------------------------------------------------------
   // Forces

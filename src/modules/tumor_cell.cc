@@ -446,7 +446,7 @@ void PointContinuumInteraction::Run(Agent* agent) {
       // you run bdm < v1.05.3-46996fef.
       double delta_concentration = rate * simulation_time_step;
       dg->ChangeConcentrationBy(tumor_cell->GetPosition(), delta_concentration,
-                                InteractionMode::kLogistic);
+                                InteractionMode::kLogistic, true);
     }
   }
 }

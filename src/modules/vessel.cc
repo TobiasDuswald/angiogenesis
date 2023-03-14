@@ -307,7 +307,7 @@ void LineContinuumInteraction::Run(Agent* agent) {
         double delta_concentration =
             rate * sample_weights_[i] * surface * simulation_time_step;
         dg->ChangeConcentrationBy(sample_points_[i], delta_concentration,
-                                  InteractionMode::kLogistic);
+                                  InteractionMode::kLogistic, true);
       }
     }
   }
