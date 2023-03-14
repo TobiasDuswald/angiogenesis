@@ -64,7 +64,7 @@ struct SimParam : public ParamGroup {
 
   // Volume filling for the tumor spheroid (unit [1]). Used to determine the
   // initial radius of the tumor spheroid.
-  double filled_volume{0.7};
+  double filled_volume{0.64};
 
   // Parameter to decide if dead cells decrease in size and are removed or if we
   // keep them in the simulation.

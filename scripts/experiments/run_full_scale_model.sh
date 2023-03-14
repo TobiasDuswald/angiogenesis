@@ -16,6 +16,17 @@ source $DIR/compile.sh kFullScaleModel
 echo -e "${GREEN}<bash>${NC} Change to directory: $BDM_SCRIPT_DIR"
 cd $BDM_SCRIPT_DIR
 
+# Define parameters for the simulation
+echo -e "${GREEN}<bash>${NC} Define parameters for the simulation"
+if [ -f bdm.json ]; then
+  mv bdm.json bdm.json.bak
+fi
+cp $BDM_SCRIPT_DIR/scripts/experiments/full_scale.json bdm.json
+
 # Run the simulation (ToDo: Modify to meet experiment requirements)
 echo -e "${GREEN}<bash>${NC} Run the simulation"
 bdm run
+
+# Reset changes to bdm.json
+echo -e "${GREEN}<bash>${NC} Reset changes to bdm.json"
+mv bdm.json.bak bdm.json
