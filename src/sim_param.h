@@ -159,10 +159,10 @@ struct SimParam : public ParamGroup {
   double vegf_threshold_sprouting{1e-3};
 
   // Nutrient supply by vessel (unit Nutrients / (Area * min)])
-  double nutrient_supply_rate_vessel{13.0};
+  double nutrient_supply_rate_vessel{13.0 / 60.0};
 
   // VEGF consumption by vessel (unit Nutrients / (Area * min)])
-  double vegf_consumption_rate_vessel{-4.0};
+  double vegf_consumption_rate_vessel{-4.0 / 60.0};
 
   // Nutrient supply by vessel (unit Nutrients / (Area * min)])
   double dox_supply_rate_vessel{0.0};
@@ -171,16 +171,16 @@ struct SimParam : public ParamGroup {
   double tra_supply_rate_vessel{0.0};
 
   // Nutrient consumption by TumorCell (unit Nutrients / (min)])
-  double nutrient_consumption_rate_tcell{-320.0};
+  double nutrient_consumption_rate_tcell{-320.0 / 60.0};
 
   // VEGF supply by TumorCell (unit Nutrients / (min)])
-  double vegf_supply_rate_tcell{100.0};
+  double vegf_supply_rate_tcell{100.0 / 60.0};
 
   // Nutrient supply by TumorCell (unit Nutrients / (min)])
-  double dox_consumption_rate_tcell{0.00000};
+  double dox_consumption_rate_tcell{0.0};
 
   // Nutrient supply by TumorCell (unit Nutrients / (min)])
-  double tra_consumption_rate_tcell{-125.0};
+  double tra_consumption_rate_tcell{-125.0 / 60.0};
 
   // -----------------------------------------------------------------------
   // Forces
@@ -218,7 +218,7 @@ struct SimParam : public ParamGroup {
 
   // The decay constant of nutrients (glucose). It basically describes an
   // exponential decay for each point in the diffusion grid.
-  double decay_rate_nutrients{0.00001};
+  double decay_rate_nutrients{0.00000};
 
   // Boundary condition for nutrients (glucose) diffusion grid. Gets forwarded
   // to DiffusionGrid constructor. This is the constant value that is set on the
@@ -234,10 +234,10 @@ struct SimParam : public ParamGroup {
   double initial_concentration_vegf{0.0};
 
   // Diffusion constant for VEGF
-  double diffusion_vegf{40.0 / 60.0};
+  double diffusion_vegf{9.0 / 60.0};
 
   // Decay constant for VEGF
-  double decay_rate_vegf{0.0};
+  double decay_rate_vegf{0.005 / 60.0};
 
   // Boundary condition for VEGF diffusion grid. Gets forwarded to
   // DiffusionGrid constructor. This is the constant value that is set on the
@@ -253,7 +253,7 @@ struct SimParam : public ParamGroup {
   double initial_concentration_tra{0.0};
 
   // Diffusion constant for TRA
-  double diffusion_tra{0.0};
+  double diffusion_tra{5.5 / 60.0};
 
   // Decay constant for TRA
   double decay_rate_tra{0.0};
@@ -272,10 +272,10 @@ struct SimParam : public ParamGroup {
   double initial_concentration_dox{0.0};
 
   // Diffusion constant for DOX
-  double diffusion_dox{0.0};
+  double diffusion_dox{42.5 / 60.0};
 
   // Decay constant for DOX
-  double decay_rate_dox{0.0};
+  double decay_rate_dox{0.012 / 60.0};
 
   // Boundary condition for DOX diffusion grid. Gets forwarded to
   // DiffusionGrid constructor. This is the constant value that is set on the
