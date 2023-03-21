@@ -51,4 +51,4 @@ replace $BDM_SCRIPT_DIR/src/angiogenesis_simulation.cc "experiment = Experiment:
 
 # Build biodynamo and the simulation
 echo -e "${GREEN}<bash>${NC} Build biodynamo and the simulation"
-source $EXAMPLES_DIR/util/default-compile-script.sh "-DCMAKE_BUILD_TYPE=Release -Djemalloc=off" "-DCMAKE_BUILD_TYPE=Release -Djemalloc=off"
+source $EXAMPLES_DIR/util/default-compile-script.sh "-DCMAKE_BUILD_TYPE=Release -Djemalloc=off -Dlibgit2=on" "-DCMAKE_BUILD_TYPE=Release -Djemalloc=off"
