@@ -239,6 +239,11 @@ int Simulate(int argc, const char** argv) {
     grid->SetLowerThreshold(0.0);
   });
 
+  // Deactivate gradient calculation for nutrients, TRA, and DOX
+  rm->GetDiffusionGrid(Substances::kNutrients)->TurnOffGradientCalculation();
+  rm->GetDiffusionGrid(Substances::kTRA)->TurnOffGradientCalculation();
+  rm->GetDiffusionGrid(Substances::kDOX)->TurnOffGradientCalculation();
+
   // ---------------------------------------------------------------------------
   // 5. Define initial configurations of agents
   // ---------------------------------------------------------------------------
