@@ -43,7 +43,7 @@
     "scheduling_batch_size": 1000,
     "show_simulation_step": 0,
     "simulation_max_displacement": 3,
-    "simulation_time_step": 30,
+    "simulation_time_step": 10,
     "statistics": true,
     "thread_safety_mechanism": 1,
     "unibn_bucketsize": 16,
