@@ -46,7 +46,6 @@ double wald_pdf(double x, double location, double scale) {
   // scipy.stats.wald.html#scipy.stats.wald
   double f{0};
   double y = (x - location) / scale;
-  assert(y >= 0);
   if (y <= 0) {
     // PDF is not defined for y <= 0. Return 0 for numerical integration.
     return 0;
