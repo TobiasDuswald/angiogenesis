@@ -150,7 +150,7 @@
     "vegf_grad_threshold_apical_growth": 1e-05,
     "vegf_supply_rate_tcell": 100,
     "vegf_threshold_sprouting": 0.001,
-    "verify_continuum_values": true,
+    "verify_continuum_values": false,
     "viscosity": 2,
     "visualization_interval": 720,
     "zeta_H_D_DOX": 20,

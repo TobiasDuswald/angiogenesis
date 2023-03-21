@@ -71,7 +71,7 @@ struct SimParam : public ParamGroup {
   bool keep_dead_cells{true};
 
   // Verify that the continuum values are all between 0 and 1
-  bool verify_continuum_values{true};
+  bool verify_continuum_values{false};
 
   // Update frequency for TipCellFinder
   size_t tip_cell_finder_update_frequency{1};
