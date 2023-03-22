@@ -95,9 +95,6 @@ void TipCellContainer::Update() {
     global_indices_[i] = global_indices_[i - 1] + tip_indices_[i].size();
   }
   num_elements_ = global_indices_[global_indices_.size() - 1];
-
-  std::cout << "TipCellContainer::Update() - num_elements_ = " << num_elements_
-            << std::endl;
 }
 
 size_t TipCellContainer::size() const { return num_elements_; }
