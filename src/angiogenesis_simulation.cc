@@ -335,7 +335,7 @@ int Simulate(int argc, const char** argv) {
     auto* update_tip_cell_finder = NewOperation("update tip-cell finder");
     update_tip_cell_finder->frequency_ =
         sparam->tip_cell_finder_update_frequency;
-    scheduler->ScheduleOp(update_tip_cell_finder, OpType::kPreSchedule);
+    scheduler->ScheduleOp(update_tip_cell_finder, OpType::kPostSchedule);
   }
 
   // ---------------------------------------------------------------------------
