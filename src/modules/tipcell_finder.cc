@@ -49,7 +49,6 @@ bool TipCellFinder::IsTipCellInBall(const Real3& x, double r) const {
 }
 
 void TipCellFinder::Update() {
-  Timing t("TipCellContainer::Update");
   if (update_container_) {
     tip_cell_container_.Update();
   }
