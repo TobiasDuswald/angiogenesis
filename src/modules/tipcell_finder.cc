@@ -16,6 +16,7 @@
 #include <chrono>
 #include <iostream>
 #include "core/util/log.h"
+#include "core/util/timing.h"
 #include "omp.h"
 
 namespace bdm {
@@ -34,6 +35,9 @@ Real3 TipCellFinder::GetTipCellCenter(int element_id) const {
 }
 
 bool TipCellFinder::IsTipCellInBall(const Real3& x, double r) const {
+  if (tip_cell_container_.size() == 0) {
+    return false;
+  }
   auto idx = FindClosestTipCell(x);
   auto center = GetTipCellCenter(idx);
   auto dist = (center - x).Norm();
@@ -45,14 +49,20 @@ bool TipCellFinder::IsTipCellInBall(const Real3& x, double r) const {
 }
 
 void TipCellFinder::Update() {
-  if (update_container_) {
-    tip_cell_container_.Update();
+  {
+    Timing t("TipCellContainer::Update");
+    if (update_container_) {
+      tip_cell_container_.Update();
+    }
   }
-  if (tip_cell_container_.size() > 0) {
-    auto* param = Simulation::GetActive()->GetParam();
-    unibn::OctreeParams params;
-    params.bucketSize = param->unibn_bucketsize;
-    octree_->initialize(tip_cell_container_, params);
+  {
+    Timing t("Octree::Update");
+    if (tip_cell_container_.size() > 0) {
+      auto* param = Simulation::GetActive()->GetParam();
+      unibn::OctreeParams params;
+      params.bucketSize = param->unibn_bucketsize;
+      octree_->initialize(tip_cell_container_, params);
+    }
   }
   // For all further update calls, we update the container
   update_container_ = true;

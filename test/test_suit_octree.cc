@@ -98,6 +98,9 @@ TEST(TipCellFinder, Container) {
   // Check the number of tip cells
   EXPECT_EQ(container.size(), 3u);
   // Check the location of the tip cells
+  EXPECT_TRUE(container.GetAgent(0) == v1);
+  EXPECT_TRUE(container.GetAgent(1) == v2);
+  EXPECT_TRUE(container.GetAgent(2) == v3);
   EXPECT_EQ(container[0][0], v1->GetMassLocation()[0]);
   EXPECT_EQ(container[0][1], v1->GetMassLocation()[1]);
   EXPECT_EQ(container[0][2], v1->GetMassLocation()[2]);
@@ -192,7 +195,7 @@ TEST(TipCellFinder, SimulationIntegration) {
   auto* scheduler = Simulation::GetActive()->GetScheduler();
 
   // Place a vessel
-  PlaceVessel({0, 0, 0}, {100, 0, 0}, 10);
+  auto v = PlaceVessel({0, 0, 0}, {100, 0, 0}, 10);
 
   // Register the tip cell finder update operation
   OperationRegistry::GetInstance()->AddOperationImpl("update tip-cell finder",
@@ -200,22 +203,23 @@ TEST(TipCellFinder, SimulationIntegration) {
                                                      new UpdateTipCellFinder());
   auto* update_tip_cell_finder = NewOperation("update tip-cell finder");
   update_tip_cell_finder->frequency_ = 1;
-  scheduler->ScheduleOp(update_tip_cell_finder, OpType::kPreSchedule);
+  scheduler->ScheduleOp(update_tip_cell_finder, OpType::kPostSchedule);
 
   // Get the tip cell finder
   auto* finder = simulation.GetTipCellFinder();
 
+  std::vector<Double3> tip_cell_centers;
   for (size_t i = 1; i < 10; i++) {
     scheduler->Simulate(1);
     // Test if at each simulation step, we find the correct amount of tip cells
     EXPECT_EQ(finder->GetNumberOfTipCells(), i);
     // Test if the tip cells are registered correctly
+    tip_cell_centers.push_back(v->GetMassLocation());
     for (size_t j = 1; j <= i; j++) {
-      EXPECT_TRUE(finder->IsTipCellInBall(
-          {100, (static_cast<double>(j) - 1) * 10, 0}, 3));
+      EXPECT_TRUE(finder->IsTipCellInBall(tip_cell_centers.at(j - 1), 3));
     }
-    PlaceVessel({0, 10 * static_cast<double>(i), 0},
-                {100, 10 * static_cast<double>(i), 0}, 10);
+    v = PlaceVessel({0, 10 * static_cast<double>(i), 0},
+                    {100, 10 * static_cast<double>(i), 0}, 10);
   }
 }
 

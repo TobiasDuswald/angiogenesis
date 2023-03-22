@@ -17,30 +17,39 @@
 
 namespace bdm {
 
-TipCellContainer::TipCellContainer() { Update(); }
-
-void TipCellContainer::Update() {
-  auto* rm = Simulation::GetActive()->GetResourceManager();
-  assert(rm != nullptr && "ResourceManager is NULL.");
-  if (rm) {
-    // Iterate over all agents and add tip cell position to
-    // element_center_points_
-    std::vector<Real3> tmp;
-    // ToDo (Tobias): parallelize!
-    rm->ForEachAgent([&tmp](Agent* agent) {
-      const auto* vessel = dynamic_cast<Vessel*>(agent);
-      if (vessel && vessel->GetDaughterLeft() == nullptr) {
-        tmp.push_back(vessel->GetMassLocation());
-      }
-    });
-    element_center_points_ = std::move(tmp);
-  }
+TipCellContainer::TipCellContainer() {
+  rm_ = Simulation::GetActive()->GetResourceManager();
+  Update();
 }
 
-size_t TipCellContainer::size() const { return element_center_points_.size(); }
+void TipCellContainer::Update() {
+  tip_indices_.clear();
+  flat_idx_map_.Update();
+  if (rm_) {
+    // Iterate over all agents and add tip cell position to
+    // element_center_points_
+    // std::vector<uint64_t> tmp;
+    // ToDo (Tobias): parallelize!
+    rm_->ForEachAgent([this](Agent* agent, AgentHandle ah) {
+      const auto* vessel = dynamic_cast<Vessel*>(agent);
+      if (vessel && vessel->GetDaughterLeft() == nullptr) {
+        auto idx = flat_idx_map_.GetFlatIdx(ah);
+        tip_indices_.push_back(idx);
+      }
+    });
+    // tip_indices_ = std::move(tmp);
+  }
+  std::cout << "TipCellContainer::Update() - tip_indices_.size() = "
+            << tip_indices_.size() << std::endl;
+}
+
+size_t TipCellContainer::size() const { return tip_indices_.size(); }
 
 const Double3& TipCellContainer::operator[](size_t idx) const {
-  assert(idx < element_center_points_.size() && "Out of bounds access.");
-  return element_center_points_[idx];
+  assert(idx < tip_indices_.size() && "Out of bounds access.");
+  AgentHandle ah = flat_idx_map_.GetAgentHandle(tip_indices_[idx]);
+  auto* agent = rm_->GetAgent(ah);
+  auto* vessel = dynamic_cast<Vessel*>(agent);
+  return vessel->GetMassLocation();
 }
 }  // namespace bdm
