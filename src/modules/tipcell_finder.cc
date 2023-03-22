@@ -16,7 +16,6 @@
 #include <chrono>
 #include <iostream>
 #include "core/util/log.h"
-#include "core/util/timing.h"
 #include "omp.h"
 
 namespace bdm {
