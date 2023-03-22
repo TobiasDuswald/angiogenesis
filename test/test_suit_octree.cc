@@ -88,9 +88,9 @@ inline AgentPointer<Vessel> PlaceVessel(Double3 start, Double3 end,
 TEST(TipCellFinder, Container) {
   neuroscience::InitModule();
   Simulation simulation(TEST_NAME);
-  PlaceVessel({0, 0, 0}, {100, 0, 0}, 1);
-  PlaceVessel({0, 100, 0}, {100, 100, 0}, 1);
-  PlaceVessel({0, 100, 100}, {100, 100, 100}, 1);
+  auto v1 = PlaceVessel({0, 0, 0}, {100, 0, 0}, 1);
+  auto v2 = PlaceVessel({0, 100, 0}, {100, 100, 0}, 1);
+  auto v3 = PlaceVessel({0, 100, 100}, {100, 100, 100}, 1);
   auto* scheduler = Simulation::GetActive()->GetScheduler();
   scheduler->Simulate(1);
 
@@ -98,10 +98,15 @@ TEST(TipCellFinder, Container) {
   // Check the number of tip cells
   EXPECT_EQ(container.size(), 3u);
   // Check the location of the tip cells
-  for (size_t i = 0; i < container.size(); i++) {
-    EXPECT_LT(container[i][0] - 104, 0);
-    EXPECT_GT(container[i][0] - 102, 0);
-  }
+  EXPECT_EQ(container[0][0], v1->GetMassLocation()[0]);
+  EXPECT_EQ(container[0][1], v1->GetMassLocation()[1]);
+  EXPECT_EQ(container[0][2], v1->GetMassLocation()[2]);
+  EXPECT_EQ(container[1][0], v2->GetMassLocation()[0]);
+  EXPECT_EQ(container[1][1], v2->GetMassLocation()[1]);
+  EXPECT_EQ(container[1][2], v2->GetMassLocation()[2]);
+  EXPECT_EQ(container[2][0], v3->GetMassLocation()[0]);
+  EXPECT_EQ(container[2][1], v3->GetMassLocation()[1]);
+  EXPECT_EQ(container[2][2], v3->GetMassLocation()[2]);
 }
 
 TEST(TipCellFinder, Finder) {
