@@ -49,20 +49,15 @@ bool TipCellFinder::IsTipCellInBall(const Real3& x, double r) const {
 }
 
 void TipCellFinder::Update() {
-  {
-    Timing t("TipCellContainer::Update");
-    if (update_container_) {
-      tip_cell_container_.Update();
-    }
+  Timing t("TipCellContainer::Update");
+  if (update_container_) {
+    tip_cell_container_.Update();
   }
-  {
-    Timing t("Octree::Update");
-    if (tip_cell_container_.size() > 0) {
-      auto* param = Simulation::GetActive()->GetParam();
-      unibn::OctreeParams params;
-      params.bucketSize = param->unibn_bucketsize;
-      octree_->initialize(tip_cell_container_, params);
-    }
+  if (tip_cell_container_.size() > 0) {
+    auto* param = Simulation::GetActive()->GetParam();
+    unibn::OctreeParams params;
+    params.bucketSize = param->unibn_bucketsize;
+    octree_->initialize(tip_cell_container_, params);
   }
   // For all further update calls, we update the container
   update_container_ = true;
