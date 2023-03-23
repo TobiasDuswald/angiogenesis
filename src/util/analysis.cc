@@ -148,6 +148,60 @@ void DefineAndRegisterCollectors() {
     }
   };
   ts->AddCollector("v", new Counter<double>(is_vessel), get_time);
+
+  // Define how to count the number of bifurcations in the network
+  auto is_bifurcation = [](Agent *a) {
+    auto *vessel = dynamic_cast<Vessel *>(a);
+    if (vessel) {
+      return (vessel->GetDaughterRight() != nullptr);
+    } else {
+      return false;
+    }
+  };
+  ts->AddCollector("bifurcations", new Counter<double>(is_bifurcation),
+                   get_time);
+
+  // Define how to count the number of tip cells in the network
+  auto is_tip = [](Agent *a) {
+    auto *vessel = dynamic_cast<Vessel *>(a);
+    if (vessel) {
+      return (vessel->IsTipCell());
+    } else {
+      return false;
+    }
+  };
+  ts->AddCollector("tips", new Counter<double>(is_tip), get_time);
+
+  // Define how to count the determine the total vessel volume and surface area
+  auto add_vessel_volume = [](Agent *agent, double *tl_result) {
+    auto *vessel = dynamic_cast<Vessel *>(agent);
+    if (vessel) {
+      *tl_result += vessel->GetVolume();
+    }
+  };
+  auto add_vessel_surface = [](Agent *agent, double *tl_result) {
+    auto *vessel = dynamic_cast<Vessel *>(agent);
+    if (vessel) {
+      *tl_result += vessel->GetSurfaceArea();
+    }
+  };
+  auto combine_double_results = [](const SharedData<double> &tl_results) {
+    double result = 0;
+    for (auto &el : tl_results) {
+      result += el;
+    }
+    return result;
+  };
+
+  ts->AddCollector(
+      "vessel_volume",
+      new GenericReducer<double>(add_vessel_volume, combine_double_results),
+      get_time);
+
+  ts->AddCollector(
+      "vessel_surface",
+      new GenericReducer<double>(add_vessel_surface, combine_double_results),
+      get_time);
 }
 
 void PlotAndSaveTimeseries() {
@@ -183,6 +237,10 @@ void PlotAndSaveTimeseries() {
   ts->AddTransformedData("g1", "g1_days", lt);
   ts->AddTransformedData("h", "h_days", lt);
   ts->AddTransformedData("d", "d_days", lt);
+  ts->AddTransformedData("vessel_volume", "vessel_volume_days", lt);
+  ts->AddTransformedData("vessel_surface", "vessel_surface_days", lt);
+  ts->AddTransformedData("bifurcations", "bifurcations_days", lt);
+  ts->AddTransformedData("tips", "tips_days", lt);
 
   // Create line graph that visualizes the TimeSeries data in days
   {
@@ -231,6 +289,36 @@ void PlotAndSaveTimeseries() {
     g2.Add("v", "Vessel", "L", kBlue, 1.0);
     g2.Draw();
     g2.SaveAs(Concat(sim->GetOutputDir(), "/vessel_agents"), {".pdf", ".png"});
+  }
+  // Create a bdm Line graph visualizing the TimeSeries data for the vessel
+  // volume
+  {
+    bdm::experimental::LineGraph g2(ts, "Vessel volume", "Time [days]",
+                                    "Volume [microns^3]", true);
+    g2.Add("vessel_volume_days", "Vessel", "L", kBlue, 1.0);
+    g2.Draw();
+    g2.SaveAs(Concat(sim->GetOutputDir(), "/vessel_volume"), {".pdf", ".png"});
+  }
+  // Create a bdm Line graph visualizing the TimeSeries data for the vessel
+  // surface area
+  {
+    bdm::experimental::LineGraph g2(ts, "Vessel surface area", "Time [days]",
+                                    "Surface area [microns^2]", true);
+    g2.Add("vessel_surface_days", "Vessel", "L", kBlue, 1.0);
+    g2.Draw();
+    g2.SaveAs(Concat(sim->GetOutputDir(), "/vessel_surface_area"),
+              {".pdf", ".png"});
+  }
+  // Create a bdm Line graph visualizing the TimeSeries data for the number of
+  // Tip cells and bifurcations
+  {
+    bdm::experimental::LineGraph g2(ts, "Tip cells and bifurcations",
+                                    "Time [days]", "Number of agents", true);
+    g2.Add("tips_days", "Tip cells", "L", kBlue, 1.0);
+    g2.Add("bifurcations_days", "Bifurcations", "L", kRed, 1.0, 10);
+    g2.Draw();
+    g2.SaveAs(Concat(sim->GetOutputDir(), "/tip_cells_bifurcations"),
+              {".pdf", ".png"});
   }
 
   // Add the TimeSeries from the continuum verification to the TimeSeries

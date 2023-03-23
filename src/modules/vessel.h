@@ -46,6 +46,9 @@ class Vessel : public NeuriteElement {
     return Real3({0, 0, 0});
   }
 
+  /// Returns if the vessel is a tip cell
+  bool IsTipCell() const;
+
   /// Returns the surface area of the cylinder
   double GetSurfaceArea() const;
 
