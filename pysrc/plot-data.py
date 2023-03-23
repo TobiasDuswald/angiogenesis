@@ -71,6 +71,40 @@ def plot_data(N, data, results_dir):
     # Create the folder results_dir if it does not exist
     create_folder(results_dir)
 
+    # Hard code treatment times for vertical lines
+    treatment = {
+        "1": {
+            "DOX": [],
+            "TRA": [],
+            "SAL": [35,38,39]
+        },
+        "2": {
+            "DOX": [39],
+            "TRA": [],
+            "SAL": [35,38]
+        },
+        "3": {
+            "DOX": [],
+            "TRA": [35, 38],
+            "SAL": [39]
+        },
+        "4": {
+            "DOX": [35],
+            "TRA": [36,39],
+            "SAL": []
+        },
+        "5": {
+            "DOX": [39],
+            "TRA": [35,38],
+            "SAL": []
+        },
+        "6": {
+            "DOX": [35,38],
+            "TRA": [35,38],
+            "SAL": []
+        }
+    }
+
     # Plot the data
     for i in range(1, N + 1):
         print("Plotting group {}...".format(i))
@@ -95,6 +129,30 @@ def plot_data(N, data, results_dir):
 
         # ax.set_ylim(-10, 510)
 
+        # Plot vertical lines for treatment times: DOX (red, dashed), 
+        # TRA (green, dotted), SAL (orange, dotted-dashed)
+        dox_legend_cntr = 0
+        tra_legend_cntr = 0
+        sal_legend_cntr = 0
+        for t in treatment[str(i)]["DOX"]:
+            if dox_legend_cntr == 0:
+                ax.axvline(t, color="red", linestyle="--", label="DOX")
+                dox_legend_cntr += 1
+            else:
+                ax.axvline(t, color="red", linestyle="--")
+        for t in treatment[str(i)]["TRA"]:
+            if tra_legend_cntr == 0:
+                ax.axvline(t, color="green", linestyle=":", label="TRA")
+                tra_legend_cntr += 1
+            else:
+                ax.axvline(t, color="green", linestyle=":")
+        for t in treatment[str(i)]["SAL"]:
+            if sal_legend_cntr == 0:
+                ax.axvline(t, color="orange", linestyle="-.", label="SAL")
+                sal_legend_cntr += 1
+            else:
+                ax.axvline(t, color="orange", linestyle="-.")
+        
         # Set the labels
         ax.set_xlabel("Days")
         ax.set_ylabel("Tumor volume ($mm^3$)")
@@ -125,7 +183,7 @@ if __name__ == "__main__":
     filename = os.path.abspath(filename)
 
     # Define results directory
-    results_dir = os.path.join(dir_path, "..", "results", "data-visualization")
+    results_dir = os.path.join(dir_path, "..", "results", "data-visualization-2")
     results_dir = os.path.abspath(results_dir)
 
     # Read data
