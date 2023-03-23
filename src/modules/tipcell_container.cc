@@ -29,7 +29,7 @@ class AddTipCellsToContainer : public Functor<void, Agent*, AgentHandle> {
   void operator()(Agent* agent, AgentHandle ah) {
     auto* vessel = dynamic_cast<Vessel*>(agent);
     if (vessel) {
-      if (vessel->GetDaughterLeft() == nullptr) {
+      if (vessel->IsTipCell()) {
         auto idx = flat_idx_map_->GetFlatIdx(ah);
         tip_indices_->operator[](ti_->GetMyThreadId()).push_back(idx);
       }
