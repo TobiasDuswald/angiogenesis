@@ -82,6 +82,8 @@ inline AgentPointer<Vessel> PlaceVessel(Double3 start, Double3 end,
         vessel_compartment_1->GetAgentPtr<neuroscience::NeuronOrNeurite>());
     std::swap(vessel_compartment_1, vessel_compartment_2);
   }
+  vessel_compartment_1
+      ->AllowGrowth();  // This turns the compartment into a tip cell
   return vessel_compartment_1->GetAgentPtr<Vessel>();
 }
 
