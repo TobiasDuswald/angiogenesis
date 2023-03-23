@@ -31,6 +31,8 @@ void Vessel::RunDiscretization() {
   Base::RunDiscretization();
 }
 
+bool Vessel::IsTipCell() const { return (IsTerminal() && can_grow_); }
+
 double Vessel::GetSurfaceArea() const {
   // Vessels are assumed to be cylindrical.
   return Math::kPi * GetDiameter() * GetActualLength();
