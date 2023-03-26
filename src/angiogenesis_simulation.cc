@@ -287,6 +287,7 @@ int Simulate(int argc, const char** argv) {
   auto* custom_force = new MechanicalInteractionForce(
       sparam->adhesion_scale_parameter, sparam->repulsive_scale_parameter);
   auto* op = scheduler->GetOps("mechanical forces")[0];
+  op->frequency_ = sparam->force_calculation_frequency;
   auto* force_implementation = op->GetImplementation<MechanicalForcesOp>();
   force_implementation->SetInteractionForce(custom_force);
 

@@ -76,6 +76,9 @@ struct SimParam : public ParamGroup {
   // Update frequency for TipCellFinder
   size_t tip_cell_finder_update_frequency{1};
 
+  // Force calucation frequency
+  size_t force_calculation_frequency{1};
+
   // -----------------------------------------------------------------------
   // TumorCell parameters
   // -----------------------------------------------------------------------

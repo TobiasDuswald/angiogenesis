@@ -184,7 +184,8 @@ Double3 TumorCell::CalculateDisplacement(const InteractionForce* force,
   // 5) In Rocha 2018 / Lima 2021, they add additional forces from the domain
   // boundaries. Here, we simply cancel the movement in the direction of a
   // boundary if we are getting to close to the boundary.
-  displacement = velocity * param->simulation_time_step;
+  displacement = velocity * param->simulation_time_step *
+                 sparam->force_calculation_frequency;
   LimitDisplacementAtBoundary(displacement);
   return displacement;
 }
