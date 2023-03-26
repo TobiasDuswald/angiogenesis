@@ -20,7 +20,7 @@
     "diffusion_method": "euler",
     "environment": "uniform_grid",
     "execution_order": 0,
-    "export_visualization": true,
+    "export_visualization": false,
     "insitu_visualization": false,
     "mapped_data_array_mode": 0,
     "max_bound": 4500,
