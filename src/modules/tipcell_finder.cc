@@ -34,6 +34,9 @@ Real3 TipCellFinder::GetTipCellCenter(int element_id) const {
 }
 
 bool TipCellFinder::IsTipCellInBall(const Real3& x, double r) const {
+  if (tip_cell_container_.size() == 0) {
+    return false;
+  }
   auto idx = FindClosestTipCell(x);
   auto center = GetTipCellCenter(idx);
   auto dist = (center - x).Norm();
