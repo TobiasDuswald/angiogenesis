@@ -12,6 +12,7 @@
 #include "data_parser.h"
 #include <experimental/filesystem>
 #include "analysis.h"
+#include "util/vector_operations.h"
 
 namespace bdm {
 
@@ -141,11 +142,16 @@ void DataParserVTP::PostProcessData() {
   }
 
   // Determine the segments data.reserve(points_.size());
+  double min_length = std::numeric_limits<double>::max();
   for (size_t i = 0; i < points_.size(); i += 2) {
     // Get the start and end point of the segment
     VesselSegment vs;
     vs.start_position = points_[i];
     vs.end_position = points_[i + 1];
+
+    // Get the length of the segment
+    double length = (vs.start_position - vs.end_position).Norm();
+    min_length = std::min(min_length, length);
 
     // Get the radius of the segment
     vs.radius = radii_[i / 2] * scaling_factor;
@@ -153,6 +159,164 @@ void DataParserVTP::PostProcessData() {
     // Create the segment
     data.push_back(vs);
   }
+  std::cout << "Minimum segment length: " << min_length / scaling_factor
+            << std::endl;
+
+  // Restructure the data
+  std::vector<Double3> unique_points;
+  for (size_t i = 0; i < points_.size(); i++) {
+    // Check if the point is already in the list
+    bool is_unique = true;
+    size_t unique_index{0};
+    for (size_t j = 0; j < unique_points.size(); j++) {
+      // if (unique_points[j] == points_[i]) {
+      if ((unique_points[j] - points_[i]).Norm() / scaling_factor < 2e-6) {
+        is_unique = false;
+        unique_index = j;
+        break;
+      }
+    }
+
+    // If the point is unique, add it to the list
+    if (is_unique) {
+      unique_points.push_back(points_[i]);
+      unique_index = unique_points.size() - 1;
+    }
+
+    // Replace all occurences of i in connectivity_ with unique_index
+    for (auto& connection : connectivity_) {
+      if (connection == i) {
+        connection = unique_index;
+      }
+    }
+  }
+  // Rescale all radii
+  for (auto& radius : radii_) {
+    radius *= scaling_factor;
+  }
+
+  // Restucture the the connectivity to a vector of pairs
+  std::vector<std::pair<int, int>> connectivity;
+  for (size_t i = 0; i < connectivity_.size(); i += 2) {
+    auto start_index = connectivity_[i];
+    auto end_index = connectivity_[i + 1];
+    if (start_index == end_index) {
+      Log::Fatal("DataParserVTP", "Start and end index are the same");
+    }
+    if (start_index > end_index) {
+      connectivity.push_back(
+          std::make_pair(connectivity_[i + 1], connectivity_[i]));
+    } else {
+      connectivity.push_back(
+          std::make_pair(connectivity_[i], connectivity_[i + 1]));
+    }
+  }
+
+  // Sort the connectivity vector by the start index
+  auto p = GetSortPermutation(connectivity, [](std::pair<int, int> const& a,
+                                               std::pair<int, int> const& b) {
+    return a.first < b.first;
+  });
+  ApplyPermutationInPlace(connectivity, p);
+  ApplyPermutationInPlace(radii_, p);
+
+  // std::sort(connectivity.begin(), connectivity.end(),
+  //           [](const std::pair<int, int>& a, const std::pair<int, int>& b) {
+  //             return a.first < b.first;
+  //           });
+
+  // Write the connectivity back to the connectivity_ vector
+  connectivity_.clear();
+  for (const auto& connection : connectivity) {
+    connectivity_.push_back(connection.first);
+    connectivity_.push_back(connection.second);
+  }
+
+  // Print the first 10 entries of the connectivity vector
+  std::cout << "Connectivity: " << std::endl;
+  for (size_t i = 0; i < 20; i++) {
+    std::cout << connectivity_[i] << " ";
+  }
+  std::cout << std::endl;
+
+  // Verify connectivity_.
+  std::vector<int> start_indices;
+  std::vector<int> end_indices;
+  int max_index = 0;
+  for (size_t i = 0; i < connectivity_.size(); i += 2) {
+    start_indices.push_back(connectivity_[i]);
+    end_indices.push_back(connectivity_[i + 1]);
+    // Start and end indices must be different
+    if (connectivity_[i] == connectivity_[i + 1]) {
+      Log::Fatal("DataParserVTP", "Start and end index are the same");
+    }
+    max_index = std::max(max_index, connectivity_[i]);
+    max_index = std::max(max_index, connectivity_[i + 1]);
+  }
+  // Verify that the start index is always lower than the end index
+  for (size_t i = 0; i < start_indices.size(); i++) {
+    if (start_indices[i] >= end_indices[i]) {
+      Log::Fatal("DataParserVTP", "Start index is higher than end index.");
+    }
+  }
+  std::vector<int> start_indices_count = std::vector<int>(max_index, 0);
+  std::vector<int> end_indices_count = std::vector<int>(max_index, 0);
+  for (size_t i = 0; i < start_indices.size(); i++) {
+    start_indices_count[start_indices[i]]++;
+    end_indices_count[end_indices[i]]++;
+  }
+  // Print all start and end indices with a count of 2 or more
+  for (size_t i = 0; i < start_indices_count.size(); i++) {
+    if (start_indices_count[i] > 1) {
+      std::cout << "Start index " << i << " has a count of "
+                << start_indices_count[i] << std::endl;
+    }
+    if (end_indices_count[i] > 1) {
+      std::cout << "End index " << i << " has a count of "
+                << end_indices_count[i] << std::endl;
+    }
+  }
+  // Print the first 10 entries of the start_indices and end_indices vectors
+  std::cout << "Start indices: " << std::endl;
+  for (size_t i = 0; i < 10; i++) {
+    std::cout << start_indices[i] << " ";
+  }
+  std::cout << std::endl;
+  std::cout << "End indices: " << std::endl;
+  for (size_t i = 0; i < 10; i++) {
+    std::cout << end_indices[i] << " ";
+  }
+  std::cout << std::endl;
+
+  // For each index < max_index, we determine the first start and end index.
+  // The start index must be lower than the end index.
+  for (int i = 0; i < max_index; i++) {
+    // find the first appearance of i in start_indices with std::find
+    auto found_in_start_indices =
+        std::find(start_indices.begin(), start_indices.end(), i);
+    // find the first appearance of i in end_indices with std::find
+    auto found_in_end_indices =
+        std::find(end_indices.begin(), end_indices.end(), i);
+    // If i is found in both vectors, the start index must be lower than the end
+    // index
+    if (found_in_start_indices != start_indices.end() &&
+        found_in_end_indices != end_indices.end()) {
+      // Get the indices where i is found in start_indices and end_indices
+      auto start_index =
+          std::distance(start_indices.begin(), found_in_start_indices);
+      auto end_index = std::distance(end_indices.begin(), found_in_end_indices);
+      if (start_index < end_index) {
+        Log::Fatal(
+            "DataParserVTP",
+            "Start index for given index is higher than end index. Index ", i,
+            " Start index: ", start_index, " End index: ", end_index);
+      }
+    }
+  }
+
+  std::cout << "Number of unique points: " << unique_points.size() << std::endl;
+  std::cout << "Number of original points: " << points_.size() << std::endl;
+  points_ = unique_points;
 }
 
 void DataParserVTP::RecursivelyParseVTPFile(TXMLEngine& xml,

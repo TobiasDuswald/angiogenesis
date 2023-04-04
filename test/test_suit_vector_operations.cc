@@ -114,4 +114,32 @@ TEST(VectorOperationsTest, GetOrthogonalSystem) {
   }
 }
 
+TEST(VectorOperationsTest, SimultaneousSort) {
+  std::vector<int> index_array{0, 7, 1, 3, 2, 9, 8, 6, 4, 5};
+  std::vector<double> value_array{0.0, 7.0, 1.0, 3.0, 2.0,
+                                  9.0, 8.0, 6.0, 4.0, 5.0};
+
+  // Get sorted index array
+  auto p = GetSortPermutation(index_array,
+                              [](int const& a, int const& b) { return a < b; });
+
+  // Sort index array
+  ApplyPermutationInPlace(index_array, p);
+
+  // Sort value array
+  ApplyPermutationInPlace(value_array, p);
+
+  // Check if index array is sorted
+  auto is_sorted = std::is_sorted(index_array.begin(), index_array.end());
+  EXPECT_TRUE(is_sorted);
+  is_sorted = std::is_sorted(value_array.begin(), value_array.end());
+  EXPECT_TRUE(is_sorted);
+
+  // Additionally check all values.
+  for (int i = 0; i < index_array.size(); i++) {
+    EXPECT_EQ(i, index_array[i]);
+    EXPECT_EQ(i, value_array[i]);
+  }
+}
+
 }  // namespace bdm
