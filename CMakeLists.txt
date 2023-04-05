@@ -53,4 +53,4 @@ bdm_add_test(${CMAKE_PROJECT_NAME}-test
              LIBRARIES ${BDM_REQUIRED_LIBRARIES} ${CMAKE_PROJECT_NAME})
 
 # Copy the folder test/data to the build directory
-file(COPY test/data DESTINATION ${CMAKE_BINARY_DIR})
+file(COPY data DESTINATION ${CMAKE_BINARY_DIR})

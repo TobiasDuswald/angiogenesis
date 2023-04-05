@@ -57,6 +57,11 @@ class DataParserVTP : public DataParser {
   const std::vector<int>& GetConnectivity() const { return connectivity_; }
   const std::vector<int>& GetOffsets() const { return offsets_; }
 
+  // Set the starting_lines vector
+  void SetStartingLines(const std::vector<int>& starting_lines) {
+    starting_lines_ = starting_lines;
+  }
+
   void PostProcessData();
 
  private:
@@ -71,7 +76,8 @@ class DataParserVTP : public DataParser {
   std::vector<Double3> points_;
   std::vector<int> connectivity_;
   std::vector<int> offsets_;
-  std::vector<size_t> starting_points_;
+  // std::vector<size_t> starting_points_;
+  std::vector<int> starting_lines_;
   size_t num_lines_{0};
   size_t num_points_{0};
   double x_min_{0};
@@ -81,6 +87,10 @@ class DataParserVTP : public DataParser {
   double z_min_{0};
   double z_max_{0};
 };
+
+// ---------------------------------------------------------------------------
+// Helper functions
+// ---------------------------------------------------------------------------
 
 // Helper function template that takes a string "x y z .." and returns as
 // std::vector of type T
@@ -129,6 +139,26 @@ T ParseStringForNumber(const std::string& str) {
   }
   return std::stod(result);
 };
+
+void ConstructUniquePoints(const std::vector<Double3>& points,
+                           std::vector<Double3>& unique_points,
+                           const std::vector<int>& connectivity,
+                           std::vector<int>& unique_connectivity);
+
+std::vector<std::pair<int, int>> ConstructLines(
+    const std::vector<int>& connectivity);
+
+std::vector<bool> VerifyStartingLines(
+    const std::vector<int>& starting_lines,
+    const std::vector<std::pair<int, int>>& lines);
+
+bool AdjustStartingLines(const std::vector<int>& starting_lines,
+                         std::vector<std::pair<int, int>>& connectivity);
+
+void RestructureToTree(const std::vector<int>& starting_lines,
+                       const std::vector<std::pair<int, int>>& connectivity,
+                       std::vector<std::pair<int, int>>& tree,
+                       std::vector<int>& permutation);
 
 }  // namespace bdm
 

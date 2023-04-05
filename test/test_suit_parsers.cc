@@ -41,6 +41,135 @@ TEST(VTP_Parser, ParseString) {
   }
 }
 
+TEST(VTP_Parser, ConstructUniquePoints) {
+  // Define input points and connectivity
+  const std::vector<Double3> points = {{1, 1, 1}, {2, 2, 2}, {2, 2, 2},
+                                       {3, 3, 3}, {2, 2, 2}, {4, 4, 4},
+                                       {4, 4, 4}, {5, 5, 5}};
+  const std::vector<int> connectivity = {0, 1, 2, 3, 4, 5, 6, 7};
+
+  // Define expected output
+  const std::vector<Double3> expected_points = {
+      {1, 1, 1}, {2, 2, 2}, {3, 3, 3}, {4, 4, 4}, {5, 5, 5}};
+  const std::vector<int> expected_connectivity = {0, 1, 1, 2, 1, 3, 3, 4};
+
+  // Construct the unique points and connectivity
+  std::vector<Double3> result_points;
+  std::vector<int> result_connectivity;
+  ConstructUniquePoints(points, result_points, connectivity,
+                        result_connectivity);
+
+  // Compare sizes of the vectors
+  ASSERT_EQ(expected_points.size(), result_points.size());
+  ASSERT_EQ(expected_connectivity.size(), result_connectivity.size());
+
+  // Compare all components of the vectors
+  for (size_t i = 0; i < expected_points.size(); i++) {
+    for (size_t j = 0; j < 3; j++) {
+      EXPECT_DOUBLE_EQ(expected_points[i][j], result_points[i][j]);
+    }
+  }
+}
+
+TEST(VTP_Parser, ConstructLines) {
+  // Input
+  const std::vector<int> connectivity = {0, 1, 2, 3, 4, 5, 6, 7};
+
+  // Expected output
+  const std::vector<std::pair<int, int>> expected_lines = {
+      {0, 1}, {2, 3}, {4, 5}, {6, 7}};
+
+  // Construct the lines
+  auto result_lines = ConstructLines(connectivity);
+
+  // Compare sizes of the vectors
+  ASSERT_EQ(expected_lines.size(), result_lines.size());
+
+  // Compare all components of the vectors
+  for (size_t i = 0; i < expected_lines.size(); i++) {
+    EXPECT_EQ(expected_lines[i].first, result_lines[i].first);
+    EXPECT_EQ(expected_lines[i].second, result_lines[i].second);
+  }
+}
+
+TEST(VTP_Parser, VerifyStartingLines) {
+  // Input
+  const std::vector<std::pair<int, int>> lines = {{0, 1}, {1, 2}, {3, 4},
+                                                  {5, 6}, {7, 8}, {7, 9}};
+  const std::vector<int> start_lines = {0, 2, 4};
+
+  // Expected output
+  const std::vector<bool> verification = {true, false, false};
+
+  // Verify the starting lines
+  auto result_verification = VerifyStartingLines(start_lines, lines);
+
+  // Compare sizes of the vectors
+  ASSERT_EQ(verification.size(), result_verification.size());
+}
+
+TEST(VTP_Parser, AdjustStartingLines) {
+  // Input
+  std::vector<std::pair<int, int>> lines = {{1, 0}, {1, 2}, {3, 4}, {4, 5},
+                                            {5, 6}, {7, 8}, {7, 9}};
+  const std::vector<int> start_lines = {0, 2, 5};
+
+  // Expected output
+  const bool expected_result = true;
+  const std::vector<std::pair<int, int>> new_lines = {
+      {0, 1}, {1, 2}, {3, 4}, {4, 5}, {5, 6}, {8, 7}, {7, 9}};
+
+  // Verify the starting lines
+  auto result_verification = AdjustStartingLines(start_lines, lines);
+
+  // Compare sizes of the vectors
+  ASSERT_TRUE(expected_result);
+  ASSERT_EQ(new_lines.size(), lines.size());
+
+  // Compare all components of the vectors
+  for (size_t i = 0; i < new_lines.size(); i++) {
+    EXPECT_EQ(new_lines[i].first, lines[i].first);
+    EXPECT_EQ(new_lines[i].second, lines[i].second);
+  }
+}
+
+TEST(VTP_Parser, RestructureToTree) {
+  // Input
+  const std::vector<std::pair<int, int>> connectivity = {
+      {0, 1},   {1, 2}, {11, 12}, {3, 2}, {98, 99}, {13, 12}, {14, 12},
+      {96, 97}, {4, 3}, {14, 15}, {5, 3}, {16, 15}, {5, 6}};
+  const std::vector<int> start_lines = {0, 2};
+
+  // Expected output
+  const std::vector<std::pair<int, int>> expected_tree = {
+      {0, 1}, {11, 12}, {1, 2},   {12, 13}, {12, 14}, {2, 3},  {14, 15},
+      {3, 4}, {3, 5},   {15, 16}, {5, 6},   {98, 99}, {96, 97}};
+  const std::vector<int> expected_permutation = {0, 2,  1,  5,  6, 3, 9,
+                                                 8, 10, 11, 12, 4, 7};
+
+  // Compute the tree
+  std::vector<std::pair<int, int>> tree;
+  std::vector<int> permutation;
+  RestructureToTree(start_lines, connectivity, tree, permutation);
+
+  // Compare sizes of the vectors
+  ASSERT_EQ(expected_tree.size(), tree.size());
+
+  // Compare all components of the vectors
+  for (size_t i = 0; i < expected_tree.size(); i++) {
+    EXPECT_EQ(expected_tree[i].first, tree[i].first);
+    EXPECT_EQ(expected_tree[i].second, tree[i].second);
+  }
+
+  // Compare sizes of the vectors
+  ASSERT_EQ(expected_permutation.size(), permutation.size());
+
+  // Compare all components of the vectors
+  for (size_t i = 0; i < expected_permutation.size(); i++) {
+    EXPECT_EQ(expected_permutation[i], permutation[i]);
+  }
+}
+
 TEST(VTP_Parser, ExtractNumericValueFromString) {
   std::string line = "This text should be ignored 123.45 and this too";
   double expected_double = 123.45;

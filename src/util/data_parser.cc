@@ -119,7 +119,9 @@ void DataParserVTP::ParseData(const std::string& filename) {
 }
 
 void DataParserVTP::PostProcessData() {
-  // Rescale the data
+  // ---------------------------------------------------------------------
+  // 1 . Rescale & shift the data
+  // ---------------------------------------------------------------------
   constexpr double kSimSpace = 2000;
 
   // Compute the center of the bounding box
@@ -141,6 +143,15 @@ void DataParserVTP::PostProcessData() {
     point[2] = (point[2] - z_center) * scaling_factor;
   }
 
+  // Rescale all radii
+  for (auto& radius : radii_) {
+    radius *= scaling_factor;
+  }
+
+  // ---------------------------------------------------------------------
+  // 2 . Create the vessel segments (old method)
+  // ---------------------------------------------------------------------
+
   // Determine the segments data.reserve(points_.size());
   double min_length = std::numeric_limits<double>::max();
   for (size_t i = 0; i < points_.size(); i += 2) {
@@ -154,7 +165,7 @@ void DataParserVTP::PostProcessData() {
     min_length = std::min(min_length, length);
 
     // Get the radius of the segment
-    vs.radius = radii_[i / 2] * scaling_factor;
+    vs.radius = radii_[i / 2];
 
     // Create the segment
     data.push_back(vs);
@@ -162,75 +173,124 @@ void DataParserVTP::PostProcessData() {
   std::cout << "Minimum segment length: " << min_length / scaling_factor
             << std::endl;
 
+  // ---------------------------------------------------------------------
+  // 3 . Determine the set of unique points; adapt connectivity accordingly
+  // ---------------------------------------------------------------------
+
   // Restructure the data
   std::vector<Double3> unique_points;
-  for (size_t i = 0; i < points_.size(); i++) {
-    // Check if the point is already in the list
-    bool is_unique = true;
-    size_t unique_index{0};
-    for (size_t j = 0; j < unique_points.size(); j++) {
-      // if (unique_points[j] == points_[i]) {
-      if ((unique_points[j] - points_[i]).Norm() / scaling_factor < 2e-6) {
-        is_unique = false;
-        unique_index = j;
-        break;
-      }
-    }
+  std::vector<int> unique_connectivity;
+  ConstructUniquePoints(points_, unique_points, connectivity_,
+                        unique_connectivity);
+  connectivity_ = unique_connectivity;
 
-    // If the point is unique, add it to the list
-    if (is_unique) {
-      unique_points.push_back(points_[i]);
-      unique_index = unique_points.size() - 1;
-    }
+  // ---------------------------------------------------------------------
+  // 4 . Restructure the connectivity to tree like structure
+  // ---------------------------------------------------------------------
 
-    // Replace all occurences of i in connectivity_ with unique_index
-    for (auto& connection : connectivity_) {
-      if (connection == i) {
-        connection = unique_index;
-      }
-    }
-  }
-  // Rescale all radii
-  for (auto& radius : radii_) {
-    radius *= scaling_factor;
-  }
+  // 1 .Restructure the data format of connectivity to a vector of pairs
+  std::cout << "<DataParserVTP> Change data format for connectivity data..."
+            << std::endl;
+  auto connectivity = ConstructLines(connectivity_);
 
-  // Restucture the the connectivity to a vector of pairs
-  std::vector<std::pair<int, int>> connectivity;
-  for (size_t i = 0; i < connectivity_.size(); i += 2) {
-    auto start_index = connectivity_[i];
-    auto end_index = connectivity_[i + 1];
-    if (start_index == end_index) {
-      Log::Fatal("DataParserVTP", "Start and end index are the same");
-    }
-    if (start_index > end_index) {
-      connectivity.push_back(
-          std::make_pair(connectivity_[i + 1], connectivity_[i]));
-    } else {
-      connectivity.push_back(
-          std::make_pair(connectivity_[i], connectivity_[i + 1]));
-    }
-  }
+  // 2. Verify the starting points, e.g. make sure that the orientation is
+  // correct
+  std::cout << "<DataParserVTP> Verifying starting points..." << std::endl;
+  AdjustStartingLines(starting_lines_, connectivity);
 
-  // Sort the connectivity vector by the start index
-  auto p = GetSortPermutation(connectivity, [](std::pair<int, int> const& a,
-                                               std::pair<int, int> const& b) {
-    return a.first < b.first;
-  });
-  ApplyPermutationInPlace(connectivity, p);
-  ApplyPermutationInPlace(radii_, p);
+  // 3 . Adapt connectivity such that it is a tree like structure, e.g. the
+  // starting lines are the root lines and all other lines trace back to them.
+  std::cout << "<DataParserVTP> Restructuring connectivity data to tree..."
+            << std::endl;
 
-  // std::sort(connectivity.begin(), connectivity.end(),
-  //           [](const std::pair<int, int>& a, const std::pair<int, int>& b) {
-  //             return a.first < b.first;
-  //           });
+  std::vector<std::pair<int, int>> tree;
+  std::vector<int> permutation;
+  RestructureToTree(starting_lines_, connectivity, tree, permutation);
 
-  // Write the connectivity back to the connectivity_ vector
+  // std::vector<int> root_line_endpoints;
+  // root_line_endpoints.clear();
+  // for (const auto& line : starting_lines_) {
+  //   root_line_endpoints.push_back(connectivity[line].second);
+  // }
+  // std::vector<int> next_root_line_endpoints;
+  // std::vector<std::pair<int, int>> connectivity_restructured;
+  // std::vector<bool> connectivity_indices_visited(connectivity.size(), false);
+  // std::vector<int> permutation(connectivity.size(), -1);
+
+  // // 3.1 Add the starting lines to the connectivity_restructured and label
+  // them
+  // // as visited. Keep track of the permutation of the connectivity indices.
+  // int ctr = 0;
+  // for (const auto& line : starting_lines_) {
+  //   connectivity_restructured.push_back(connectivity[line]);
+  //   connectivity_indices_visited[line] = true;
+  //   permutation[ctr] = line;
+  //   ctr++;
+  // }
+
+  // // 3.2 Iterate over the connectivity and restructure it
+  // while (!root_line_endpoints.empty()) {
+  //   for (size_t i = 0; i < connectivity.size(); i++) {
+  //     // Ignore already visited lines
+  //     if (connectivity_indices_visited[i]) {
+  //       continue;
+  //     }
+  //     // Check if the connection either starts or ends at a root line
+  //     endpoint,
+  //     // if so, add it to the restructured connectivity. In case it is the
+  //     end,
+  //     // we swap the start and end point. The updated end point is added to
+  //     the
+  //     // list of the next root line endpoints for the next iteration.
+  //     for (const auto& root_endpoint : root_line_endpoints) {
+  //       if (connectivity[i].first == root_endpoint) {
+  //         connectivity_restructured.push_back(connectivity[i]);
+  //         connectivity_indices_visited[i] = true;
+  //         next_root_line_endpoints.push_back(connectivity[i].second);
+  //         permutation[ctr] = i;
+  //         ctr++;
+  //       } else if (connectivity[i].second == root_endpoint) {
+  //         connectivity_restructured.push_back(
+  //             std::make_pair(connectivity[i].second, connectivity[i].first));
+  //         connectivity_indices_visited[i] = true;
+  //         next_root_line_endpoints.push_back(connectivity[i].first);
+  //         permutation[ctr] = i;
+  //         ctr++;
+  //       }
+  //     }
+  //   }
+  //   root_line_endpoints = next_root_line_endpoints;
+  //   next_root_line_endpoints.clear();
+  // }
+
+  // // 3.3 Add all unvisited lines to the restructured connectivity
+  // for (size_t i = 0; i < connectivity.size(); i++) {
+  //   if (!connectivity_indices_visited[i]) {
+  //     connectivity_restructured.push_back(connectivity[i]);
+  //     permutation[ctr] = i;
+  //     ctr++;
+  //   }
+  // }
+
+  // ----------------------------------------------------------------------
+  // 4. Feedback the restructured connectivity to the connectivity_ vector
+  //    and adapt the radii_ vector accordingly
+  // ----------------------------------------------------------------------
+
+  // 4.1 Copy the restructured connectivity to the connectivity_ vector
   connectivity_.clear();
-  for (const auto& connection : connectivity) {
+  // for (const auto& connection : connectivity_restructured) {
+  for (const auto& connection : tree) {
     connectivity_.push_back(connection.first);
     connectivity_.push_back(connection.second);
   }
+
+  // 4.2 Restructure the radii vector according to the permutation
+  std::vector<double> radii_restructured;
+  for (const auto& index : permutation) {
+    radii_restructured.push_back(radii_[index]);
+  }
+  radii_ = radii_restructured;
 
   // Print the first 10 entries of the connectivity vector
   std::cout << "Connectivity: " << std::endl;
@@ -239,80 +299,9 @@ void DataParserVTP::PostProcessData() {
   }
   std::cout << std::endl;
 
-  // Verify connectivity_.
-  std::vector<int> start_indices;
-  std::vector<int> end_indices;
-  int max_index = 0;
-  for (size_t i = 0; i < connectivity_.size(); i += 2) {
-    start_indices.push_back(connectivity_[i]);
-    end_indices.push_back(connectivity_[i + 1]);
-    // Start and end indices must be different
-    if (connectivity_[i] == connectivity_[i + 1]) {
-      Log::Fatal("DataParserVTP", "Start and end index are the same");
-    }
-    max_index = std::max(max_index, connectivity_[i]);
-    max_index = std::max(max_index, connectivity_[i + 1]);
-  }
-  // Verify that the start index is always lower than the end index
-  for (size_t i = 0; i < start_indices.size(); i++) {
-    if (start_indices[i] >= end_indices[i]) {
-      Log::Fatal("DataParserVTP", "Start index is higher than end index.");
-    }
-  }
-  std::vector<int> start_indices_count = std::vector<int>(max_index, 0);
-  std::vector<int> end_indices_count = std::vector<int>(max_index, 0);
-  for (size_t i = 0; i < start_indices.size(); i++) {
-    start_indices_count[start_indices[i]]++;
-    end_indices_count[end_indices[i]]++;
-  }
-  // Print all start and end indices with a count of 2 or more
-  for (size_t i = 0; i < start_indices_count.size(); i++) {
-    if (start_indices_count[i] > 1) {
-      std::cout << "Start index " << i << " has a count of "
-                << start_indices_count[i] << std::endl;
-    }
-    if (end_indices_count[i] > 1) {
-      std::cout << "End index " << i << " has a count of "
-                << end_indices_count[i] << std::endl;
-    }
-  }
-  // Print the first 10 entries of the start_indices and end_indices vectors
-  std::cout << "Start indices: " << std::endl;
-  for (size_t i = 0; i < 10; i++) {
-    std::cout << start_indices[i] << " ";
-  }
-  std::cout << std::endl;
-  std::cout << "End indices: " << std::endl;
-  for (size_t i = 0; i < 10; i++) {
-    std::cout << end_indices[i] << " ";
-  }
-  std::cout << std::endl;
-
-  // For each index < max_index, we determine the first start and end index.
-  // The start index must be lower than the end index.
-  for (int i = 0; i < max_index; i++) {
-    // find the first appearance of i in start_indices with std::find
-    auto found_in_start_indices =
-        std::find(start_indices.begin(), start_indices.end(), i);
-    // find the first appearance of i in end_indices with std::find
-    auto found_in_end_indices =
-        std::find(end_indices.begin(), end_indices.end(), i);
-    // If i is found in both vectors, the start index must be lower than the end
-    // index
-    if (found_in_start_indices != start_indices.end() &&
-        found_in_end_indices != end_indices.end()) {
-      // Get the indices where i is found in start_indices and end_indices
-      auto start_index =
-          std::distance(start_indices.begin(), found_in_start_indices);
-      auto end_index = std::distance(end_indices.begin(), found_in_end_indices);
-      if (start_index < end_index) {
-        Log::Fatal(
-            "DataParserVTP",
-            "Start index for given index is higher than end index. Index ", i,
-            " Start index: ", start_index, " End index: ", end_index);
-      }
-    }
-  }
+  // ----------------------------------------------------------------------
+  // 5 . Verify connectivity_
+  // ----------------------------------------------------------------------
 
   std::cout << "Number of unique points: " << unique_points.size() << std::endl;
   std::cout << "Number of original points: " << points_.size() << std::endl;
@@ -394,6 +383,210 @@ void DataParserVTP::RecursivelyParseVTPFile(TXMLEngine& xml,
   while (child != 0) {
     RecursivelyParseVTPFile(xml, child, level + 2);
     child = xml.GetNext(child);
+  }
+}
+
+void ConstructUniquePoints(const std::vector<Double3>& points,
+                           std::vector<Double3>& unique_points,
+                           const std::vector<int>& connectivity,
+                           std::vector<int>& unique_connectivity) {
+  // Clear the unique points vector
+  unique_points.clear();
+  // Clear and resize the unique connectivity vector
+  unique_connectivity.clear();
+  unique_connectivity.resize(connectivity.size());
+  // Iterate over all points and add them to the unique points vector if they
+  // are not already in it
+  for (size_t i = 0; i < points.size(); i++) {
+    int unique_index = 0;
+    auto already_in_unique_points = false;
+    for (size_t j = 0; j < unique_points.size(); j++) {
+      if ((points[i] - unique_points[j]).Norm() < 1e-6) {
+        already_in_unique_points = true;
+        unique_index = j;
+        break;
+      }
+    }
+    if (!already_in_unique_points) {
+      unique_points.push_back(points[i]);
+      unique_index = unique_points.size() - 1;
+    }
+    for (size_t j = 0; j < connectivity.size(); j++) {
+      if (connectivity[j] == i) {
+        unique_connectivity[j] = unique_index;
+      }
+    }
+  }
+}
+
+std::vector<std::pair<int, int>> ConstructLines(
+    const std::vector<int>& connectivity) {
+  // Verify that the connectivity vector has an even number of elements
+  if (connectivity.size() % 2 != 0) {
+    Log::Fatal("ConstructLines",
+               "Connectivity vector has an odd number of elements!");
+  }
+  std::vector<std::pair<int, int>> lines;
+  for (size_t i = 0; i < connectivity.size(); i += 2) {
+    lines.push_back({connectivity[i], connectivity[i + 1]});
+  };
+  return lines;
+}
+
+std::vector<bool> VerifyStartingLines(
+    const std::vector<int>& starting_lines,
+    const std::vector<std::pair<int, int>>& lines) {
+  // Clear and resize the is_valid vector
+  std::vector<bool> is_valid;
+  is_valid.resize(starting_lines.size(), true);
+
+  // Get the start and end indices of all starting lines
+  std::vector<int> start_indices;
+  std::vector<int> end_indices;
+  for (const auto& line : starting_lines) {
+    start_indices.push_back(lines[line].first);
+    end_indices.push_back(lines[line].second);
+  }
+
+  // Count the number of occurences of each start and end index
+  std::vector<int> start_index_count(start_indices.size(), 0);
+  std::vector<int> end_index_count(end_indices.size(), 0);
+  for (const auto& line : lines) {
+    for (size_t i = 0; i < start_indices.size(); i++) {
+      if (line.first == start_indices[i] || line.second == start_indices[i]) {
+        start_index_count[i]++;
+      }
+    }
+    for (size_t i = 0; i < end_indices.size(); i++) {
+      if (line.first == end_indices[i] || line.second == end_indices[i]) {
+        end_index_count[i]++;
+      }
+    }
+  }
+
+  // A line is valid if the start index occurs exactly once and the end index
+  // occurs at least twice
+  for (size_t i = 0; i < is_valid.size(); i++) {
+    if (start_index_count[i] != 1 || end_index_count[i] < 2) {
+      is_valid[i] = false;
+    }
+  }
+
+  return is_valid;
+}
+
+bool AdjustStartingLines(const std::vector<int>& starting_lines,
+                         std::vector<std::pair<int, int>>& connectivity) {
+  // Call back to VerifyStartingLines to verify the starting lines
+  auto is_valid = VerifyStartingLines(starting_lines, connectivity);
+
+  // Print validity of starting lines
+  std::cout << "<AdjustStartingLines> Validity of starting lines:" << std::endl;
+  for (size_t i = 0; i < is_valid.size(); i++) {
+    std::cout << "  Line " << starting_lines[i] << ": " << is_valid[i]
+              << std::endl;
+  }
+
+  // Swap the connectivity of invalid starting lines
+  for (size_t i = 0; i < is_valid.size(); i++) {
+    if (!is_valid[i]) {
+      std::cout << "<AdjustStartingLines> Swapping connectivity of line "
+                << starting_lines[i] << std::endl;
+      std::swap(connectivity[starting_lines[i]].first,
+                connectivity[starting_lines[i]].second);
+    }
+  }
+
+  // Call back to VerifyStartingLines to verify the starting lines
+  is_valid = VerifyStartingLines(starting_lines, connectivity);
+
+  // Print validity of starting lines
+  std::cout << "<AdjustStartingLines> Validity of starting lines:" << std::endl;
+  for (size_t i = 0; i < is_valid.size(); i++) {
+    std::cout << "  Line " << starting_lines[i] << ": " << is_valid[i]
+              << std::endl;
+  }
+
+  // Return true if all starting lines are valid
+  for (const auto& valid : is_valid) {
+    if (!valid) {
+      return false;
+    }
+  }
+  return true;
+}
+
+void RestructureToTree(const std::vector<int>& starting_lines,
+                       const std::vector<std::pair<int, int>>& connectivity,
+                       std::vector<std::pair<int, int>>& tree,
+                       std::vector<int>& permutation) {
+  std::vector<int> root_line_endpoints;
+  root_line_endpoints.clear();
+  for (const auto& line : starting_lines) {
+    root_line_endpoints.push_back(connectivity[line].second);
+  }
+  std::vector<int> next_root_line_endpoints;
+  tree.clear();
+  std::vector<bool> connectivity_indices_visited(connectivity.size(), false);
+  permutation.resize(connectivity.size(), -1);
+
+  // 3.1 Add the starting lines to the tree and label
+  // them as visited. Keep track of the permutation of the connectivity indices.
+  int ctr = 0;
+  for (const auto& line : starting_lines) {
+    tree.push_back(connectivity[line]);
+    connectivity_indices_visited[line] = true;
+    permutation[ctr] = line;
+    ctr++;
+  }
+
+  std::cout << "<RestructureToTree> Iterating over connectivity...\n";
+  int loop_cntr = 0;
+  // 3.2 Iterate over the connectivity and restructure it
+  while (!root_line_endpoints.empty()) {
+    for (size_t i = 0; i < connectivity.size(); i++) {
+      // Ignore already visited lines
+      if (connectivity_indices_visited[i]) {
+        continue;
+      }
+      // Check if the connection either starts or ends at a root line
+      // endpoint, if so, add it to the restructured connectivity. In case it is
+      // the end, we swap the start and end point. The updated end point is
+      // added to the list of the next root line endpoints for the next
+      // iteration.
+      for (const auto& root_endpoint : root_line_endpoints) {
+        if (connectivity[i].first == root_endpoint) {
+          tree.push_back(connectivity[i]);
+          connectivity_indices_visited[i] = true;
+          next_root_line_endpoints.push_back(connectivity[i].second);
+          permutation[ctr] = i;
+          ctr++;
+        } else if (connectivity[i].second == root_endpoint) {
+          tree.push_back(
+              std::make_pair(connectivity[i].second, connectivity[i].first));
+          connectivity_indices_visited[i] = true;
+          next_root_line_endpoints.push_back(connectivity[i].first);
+          permutation[ctr] = i;
+          ctr++;
+        }
+      }
+    }
+    if (loop_cntr % 10 == 0) {
+      std::cout << "  Iteration: " << loop_cntr << std::endl;
+    }
+    loop_cntr++;
+    root_line_endpoints = next_root_line_endpoints;
+    next_root_line_endpoints.clear();
+  }
+  std::cout << "  Iteration: " << loop_cntr << "\n  Done." << std::endl;
+
+  // 3.3 Add all unvisited lines to the restructured connectivity
+  for (size_t i = 0; i < connectivity.size(); i++) {
+    if (!connectivity_indices_visited[i]) {
+      tree.push_back(connectivity[i]);
+      permutation[ctr] = i;
+      ctr++;
+    }
   }
 }
 

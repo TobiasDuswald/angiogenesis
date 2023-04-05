@@ -360,7 +360,7 @@ int Simulate(int argc, const char** argv) {
   std::cout << "Simulation completed successfully!" << std::endl;
 
   // Save timeseries data
-  PlotAndSaveTimeseries();
+  // PlotAndSaveTimeseries();
 
   return 0;
 }
@@ -424,7 +424,7 @@ double PlaceStraightVessel(
   compartment_length = distance / n_compartments;
   // double delta = distance - n_compartments * compartment_length;
   double delta = 0.0;
-  std::cout << "delta: " << delta << std::endl;
+  // std::cout << "delta: " << delta << std::endl;
 
   double vessel_volume = CylinderVolume(diameter, distance);
 
@@ -443,7 +443,7 @@ double PlaceStraightVessel(
   double connection_factor = 0.5;
   bool start_new_vessel = true;
   if (parent != nullptr && *parent != nullptr) {
-    std::cout << "Connecting to parent" << std::endl;
+    // std::cout << "Connecting to parent" << std::endl;
     vessel_compartment_1 = new Vessel();
     vessel_compartment_1->SetMother(*parent);
     rm->AddAgent(vessel_compartment_1);
@@ -465,7 +465,7 @@ double PlaceStraightVessel(
     start_new_vessel = false;
   }
   if (start_new_vessel) {
-    std::cout << "Starting new vessel" << std::endl;
+    // std::cout << "Starting new vessel" << std::endl;
     const Double3 tmp = start;
     auto* soma = new neuroscience::NeuronSoma(tmp);
     rm->AddAgent(soma);
@@ -884,7 +884,9 @@ void InitializeVessels(const Experiment experiment, const Param* param,
     constexpr bool kWithConnectivity = true;
     DataParserVTP parser;
     parser.ParseData("data/network.vtp");
+    parser.SetStartingLines({0, 2, 5, 8, 11, 64, 104, 262});
     // parser.ParseData("data/dummy.vtp");
+    // parser.ParseData("data/dummy2.vtp");
     parser.PostProcessData();
 
     if (kWithConnectivity) {
@@ -914,6 +916,11 @@ void InitializeVessels(const Experiment experiment, const Param* param,
         // diameter,
         //                     &terminal_ends[start_index],
         //                     &terminal_ends[end_index]);
+
+        std::cout << "\n-----\ni: " << i << std::endl;
+        std::cout << "start: " << start_index << std::endl;
+        std::cout << "end: " << end_index << std::endl;
+
         PlaceStraightVessel(start, end, 2.0, diameter,
                             &terminal_ends[start_index],
                             &terminal_ends[end_index]);

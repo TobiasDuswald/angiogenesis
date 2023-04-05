@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<VTKFile type="PolyData" version="0.1" byte_order="LittleEndian">
+  <PolyData>
+    <Piece NumberOfLines="4" NumberOfPoints="8">
+      <PointData Scalars="pressure [mmHg]">
+        <DataArray type="Float32" Name="pressure [mmHg]" NumberOfComponents="1" format="ascii">
+          0 0 0 0 0 0 0 0
+        </DataArray>
+      </PointData>
+      <CellData Scalars="R">
+        <DataArray type="Float32" Name="R" NumberOfComponents="1" format="ascii">
+          0.02 0.02 0.01 0.01
+        </DataArray>
+        <DataArray type="Float32" Name="G" NumberOfComponents="1" format="ascii">
+          0 0 0 0
+        </DataArray>
+        <DataArray type="Float32" Name="mu" NumberOfComponents="1" format="ascii">
+          0 0 0 0
+        </DataArray>
+      </CellData>
+      <Points>
+        <DataArray type="Float32" Name="Coordinates" NumberOfComponents="3" format="ascii">
+          0 0 0 0 0 1 0 0 1 0 0 2 0 0 2 0 1 3 0 0 2 0 -1 3
+        </DataArray>
+      </Points>
+      <Lines>
+        <DataArray type="Int32" Name="connectivity" NumberOfComponents="1" format="ascii">
+          0 1 2 3 4 5 6 7
+        </DataArray>
+        <DataArray type="Int32" Name="offsets" NumberOfComponents="1" format="ascii">
+          2 4 6 8
+        </DataArray>
+      </Lines>
+    </Piece>
+  </PolyData>
+</VTKFile>
