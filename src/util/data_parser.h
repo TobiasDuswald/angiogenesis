@@ -38,7 +38,7 @@ class DataParser {
   VesselSegment& operator[](size_t index) { return data[index]; }
 
   /// Plot a histogram of the radii and the lengths of the vessel segments.
-  void PlotHistograms() const;
+  void PlotHistograms(const std::string& path = "") const;
 
   // Member variables
   std::vector<VesselSegment> data;

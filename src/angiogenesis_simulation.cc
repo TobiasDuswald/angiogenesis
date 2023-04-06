@@ -360,13 +360,15 @@ int Simulate(int argc, const char** argv) {
   std::cout << "Simulation completed successfully!" << std::endl;
 
   // Save timeseries data
-  // PlotAndSaveTimeseries();
+  PlotAndSaveTimeseries();
 
   return 0;
 }
 
 // -----------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
 // Helper functions
+// -----------------------------------------------------------------------------
 // -----------------------------------------------------------------------------
 
 TumorCell* CreateTumorCell(const Double3& position) {
@@ -887,6 +889,8 @@ void InitializeVessels(const Experiment experiment, const Param* param,
     parser.SetDesiredMaxBoundingBoxLength(2000);
     parser.SetStartingLines({0, 2, 5, 8, 11, 64, 104, 262});
     parser.PostProcessData();
+    // Plot histogram of the diameters and lengths (see output folder)
+    parser.PlotHistograms();
 
     constexpr bool kWithConnectivity = true;  // Debugging option (false)
     if (kWithConnectivity) {

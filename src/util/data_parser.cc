@@ -10,7 +10,6 @@
 // -----------------------------------------------------------------------------
 
 #include "data_parser.h"
-#include <experimental/filesystem>
 #include "analysis.h"
 #include "util/vector_operations.h"
 
@@ -23,11 +22,11 @@ inline bool CheckIfContained(const std::string& str,
   return str.find(sub_str) != std::string::npos;
 }
 
-void DataParser::PlotHistograms() const {
-  // std::string path = Simulation::GetActive()->GetOutputDir();
-  std::string path = std::experimental::filesystem::current_path();
-  std::string filename_radius = "radius_histogram";
-  std::string filename_length = "length_histogram";
+void DataParser::PlotHistograms(const std::string& path) const {
+  if (data.empty()) {
+    Log::Warning("DataParser", "No data to plot");
+    return;
+  }
 
   // Create a std::vector of the radii
   std::vector<double> radii;
@@ -40,6 +39,8 @@ void DataParser::PlotHistograms() const {
   }
 
   // Create histograms
+  std::string filename_radius = "radius_histogram";
+  std::string filename_length = "length_histogram";
   PlotAndSaveHistogram(radii, filename_radius, path);
   PlotAndSaveHistogram(lengths, filename_length, path);
 }
@@ -65,7 +66,7 @@ void DataParserVTP::ParseData(const std::string& filename) {
   xml.FreeDoc(xmldoc);
 
   // 6. Print bounding box of the data
-  std::cout << "<DataParserVTP::ParseData> Bounding box: " << std::endl;
+  std::cout << "<DataParserVTP> Bounding box: " << std::endl;
   std::cout << "  x: " << x_min_ << " - " << x_max_ << std::endl;
   std::cout << "  y: " << y_min_ << " - " << y_max_ << std::endl;
   std::cout << "  z: " << z_min_ << " - " << z_max_ << std::endl;
@@ -196,26 +197,26 @@ void DataParserVTP::RecursivelyParseVTPFile(TXMLEngine& xml,
     // Depending on the attribute name & value, parse the data into the correct
     // member variable
     if (attr_name == "NumberOfLines") {
-      std::cout << " Found number of lines!" << std::endl;
+      std::cout << "<DataParserVTP> Found number of lines!\n";
       num_lines_ = ParseStringForNumber<size_t>(attr_value);
     } else if (attr_name == "NumberOfPoints") {
-      std::cout << "Found number of points!" << std::endl;
+      std::cout << "<DataParserVTP> Found number of points!\n";
       num_points_ = ParseStringForNumber<size_t>(attr_value);
     } else if (attr_name == "Name") {
       if (attr_value == "pressure [mmHg]") {
-        std::cout << "Found pressure!" << std::endl;
+        std::cout << "<DataParserVTP> Found pressure!\n";
         pressure_ = ParseString<double>(xml.GetNodeContent(node));
       } else if (attr_value == "R") {
-        std::cout << "Found radius!" << std::endl;
+        std::cout << "<DataParserVTP> Found radius!\n";
         radii_ = ParseString<double>(xml.GetNodeContent(node));
       } else if (attr_value == "G") {
-        std::cout << "Found G!" << std::endl;
+        std::cout << "<DataParserVTP> Found G!\n";
         g_ = ParseString<double>(xml.GetNodeContent(node));
       } else if (attr_value == "mu") {
-        std::cout << "Found mu!" << std::endl;
+        std::cout << "<DataParserVTP> Found mu!\n";
         mu_ = ParseString<double>(xml.GetNodeContent(node));
       } else if (attr_value == "Coordinates") {
-        std::cout << "Found coordinates!" << std::endl;
+        std::cout << "<DataParserVTP> Found coordinates!\n";
         auto tmp = ParseString<double>(xml.GetNodeContent(node));
         for (size_t i = 0; i < tmp.size(); i += 3) {
           x_min_ = std::min(x_min_, tmp[i]);
@@ -227,10 +228,10 @@ void DataParserVTP::RecursivelyParseVTPFile(TXMLEngine& xml,
           points_.push_back({tmp[i], tmp[i + 1], tmp[i + 2]});
         }
       } else if (attr_value == "connectivity") {
-        std::cout << "Found connectivity!" << std::endl;
+        std::cout << "<DataParserVTP> Found connectivity!\n";
         connectivity_ = ParseString<int>(xml.GetNodeContent(node));
       } else if (attr_value == "offsets") {
-        std::cout << "Found offsets!" << std::endl;
+        std::cout << "<DataParserVTP> Found offsets!";
         offsets_ = ParseString<int>(xml.GetNodeContent(node));
       } else {
         // Do nothing
