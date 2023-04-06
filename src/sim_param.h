@@ -34,7 +34,8 @@ enum class Experiment {
   kVesselsToCenter,
   kVesselsCoupling,
   kSimplifiedGrowth,
-  kFullScaleModel
+  kFullScaleModel,
+  kFullScaleRandomVessels
 };
 
 // This class defines parameters that are specific to this simulation. The unit

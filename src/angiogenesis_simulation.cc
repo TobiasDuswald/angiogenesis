@@ -735,6 +735,14 @@ void SetUpExperiment(const Experiment experiment,
       initialize_tumor_spheroid = true;
       initialize_vasculature = true;
       break;
+    case Experiment::kFullScaleRandomVessels:
+      bct_n = BoundaryConditionType::kNeumann;
+      bct_v = BoundaryConditionType::kNeumann;
+      bct_v = BoundaryConditionType::kNeumann;
+      bct_d = BoundaryConditionType::kNeumann;
+      initialize_tumor_spheroid = true;
+      initialize_vasculature = true;
+      break;
     default:
       Log::Fatal("SetUpExperiment", "Unknown experiment");
   };
@@ -759,128 +767,119 @@ void InitializeVessels(const Experiment experiment, const Param* param,
   } else if (experiment == Experiment::kVesselsCoupling) {
     PlaceStraightVessel({0, 0, -400}, {0, 0, 400},
                         sparam->default_vessel_length, 15);
+  } else if (experiment == Experiment::kFullScaleRandomVessels) {
+    auto* rnd = Simulation::GetActive()->GetRandom();
+
+    // Parameters extracted from rat brain (Secomb)
+    constexpr double vessels_per_volume = 104.0;
+    constexpr double volume = 550 * 550 * 230;  // in um^3
+    constexpr double gev_location = 7.53401234807571;
+    constexpr double gev_scale = 2.3153691046974907;
+    constexpr double gev_xi = -0.3292535751714517;
+    constexpr double gev_min = 5.0;   // for numerical integration
+    constexpr double gev_max = 50.0;  // for numerical integration
+    constexpr double wald_location = 10.977589465183868;
+    constexpr double wald_scale = 63.81303941790211;
+    constexpr double wald_min = 100;     // for numerical integration
+    constexpr double wald_max = 1000.0;  // for numerical integration
+    constexpr double random_vessel_threshold = 200;
+
+    // Compute the fraction of the vessels that we want to neglect (because to
+    // small). Typical numbers: wald_min = 50 -> 45%, wald_min = 100 -> 78 %.
+    // Use Gauss-Kronrod 21-point integration rule.
+    ROOT::Math::IntegratorOneDim integrator;
+    auto g = [](double x) { return wald_pdf(x, wald_location, wald_scale); };
+    double wald_integral_to_min = integrator.Integral(g, 0.0, wald_min);
+
+    // Parameters
+    const auto min = param->min_bound;
+    const auto max = param->max_bound;
+    const double simulation_volume = std::pow(max - min, 3);
+
+    // Compute number of vessels
+    const int num_vessels = static_cast<int>(
+        std::ceil(vessels_per_volume * (1 - wald_integral_to_min) *
+                  simulation_volume / volume));
+
+    // Print computed info
+    std::cout << "Number of vessels: " << num_vessels << std::endl;
+    std::cout << "Simulation volume: " << simulation_volume << std::endl;
+    std::cout << "Volume: " << volume << std::endl;
+    std::cout << "Min: " << min << std::endl;
+    std::cout << "Max: " << max << std::endl;
+    std::cout << "Wald integral to min: " << wald_integral_to_min << std::endl;
+
+    // Generate random vessel diameters, lengths, and starting points
+    std::vector<double> vessel_diameters(num_vessels);
+    std::vector<double> vessel_lengths(num_vessels);
+    std::vector<Double3> vessel_start_points(num_vessels);
+    std::vector<Double3> vessel_end_points(num_vessels);
+
+    // Track vessel volume
+    double vessel_volume = 0.0;
+
+    // Generate random vessel diameters via the GENEXTREME distribution
+    auto gev_distribution = [](const double* x, const double* params) {
+      return gev_pdf(x[0], params[0], params[1], params[2]);
+    };
+    auto rng_gev = rnd->GetUserDefinedDistRng1D(
+        gev_distribution, {gev_location, gev_scale, gev_xi}, gev_min, gev_max);
+    for (int i = 0; i < num_vessels; i++) {
+      vessel_diameters[i] = rng_gev.Sample();
+    }
+
+    // Generate random vessel lengths via the WALD distribution
+    auto wald_distribution = [](const double* x, const double* params) {
+      return wald_pdf(x[0], params[0], params[1]);
+    };
+    auto rng_wald = rnd->GetUserDefinedDistRng1D(
+        wald_distribution, {wald_location, wald_scale}, wald_min, wald_max);
+    for (int i = 0; i < num_vessels; i++) {
+      vessel_lengths[i] = rng_wald.Sample();
+    }
+
+    // Generate random vessel starting points
+    for (int i = 0; i < num_vessels; i++) {
+      vessel_start_points[i] = {rnd->Uniform(min, max), rnd->Uniform(min, max),
+                                rnd->Uniform(min, max)};
+      // Generate random vessel end points
+      vessel_end_points[i] =
+          rnd->Sphere(vessel_lengths[i]) + vessel_start_points[i];
+      while (vessel_end_points[i][0] < min || vessel_end_points[i][0] > max ||
+             vessel_end_points[i][1] < min || vessel_end_points[i][1] > max ||
+             vessel_end_points[i][2] < min || vessel_end_points[i][2] > max) {
+        vessel_end_points[i] =
+            rnd->Sphere(vessel_lengths[i]) + vessel_start_points[i];
+      }
+    }
+
+    // Plot histogram of the diameters and lengths
+    std::string diameters_file = "diameters";
+    std::string lengths_file = "lengths";
+    PlotAndSaveHistogram(vessel_diameters, diameters_file);
+    PlotAndSaveHistogram(vessel_lengths, lengths_file);
+
+    // Define random seed
+    unsigned int seed = 0;
+
+    for (int i = 0; i < num_vessels; i++) {
+      const auto& start = vessel_start_points[i];
+      const auto& end = vessel_end_points[i];
+      const auto& length = vessel_lengths[i];
+      const auto& diameter = vessel_diameters[i];
+      // const auto diameter = 15;
+      if (length < random_vessel_threshold) {
+        vessel_volume += PlaceStraightVessel(
+            start, end, sparam->default_vessel_length, diameter);
+      } else {
+        vessel_volume += PlaceRandomVessel(start, end, diameter, seed++);
+      }
+    }
+    // Print vessel volumen and vessel volume fraction
+    std::cout << "Vessel volume: " << vessel_volume << std::endl;
+    std::cout << "Vessel volume fraction: " << vessel_volume / simulation_volume
+              << std::endl;
   } else if (experiment == Experiment::kFullScaleModel) {
-    //   auto* rnd = Simulation::GetActive()->GetRandom();
-
-    //   // Parameters extracted from rat brain (Secomb)
-    //   constexpr double vessels_per_volume = 104.0;
-    //   constexpr double volume = 550 * 550 * 230;  // in um^3
-    //   constexpr double gev_location = 7.53401234807571;
-    //   constexpr double gev_scale = 2.3153691046974907;
-    //   constexpr double gev_xi = -0.3292535751714517;
-    //   constexpr double gev_min = 5.0;   // for numerical integration
-    //   constexpr double gev_max = 50.0;  // for numerical integration
-    //   constexpr double wald_location = 10.977589465183868;
-    //   constexpr double wald_scale = 63.81303941790211;
-    //   constexpr double wald_min = 100;     // for numerical integration
-    //   constexpr double wald_max = 1000.0;  // for numerical integration
-    //   constexpr double random_vessel_threshold = 200;
-
-    //   // Compute the fraction of the vessels that we want to neglect (because
-    //   to
-    //   // small). Typical numbers: wald_min = 50 -> 45%, wald_min = 100 ->
-    //   78%.
-    //   // Use Gauss-Kronrod 21-point integration rule.
-    //   ROOT::Math::IntegratorOneDim integrator;
-    //   auto g = [](double x) { return wald_pdf(x, wald_location, wald_scale);
-    //   }; double wald_integral_to_min = integrator.Integral(g, 0.0, wald_min);
-
-    //   // Parameters
-    //   const auto min = param->min_bound;
-    //   const auto max = param->max_bound;
-    //   const double simulation_volume = std::pow(max - min, 3);
-
-    //   // Compute number of vessels
-    //   const int num_vessels = static_cast<int>(
-    //       std::ceil(vessels_per_volume * (1 - wald_integral_to_min) *
-    //                 simulation_volume / volume));
-
-    //   // Print computed info
-    //   std::cout << "Number of vessels: " << num_vessels << std::endl;
-    //   std::cout << "Simulation volume: " << simulation_volume << std::endl;
-    //   std::cout << "Volume: " << volume << std::endl;
-    //   std::cout << "Min: " << min << std::endl;
-    //   std::cout << "Max: " << max << std::endl;
-    //   std::cout << "Wald integral to min: " << wald_integral_to_min <<
-    //   std::endl;
-
-    //   // Generate random vessel diameters, lengths, and starting points
-    //   std::vector<double> vessel_diameters(num_vessels);
-    //   std::vector<double> vessel_lengths(num_vessels);
-    //   std::vector<Double3> vessel_start_points(num_vessels);
-    //   std::vector<Double3> vessel_end_points(num_vessels);
-
-    //   // Track vessel volume
-    //   double vessel_volume = 0.0;
-
-    //   // Generate random vessel diameters via the GENEXTREME distribution
-    //   auto gev_distribution = [](const double* x, const double* params) {
-    //     return gev_pdf(x[0], params[0], params[1], params[2]);
-    //   };
-    //   auto rng_gev = rnd->GetUserDefinedDistRng1D(
-    //       gev_distribution, {gev_location, gev_scale, gev_xi}, gev_min,
-    //       gev_max);
-    //   for (int i = 0; i < num_vessels; i++) {
-    //     vessel_diameters[i] = rng_gev.Sample();
-    //   }
-
-    //   // Generate random vessel lengths via the WALD distribution
-    //   auto wald_distribution = [](const double* x, const double* params) {
-    //     return wald_pdf(x[0], params[0], params[1]);
-    //   };
-    //   auto rng_wald = rnd->GetUserDefinedDistRng1D(
-    //       wald_distribution, {wald_location, wald_scale}, wald_min,
-    //       wald_max);
-    //   for (int i = 0; i < num_vessels; i++) {
-    //     vessel_lengths[i] = rng_wald.Sample();
-    //   }
-
-    //   // Generate random vessel starting points
-    //   for (int i = 0; i < num_vessels; i++) {
-    //     vessel_start_points[i] = {rnd->Uniform(min, max), rnd->Uniform(min,
-    //     max),
-    //                               rnd->Uniform(min, max)};
-    //     // Generate random vessel end points
-    //     vessel_end_points[i] =
-    //         rnd->Sphere(vessel_lengths[i]) + vessel_start_points[i];
-    //     while (vessel_end_points[i][0] < min || vessel_end_points[i][0] > max
-    //     ||
-    //            vessel_end_points[i][1] < min || vessel_end_points[i][1] > max
-    //            || vessel_end_points[i][2] < min || vessel_end_points[i][2] >
-    //            max) {
-    //       vessel_end_points[i] =
-    //           rnd->Sphere(vessel_lengths[i]) + vessel_start_points[i];
-    //     }
-    //   }
-
-    //   // Plot histogram of the diameters and lengths
-    //   std::string diameters_file = "diameters";
-    //   std::string lengths_file = "lengths";
-    //   PlotAndSaveHistogram(vessel_diameters, diameters_file);
-    //   PlotAndSaveHistogram(vessel_lengths, lengths_file);
-
-    //   // Define random seed
-    //   unsigned int seed = 0;
-
-    //   for (int i = 0; i < num_vessels; i++) {
-    //     const auto& start = vessel_start_points[i];
-    //     const auto& end = vessel_end_points[i];
-    //     const auto& length = vessel_lengths[i];
-    //     const auto& diameter = vessel_diameters[i];
-    //     // const auto diameter = 15;
-    //     if (length < random_vessel_threshold) {
-    //       vessel_volume += PlaceStraightVessel(
-    //           start, end, sparam->default_vessel_length, diameter);
-    //     } else {
-    //       vessel_volume += PlaceRandomVessel(start, end, diameter, seed++);
-    //     }
-    //   }
-    //   // Print vessel volumen and vessel volume fraction
-    //   std::cout << "Vessel volume: " << vessel_volume << std::endl;
-    //   std::cout << "Vessel volume fraction: " << vessel_volume /
-    //   simulation_volume
-    //             << std::endl;
-
     constexpr bool kWithConnectivity = true;
     DataParserVTP parser;
     parser.ParseData("data/network.vtp");
