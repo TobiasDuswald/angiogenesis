@@ -880,12 +880,15 @@ void InitializeVessels(const Experiment experiment, const Param* param,
     std::cout << "Vessel volume fraction: " << vessel_volume / simulation_volume
               << std::endl;
   } else if (experiment == Experiment::kFullScaleModel) {
-    constexpr bool kWithConnectivity = true;
+    // Parse the data
     DataParserVTP parser;
     parser.ParseData("data/network.vtp");
+    // Educated postprocessing of the data
+    parser.SetDesiredMaxBoundingBoxLength(2000);
     parser.SetStartingLines({0, 2, 5, 8, 11, 64, 104, 262});
     parser.PostProcessData();
 
+    constexpr bool kWithConnectivity = true;  // Debugging option (false)
     if (kWithConnectivity) {
       // ---------------------------------------------------------------------
       // With connectivity

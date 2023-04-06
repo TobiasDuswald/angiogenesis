@@ -110,6 +110,14 @@ class DataParserVTP : public DataParser {
     starting_lines_ = starting_lines;
   }
 
+  /// Set the desired maximum length of the bounding box. This is used to
+  /// determine the scaling factor for the data. The data is scaled such that
+  /// the maximum length of the bounding box is equal to the desired maximum
+  /// length.
+  void SetDesiredMaxBoundingBoxLength(double desired_max_bounding_box_length) {
+    desired_max_bounding_box_length_ = desired_max_bounding_box_length;
+  }
+
   /// This function postprocesses the data (points, connectivity, radii) that
   /// were previously parsed from the VTP file. The postprocessing step changes
   /// the affected vectors. Note that other data (pressure, offsets, g, mu) are
@@ -161,6 +169,7 @@ class DataParserVTP : public DataParser {
   double y_max_{0};                  // bounding box of the data
   double z_min_{0};                  // bounding box of the data
   double z_max_{0};                  // bounding box of the data
+  double desired_max_bounding_box_length_{0.00149888};  // No rescaling
 };
 
 // ---------------------------------------------------------------------------

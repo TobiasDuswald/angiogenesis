@@ -75,7 +75,6 @@ void DataParserVTP::PostProcessData() {
   // ---------------------------------------------------------------------
   // 1 . Rescale & shift the data
   // ---------------------------------------------------------------------
-  constexpr double kSimSpace = 2000;
 
   // Compute the center of the bounding box
   const double x_center = (x_max_ + x_min_) / 2;
@@ -87,9 +86,11 @@ void DataParserVTP::PostProcessData() {
   const double y_range = y_max_ - y_min_;
   const double z_range = z_max_ - z_min_;
   const double max_range = std::max(x_range, std::max(y_range, z_range));
-  double scaling_factor = kSimSpace / max_range;
+  double scaling_factor = desired_max_bounding_box_length_ / max_range;
 
   // Rescale and center the data
+  std::cout << "<DataParserVTP> Rescaling data with factor " << scaling_factor
+            << " ..." << std::endl;
   for (auto& point : points_) {
     point[0] = (point[0] - x_center) * scaling_factor;
     point[1] = (point[1] - y_center) * scaling_factor;
@@ -125,8 +126,6 @@ void DataParserVTP::PostProcessData() {
     // Create the segment
     data.push_back(vs);
   }
-  std::cout << "Minimum segment length: " << min_length / scaling_factor
-            << std::endl;
 
   // ---------------------------------------------------------------------
   // 3 . Determine the set of unique points; adapt connectivity accordingly
