@@ -885,8 +885,6 @@ void InitializeVessels(const Experiment experiment, const Param* param,
     DataParserVTP parser;
     parser.ParseData("data/network.vtp");
     parser.SetStartingLines({0, 2, 5, 8, 11, 64, 104, 262});
-    // parser.ParseData("data/dummy.vtp");
-    // parser.ParseData("data/dummy2.vtp");
     parser.PostProcessData();
 
     if (kWithConnectivity) {
@@ -905,21 +903,12 @@ void InitializeVessels(const Experiment experiment, const Param* param,
         size_t end_index = connectivity[2 * i + 1];
         if (terminal_ends[start_index] == nullptr &&
             terminal_ends[end_index] != nullptr) {
+          // If a segment had the wrong orientation, swap the indices
           std::swap(start_index, end_index);
         }
         const auto& start = points[start_index];
         const auto& end = points[end_index];
         const auto& diameter = 2 * radius[i];
-        // PlaceStraightVessel(start, end, sparam->default_vessel_length,
-        // diameter);
-        // PlaceStraightVessel(start, end, sparam->default_vessel_length,
-        // diameter,
-        //                     &terminal_ends[start_index],
-        //                     &terminal_ends[end_index]);
-
-        std::cout << "\n-----\ni: " << i << std::endl;
-        std::cout << "start: " << start_index << std::endl;
-        std::cout << "end: " << end_index << std::endl;
 
         PlaceStraightVessel(start, end, 2.0, diameter,
                             &terminal_ends[start_index],
@@ -933,8 +922,6 @@ void InitializeVessels(const Experiment experiment, const Param* param,
         const auto& start = segment.start_position;
         const auto& end = segment.end_position;
         const auto& diameter = 2 * segment.radius;
-        // PlaceStraightVessel(start, end, sparam->default_vessel_length,
-        //                     diameter);
         PlaceStraightVessel(start, end, 2.0, diameter);
       }
     }

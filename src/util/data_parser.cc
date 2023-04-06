@@ -44,75 +44,28 @@ void DataParser::PlotHistograms() const {
   PlotAndSaveHistogram(lengths, filename_length, path);
 }
 
-// This function parses VTK file of type polydata. The structure of the file is
-// as follows:
-//
-// <?xml version="1.0"?>
-// <VTKFile type="PolyData" version="0.1" byte_order="LittleEndian">
-//   <PolyData>
-//     <Piece NumberOfLines="X" NumberOfPoints="2X">
-//       <PointData Scalars="pressure [mmHg]">
-//         <DataArray type="Float32" Name="pressure [mmHg]"
-//         NumberOfComponents="1" format="ascii">
-//           ...
-//         </DataArray>
-//       </PointData>
-//       <CellData Scalars="R">
-//         <DataArray type="Float32" Name="R" NumberOfComponents="1"
-//         format="ascii">
-//           ...
-//         </DataArray>
-//         <DataArray type="Float32" Name="G" NumberOfComponents="1"
-//         format="ascii">
-//           ...
-//         </DataArray>
-//         <DataArray type="Float32" Name="mu" NumberOfComponents="1"
-//         format="ascii">
-//           ...
-//         </DataArray>
-//       </CellData>
-//       <Points>
-//         <DataArray type="Float32" Name="Coordinates" NumberOfComponents="3"
-//         format="ascii">
-//           ...
-//         </DataArray>
-//       </Points>
-//       <Lines>
-//         <DataArray type="Int32" Name="connectivity" NumberOfComponents="1"
-//         format="ascii">
-//           ...
-//         </DataArray>
-//         <DataArray type="Int32" Name="offsets" NumberOfComponents="1"
-//         format="ascii">
-//           ...
-//         </DataArray>
-//       </Lines>
-//     </Piece>
-//   </PolyData>
-// </VTKFile>
-// We are interested in the following data:
-// - radius of the vessel segment
-// - start and end position of the vessel segment
 void DataParserVTP::ParseData(const std::string& filename) {
-  // First create engine
+  // 1. Create TXMLEngine to read the file
   TXMLEngine xml;
 
-  // Parse file (limited syntax for this xml engine)
+  // 2. Parse file (limited syntax for this xml engine)
   XMLDocPointer_t xmldoc = xml.ParseFile(filename.c_str());
   if (!xmldoc) {
     Log::Fatal("DataParserVTP", "Could not parse file ", filename);
     return;
   }
 
-  // Get the main node of the file
+  // 3. Get the main node of the file
   XMLNodePointer_t mainnode = xml.DocGetRootElement(xmldoc);
+
+  // 4. Recursively parse the file to extract the data
   RecursivelyParseVTPFile(xml, mainnode, 0);
 
-  // Free memory
+  // 5. Free memory
   xml.FreeDoc(xmldoc);
 
-  // Print bounding box
-  std::cout << "Bounding box: " << std::endl;
+  // 6. Print bounding box of the data
+  std::cout << "<DataParserVTP::ParseData> Bounding box: " << std::endl;
   std::cout << "  x: " << x_min_ << " - " << x_max_ << std::endl;
   std::cout << "  y: " << y_min_ << " - " << y_max_ << std::endl;
   std::cout << "  z: " << z_min_ << " - " << z_max_ << std::endl;
@@ -149,7 +102,9 @@ void DataParserVTP::PostProcessData() {
   }
 
   // ---------------------------------------------------------------------
-  // 2 . Create the vessel segments (old method)
+  // 2 . Create the vessel segments. These segments can be used to create
+  //     the vessel network, however, the segments are not connected to
+  //     each other. See later for the connectivity data.
   // ---------------------------------------------------------------------
 
   // Determine the segments data.reserve(points_.size());
@@ -207,74 +162,9 @@ void DataParserVTP::PostProcessData() {
   std::vector<int> permutation;
   RestructureToTree(starting_lines_, connectivity, tree, permutation);
 
-  // std::vector<int> root_line_endpoints;
-  // root_line_endpoints.clear();
-  // for (const auto& line : starting_lines_) {
-  //   root_line_endpoints.push_back(connectivity[line].second);
-  // }
-  // std::vector<int> next_root_line_endpoints;
-  // std::vector<std::pair<int, int>> connectivity_restructured;
-  // std::vector<bool> connectivity_indices_visited(connectivity.size(), false);
-  // std::vector<int> permutation(connectivity.size(), -1);
-
-  // // 3.1 Add the starting lines to the connectivity_restructured and label
-  // them
-  // // as visited. Keep track of the permutation of the connectivity indices.
-  // int ctr = 0;
-  // for (const auto& line : starting_lines_) {
-  //   connectivity_restructured.push_back(connectivity[line]);
-  //   connectivity_indices_visited[line] = true;
-  //   permutation[ctr] = line;
-  //   ctr++;
-  // }
-
-  // // 3.2 Iterate over the connectivity and restructure it
-  // while (!root_line_endpoints.empty()) {
-  //   for (size_t i = 0; i < connectivity.size(); i++) {
-  //     // Ignore already visited lines
-  //     if (connectivity_indices_visited[i]) {
-  //       continue;
-  //     }
-  //     // Check if the connection either starts or ends at a root line
-  //     endpoint,
-  //     // if so, add it to the restructured connectivity. In case it is the
-  //     end,
-  //     // we swap the start and end point. The updated end point is added to
-  //     the
-  //     // list of the next root line endpoints for the next iteration.
-  //     for (const auto& root_endpoint : root_line_endpoints) {
-  //       if (connectivity[i].first == root_endpoint) {
-  //         connectivity_restructured.push_back(connectivity[i]);
-  //         connectivity_indices_visited[i] = true;
-  //         next_root_line_endpoints.push_back(connectivity[i].second);
-  //         permutation[ctr] = i;
-  //         ctr++;
-  //       } else if (connectivity[i].second == root_endpoint) {
-  //         connectivity_restructured.push_back(
-  //             std::make_pair(connectivity[i].second, connectivity[i].first));
-  //         connectivity_indices_visited[i] = true;
-  //         next_root_line_endpoints.push_back(connectivity[i].first);
-  //         permutation[ctr] = i;
-  //         ctr++;
-  //       }
-  //     }
-  //   }
-  //   root_line_endpoints = next_root_line_endpoints;
-  //   next_root_line_endpoints.clear();
-  // }
-
-  // // 3.3 Add all unvisited lines to the restructured connectivity
-  // for (size_t i = 0; i < connectivity.size(); i++) {
-  //   if (!connectivity_indices_visited[i]) {
-  //     connectivity_restructured.push_back(connectivity[i]);
-  //     permutation[ctr] = i;
-  //     ctr++;
-  //   }
-  // }
-
   // ----------------------------------------------------------------------
-  // 4. Feedback the restructured connectivity to the connectivity_ vector
-  //    and adapt the radii_ vector accordingly
+  // 4. Feedback the restructured connectivity to the connectivity_ vector,
+  //    adapt the radii_ vector accordingly, change to unique points
   // ----------------------------------------------------------------------
 
   // 4.1 Copy the restructured connectivity to the connectivity_ vector
@@ -292,44 +182,20 @@ void DataParserVTP::PostProcessData() {
   }
   radii_ = radii_restructured;
 
-  // Print the first 10 entries of the connectivity vector
-  std::cout << "Connectivity: " << std::endl;
-  for (size_t i = 0; i < 20; i++) {
-    std::cout << connectivity_[i] << " ";
-  }
-  std::cout << std::endl;
-
-  // ----------------------------------------------------------------------
-  // 5 . Verify connectivity_
-  // ----------------------------------------------------------------------
-
-  std::cout << "Number of unique points: " << unique_points.size() << std::endl;
-  std::cout << "Number of original points: " << points_.size() << std::endl;
+  // 4.3 Change to unique points
   points_ = unique_points;
 }
 
 void DataParserVTP::RecursivelyParseVTPFile(TXMLEngine& xml,
                                             XMLNodePointer_t node,
                                             Int_t level) {
-  // this function display all accessible information about xml node and its
-  // children
-
-  // printf("%*c node: %s\n", level, ' ', xml.GetNodeName(node));
-
-  // display namespace
-  // XMLNsPointer_t ns = xml.GetNS(node);
-  // if (ns != 0)
-  //   printf("%*c namespace: %s refer: %s\n", level + 2, ' ',
-  //   xml.GetNSName(ns),
-  //          xml.GetNSReference(ns));
-
   // Parse attributes
   XMLAttrPointer_t attr = xml.GetFirstAttr(node);
   while (attr != 0) {
-    // printf("%*c attr: %s value: %s\n", level + 2, ' ', xml.GetAttrName(attr),
-    //        xml.GetAttrValue(attr));
     std::string attr_name = xml.GetAttrName(attr);
     std::string attr_value = xml.GetAttrValue(attr);
+    // Depending on the attribute name & value, parse the data into the correct
+    // member variable
     if (attr_name == "NumberOfLines") {
       std::cout << " Found number of lines!" << std::endl;
       num_lines_ = ParseStringForNumber<size_t>(attr_value);
@@ -375,10 +241,12 @@ void DataParserVTP::RecursivelyParseVTPFile(TXMLEngine& xml,
       // Do nothing
       ;
     }
+
+    // Get next attribute
     attr = xml.GetNextAttr(attr);
   }
 
-  // display all child nodes
+  // Initiate recursive call
   XMLNodePointer_t child = xml.GetChild(node);
   while (child != 0) {
     RecursivelyParseVTPFile(xml, child, level + 2);
