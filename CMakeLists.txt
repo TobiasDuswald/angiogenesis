@@ -26,6 +26,9 @@ include_directories("${CMAKE_SOURCE_DIR}/third_party/unibn-octree")
 # Note that BioDynaMo provides gtest header/libraries in its include/lib dir.
 include(${BDM_USE_FILE})
 
+# Add the shared library libXMLIO.so in ROOT_LIBRARY_DIR to the required libraries
+set(BDM_REQUIRED_LIBRARIES ${BDM_REQUIRED_LIBRARIES} "${ROOT_LIBRARY_DIR}/libXMLIO.so")
+
 # Export compile commands for Sonar Lint
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -48,3 +51,6 @@ bdm_add_test(${CMAKE_PROJECT_NAME}-test
              SOURCES ${TEST_SOURCES}
              HEADERS ${TEST_HEADERS}
              LIBRARIES ${BDM_REQUIRED_LIBRARIES} ${CMAKE_PROJECT_NAME})
+
+# Copy the folder test/data to the build directory
+file(COPY data DESTINATION ${CMAKE_BINARY_DIR})

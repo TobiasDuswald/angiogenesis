@@ -26,6 +26,7 @@
 #include "neuroscience/neuroscience.h"
 #include "sim_param.h"
 #include "util/analysis.h"
+#include "util/data_parser.h"
 #include "util/pdf.h"
 #include "util/random_field.h"
 #include "util/timeseries_counters.h"
@@ -57,8 +58,10 @@ double CylinderVolume(double diameter, double length);
 /// @param start Beginning of the vessel
 /// @param end end of the vessel
 /// @param compartment_length Length of the individual compartments (agents)
-double PlaceStraightVessel(Double3 start, Double3 end,
-                           double compartment_length, double diameter);
+double PlaceStraightVessel(
+    Double3 start, Double3 end, double compartment_length, double diameter,
+    AgentPointer<neuroscience::NeuronOrNeurite>* parent = nullptr,
+    AgentPointer<neuroscience::NeuronOrNeurite>* terminal_vessel = nullptr);
 
 /// @brief This function places a random vessel in the simulation. Uses
 /// parameters from the simulation parameters.
@@ -363,7 +366,9 @@ int Simulate(int argc, const char** argv) {
 }
 
 // -----------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
 // Helper functions
+// -----------------------------------------------------------------------------
 // -----------------------------------------------------------------------------
 
 TumorCell* CreateTumorCell(const Double3& position) {
@@ -404,8 +409,10 @@ double CylinderVolume(double diameter, double length) {
   return Math::kPi * diameter * diameter * length / 4.0;
 }
 
-double PlaceStraightVessel(Double3 start, Double3 end,
-                           double compartment_length, double diameter) {
+double PlaceStraightVessel(
+    Double3 start, Double3 end, double compartment_length, double diameter,
+    AgentPointer<neuroscience::NeuronOrNeurite>* parent,
+    AgentPointer<neuroscience::NeuronOrNeurite>* terminal_vessel) {
   auto* rm = Simulation::GetActive()->GetResourceManager();
   auto* param = Simulation::GetActive()->GetParam();
   auto* sparam = param->Get<SimParam>();
@@ -416,6 +423,10 @@ double PlaceStraightVessel(Double3 start, Double3 end,
   direction.Normalize();
   auto n_compartments =
       static_cast<int>(std::floor(distance / compartment_length));
+  compartment_length = distance / n_compartments;
+  // double delta = distance - n_compartments * compartment_length;
+  double delta = 0.0;
+  // std::cout << "delta: " << delta << std::endl;
 
   double vessel_volume = CylinderVolume(diameter, distance);
 
@@ -427,35 +438,72 @@ double PlaceStraightVessel(Double3 start, Double3 end,
 
   // The setup requires us to define a NeuronSoma, which is kind of a left over
   // from the neuroscience module.
-  const Double3 tmp = start;
-  auto* soma = new neuroscience::NeuronSoma(tmp);
-  rm->AddAgent(soma);
 
   // Define a first neurite
   Vessel v;  // Used for prototype argument (virtual+template not supported c++)
-  auto* vessel_compartment_1 =
-      dynamic_cast<Vessel*>(soma->ExtendNewNeurite(direction, &v));
-  vessel_compartment_1->SetPosition(start +
-                                    direction * compartment_length * 0.5);
+  Vessel* vessel_compartment_1{nullptr};
+  double connection_factor = 0.5;
+  bool start_new_vessel = true;
+  if (parent != nullptr && *parent != nullptr) {
+    // std::cout << "Connecting to parent" << std::endl;
+    vessel_compartment_1 = new Vessel();
+    vessel_compartment_1->SetMother(*parent);
+    rm->AddAgent(vessel_compartment_1);
+    auto* parent_vessel = dynamic_cast<Vessel*>((*parent).Get());
+    if (parent_vessel->GetDaughterLeft() == nullptr) {
+      parent_vessel->SetDaughterLeft(
+          vessel_compartment_1->GetAgentPtr<neuroscience::NeuriteElement>());
+    } else if (parent_vessel->GetDaughterRight() == nullptr) {
+      parent_vessel->SetDaughterRight(
+          vessel_compartment_1->GetAgentPtr<neuroscience::NeuriteElement>());
+    } else {
+      Log::Warning("PlaceStraightVessel",
+                   "Parent vessel already has two daughters.");
+      start_new_vessel = true;
+    }
+    vessel_compartment_1->SetRestingLength(compartment_length);
+    vessel_compartment_1->SetSpringAxis(direction);
+    connection_factor = 0.5;
+    start_new_vessel = false;
+  }
+  if (start_new_vessel) {
+    // std::cout << "Starting new vessel" << std::endl;
+    const Double3 tmp = start;
+    auto* soma = new neuroscience::NeuronSoma(tmp);
+    rm->AddAgent(soma);
+    vessel_compartment_1 =
+        dynamic_cast<Vessel*>(soma->ExtendNewNeurite(direction, &v));
+  }
+  // vessel_compartment_1->SetPosition(start + direction * compartment_length *
+  //                                               connection_factor);
+  vessel_compartment_1->SetPosition(start);
   vessel_compartment_1->SetMassLocation(start + direction * compartment_length);
-  vessel_compartment_1->SetActualLength(compartment_length);
+  vessel_compartment_1->SetActualLength(2 * (1 - connection_factor) *
+                                        compartment_length);
   vessel_compartment_1->SetDiameter(diameter);
   vessel_compartment_1->ProhibitGrowth();
 
   Vessel* vessel_compartment_2{nullptr};
   for (int i = 1; i < n_compartments; i++) {
+    double extension = 0;
+    if (i == n_compartments - 1) {
+      extension = delta / compartment_length;
+    }
     // Compute location of next vessel element
     Double3 agent_position =
         start + direction * compartment_length * (static_cast<double>(i) + 0.5);
     Double3 agent_end_position =
-        start + direction * compartment_length * (static_cast<double>(i) + 1.0);
+        start + direction * compartment_length *
+                    (static_cast<double>(i) + 1.0 + extension);
     // Create new vessel
     vessel_compartment_2 = new Vessel();
     // Set position an length
     vessel_compartment_2->SetPosition(agent_position);
     vessel_compartment_2->SetMassLocation(agent_end_position);
-    vessel_compartment_2->SetActualLength(compartment_length);
-    vessel_compartment_2->SetRestingLength(compartment_length);
+    vessel_compartment_2->SetActualLength(compartment_length *
+                                          (1.0 + extension));
+    vessel_compartment_2->SetRestingLength(compartment_length *
+                                           (1.0 + extension));
     vessel_compartment_2->SetSpringAxis(direction);
     vessel_compartment_2->SetDiameter(diameter);
     vessel_compartment_2->ProhibitGrowth();
@@ -476,7 +524,10 @@ double PlaceStraightVessel(Double3 start, Double3 end,
         vessel_compartment_1->GetAgentPtr<neuroscience::NeuronOrNeurite>());
     std::swap(vessel_compartment_1, vessel_compartment_2);
   }
-
+  if (terminal_vessel != nullptr) {
+    *terminal_vessel =
+        vessel_compartment_1->GetAgentPtr<neuroscience::NeuronOrNeurite>();
+  }
   return vessel_volume;
 }
 
@@ -686,6 +737,14 @@ void SetUpExperiment(const Experiment experiment,
       initialize_tumor_spheroid = true;
       initialize_vasculature = true;
       break;
+    case Experiment::kFullScaleRandomVessels:
+      bct_n = BoundaryConditionType::kNeumann;
+      bct_v = BoundaryConditionType::kNeumann;
+      bct_v = BoundaryConditionType::kNeumann;
+      bct_d = BoundaryConditionType::kNeumann;
+      initialize_tumor_spheroid = true;
+      initialize_vasculature = true;
+      break;
     default:
       Log::Fatal("SetUpExperiment", "Unknown experiment");
   };
@@ -710,7 +769,7 @@ void InitializeVessels(const Experiment experiment, const Param* param,
   } else if (experiment == Experiment::kVesselsCoupling) {
     PlaceStraightVessel({0, 0, -400}, {0, 0, 400},
                         sparam->default_vessel_length, 15);
-  } else if (experiment == Experiment::kFullScaleModel) {
+  } else if (experiment == Experiment::kFullScaleRandomVessels) {
     auto* rnd = Simulation::GetActive()->GetRandom();
 
     // Parameters extracted from rat brain (Secomb)
@@ -728,7 +787,7 @@ void InitializeVessels(const Experiment experiment, const Param* param,
     constexpr double random_vessel_threshold = 200;
 
     // Compute the fraction of the vessels that we want to neglect (because to
-    // small). Typical numbers: wald_min = 50 -> 45%, wald_min = 100 -> 78%.
+    // small). Typical numbers: wald_min = 50 -> 45%, wald_min = 100 -> 78 %.
     // Use Gauss-Kronrod 21-point integration rule.
     ROOT::Math::IntegratorOneDim integrator;
     auto g = [](double x) { return wald_pdf(x, wald_location, wald_scale); };
@@ -822,6 +881,56 @@ void InitializeVessels(const Experiment experiment, const Param* param,
     std::cout << "Vessel volume: " << vessel_volume << std::endl;
     std::cout << "Vessel volume fraction: " << vessel_volume / simulation_volume
               << std::endl;
+  } else if (experiment == Experiment::kFullScaleModel) {
+    // Parse the data
+    DataParserVTP parser;
+    parser.ParseData("data/network.vtp");
+    // Educated postprocessing of the data
+    parser.SetDesiredMaxBoundingBoxLength(2000);
+    parser.SetStartingLines({0, 2, 5, 8, 11, 64, 104, 262});
+    parser.PostProcessData();
+    // Plot histogram of the diameters and lengths (see output folder)
+    parser.PlotHistograms();
+
+    constexpr bool kWithConnectivity = true;  // Debugging option (false)
+    if (kWithConnectivity) {
+      // ---------------------------------------------------------------------
+      // With connectivity
+      // ---------------------------------------------------------------------
+      const auto& num_lines = parser.GetNumLines();
+      const auto& points = parser.GetPoints();
+      const auto& connectivity = parser.GetConnectivity();
+      const auto& radius = parser.GetRadii();
+      std::vector<AgentPointer<neuroscience::NeuronOrNeurite>> terminal_ends(
+          points.size());
+      for (size_t i = 0; i < num_lines; i++) {
+        // Define start and end points
+        size_t start_index = connectivity[2 * i];
+        size_t end_index = connectivity[2 * i + 1];
+        if (terminal_ends[start_index] == nullptr &&
+            terminal_ends[end_index] != nullptr) {
+          // If a segment had the wrong orientation, swap the indices
+          std::swap(start_index, end_index);
+        }
+        const auto& start = points[start_index];
+        const auto& end = points[end_index];
+        const auto& diameter = 2 * radius[i];
+
+        PlaceStraightVessel(start, end, 2.0, diameter,
+                            &terminal_ends[start_index],
+                            &terminal_ends[end_index]);
+      }
+    } else {
+      // ---------------------------------------------------------------------
+      // Without connectivity
+      // ---------------------------------------------------------------------
+      for (auto& segment : parser.data) {
+        const auto& start = segment.start_position;
+        const auto& end = segment.end_position;
+        const auto& diameter = 2 * segment.radius;
+        PlaceStraightVessel(start, end, 2.0, diameter);
+      }
+    }
   } else {
     Log::Fatal("InitializeVessels",
                "No vessel structure defined for this "

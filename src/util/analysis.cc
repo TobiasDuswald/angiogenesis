@@ -379,9 +379,22 @@ void PlotAndSaveTimeseries() {
 }
 
 void PlotAndSaveHistogram(const std::vector<double> &data,
-                          const std::string &filename) {
+                          const std::string &filename,
+                          const std::string &output_folder) {
   // Get active simulation
-  const auto *sim = Simulation::GetActive();
+  std::string output_dir = output_folder;
+  if (output_dir.empty()) {
+    const auto *sim = Simulation::GetActive();
+    output_dir = sim->GetOutputDir();
+  }
+
+  // If vector is empty, return with a warning
+  if (data.empty()) {
+    std::cout << "Warning: Vector is empty. Cannot create histogram."
+              << std::endl;
+    return;
+  }
+
   // Get min and max value of vector
   auto minmax = std::minmax_element(data.begin(), data.end());
   double min = *minmax.first;
@@ -406,8 +419,10 @@ void PlotAndSaveHistogram(const std::vector<double> &data,
   h->GetXaxis()->CenterTitle();
   h->GetYaxis()->CenterTitle();
   // Save the canvas
-  std::string png_path = Concat(sim->GetOutputDir(), "/", filename, ".png");
-  std::string pdf_path = Concat(sim->GetOutputDir(), "/", filename, ".pdf");
+  std::string png_path = Concat(output_dir, "/", filename, ".png");
+  std::string pdf_path = Concat(output_dir, "/", filename, ".pdf");
+  std::cout << "Saving histogram to " << png_path << "\nand " << pdf_path
+            << std::endl;
   c->SaveAs(png_path.c_str());
   c->SaveAs(pdf_path.c_str());
   // Clean up
