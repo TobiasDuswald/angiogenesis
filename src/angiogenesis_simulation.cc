@@ -125,7 +125,6 @@ int Simulate(int argc, const char** argv) {
   // 2. Define parameters and initialize simulation
   // ---------------------------------------------------------------------------
   auto set_param = [](Param* param) {
-    param->calculate_gradients = true;
     param->visualization_interval = static_cast<uint32_t>(std::floor(
         static_cast<double>(param->Get<SimParam>()->visualization_interval) /
         param->simulation_time_step));
