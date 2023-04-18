@@ -49,6 +49,9 @@ class Vessel : public NeuriteElement {
   /// Returns if the vessel is a tip cell
   bool IsTipCell() const;
 
+  /// Returns if the vessel is a stalk cell
+  bool IsStalkCell() const;
+
   /// Returns the surface area of the cylinder
   double GetSurfaceArea() const;
 
@@ -56,6 +59,9 @@ class Vessel : public NeuriteElement {
   /// Parameter to decide if a vessel compartment can grow towards a higher
   /// VEGF concentration (used to fix initial vessel configuration)
   bool can_grow_{true};
+
+  // Split the vessel into two parts at the given position
+  Vessel* SplitVessel(real_t distal_portion);
 };
 
 /// Behaviour to create a new bifurcation if external VEGF concentarion is

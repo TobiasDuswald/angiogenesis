@@ -28,14 +28,50 @@ void Vessel::RunDiscretization() {
     // nutrients. We do not want our initial vasculature to supply nutrients.
     return;
   }
-  Base::RunDiscretization();
+  // -------------------------------------------------------------------------
+  // Modified discretization function from neurite_element.h
+  // Rewritten to allow diameter decrease along the vessel
+  // -------------------------------------------------------------------------
+  if (!IsTerminal()) {
+    // if the neurite element is not terminal, we do not split it
+    return;
+  }
+  constexpr double kMaxLength = 10;
+  if (GetActualLength() > kMaxLength) {
+    auto* new_vessel = SplitVessel(0.1);
+    // Set the diameter of the new neurite
+    constexpr double kMinDiameter = 5;
+    constexpr double kMaxDiameter = 20;
+    constexpr double kDiameterDecay = 0.98;
+    double diameter = GetDiameter() * kDiameterDecay;
+    diameter = std::max(diameter, kMinDiameter);
+    diameter = std::min(diameter, kMaxDiameter);
+    new_vessel->SetDiameter(diameter);
+    new_vessel->UpdateVolume();
+  }
 }
 
 bool Vessel::IsTipCell() const { return (IsTerminal() && can_grow_); }
 
+bool Vessel::IsStalkCell() const {
+  if (IsTerminal()) {
+    return false;
+  }
+  // Vessel must have a left daughter; Check if it is a tip cell
+  const auto* daughter = dynamic_cast<const Vessel*>(GetDaughterLeft().Get());
+  return daughter->IsTipCell();
+}
+
 double Vessel::GetSurfaceArea() const {
   // Vessels are assumed to be cylindrical.
   return Math::kPi * GetDiameter() * GetActualLength();
+}
+
+Vessel* Vessel::SplitVessel(real_t distal_portion) {
+  neuroscience::SplitNeuriteElementEvent event(distal_portion);
+  CreateNewAgents(event, {this});
+  // return bdm_static_cast<Vessel*>(event.new_agent[0]);
+  return bdm_static_cast<Vessel*>(event.existing_agent);
 }
 
 void SproutingAngiogenesis::Initialize(const NewAgentEvent& event) {
@@ -147,8 +183,19 @@ void SproutingAngiogenesis::Run(Agent* agent) {
     Double3 sprouting_direction = VectorOnConeAroundAxis(gradient, phi, theta);
 
     // Branch vessel
-    dendrite->Branch(dendrite->GetDiameter(), sprouting_direction,
-                     dendrite->GetActualLength() / 2);
+    auto* new_neurite =
+        dendrite->Branch(dendrite->GetDiameter(), sprouting_direction,
+                         dendrite->GetActualLength() / 2);
+
+    // Set the diameter of the new neurite
+    constexpr double kMinDiameter = 5;
+    constexpr double kMaxDiameter = 20;
+    constexpr double kDiameterDecay = 0.8;
+
+    double new_diameter = dendrite->GetDiameter() * kDiameterDecay;
+    new_diameter = std::max(new_diameter, kMinDiameter);
+    new_diameter = std::min(new_diameter, kMaxDiameter);
+    new_neurite->SetDiameter(new_diameter);
   }
 }
 
@@ -182,6 +229,12 @@ void ApicalGrowth::Run(Agent* agent) {
   dg_guide_->GetGradient(dendrite->GetPosition(), &gradient, false);
   if (gradient.Norm() < sparam->vegf_grad_threshold_apical_growth) {
     return;
+  }
+  if (gradient.Norm() > 0.016) {
+    // This indicates that we're now in the tumor region, stop growth. No longer
+    // counted as tip cell.
+    auto* vessel = dynamic_cast<Vessel*>(agent);
+    vessel->ProhibitGrowth();
   }
 
   /// 3. If vessel is close to an Tumor cell, we interrupt the growth as well
@@ -217,12 +270,17 @@ void LineContinuumInteraction::Initialize(const NewAgentEvent& event) {
 void LineContinuumInteraction::Run(Agent* agent) {
   auto* vessel = dynamic_cast<Vessel*>(agent);
 
-  // If the behaviour is assigned to a vessel and it is not part of the initial
-  // vascular network, we do supply the nutrients.
+  // If the behaviour is assigned to a vessel and it is not part of the
+  // initial vascular network, we do supply the nutrients.
   if (vessel) {
     // If we secrete and don't consume, then we only consider vessels that
     // can grow.
     if (!vessel->CanGrow()) {
+      return;
+    }
+
+    // Exclude tip and stalk cells
+    if (vessel->IsTipCell() || vessel->IsStalkCell()) {
       return;
     }
 
@@ -265,9 +323,9 @@ void LineContinuumInteraction::Run(Agent* agent) {
 
     // Problem: If the vessel grows, this will not be updated.
     if (!init_) {
-      // In the first step, we define how granular the supply is. We do this by
-      // demanding that the distance between two sampling points is roughly half
-      // the box length of the discretization. Note that we compute the
+      // In the first step, we define how granular the supply is. We do this
+      // by demanding that the distance between two sampling points is roughly
+      // half the box length of the discretization. Note that we compute the
       // the number of sample points here and not in the constructor because
       // the BoxLength is not initialized in the DiffusionGrid constructor.
       init_ = true;
