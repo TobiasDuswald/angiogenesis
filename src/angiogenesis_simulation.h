@@ -16,6 +16,7 @@
 
 #include "biodynamo.h"
 #include "modules/tipcell_finder.h"
+#include "modules/treatment.h"
 
 namespace bdm {
 
@@ -35,8 +36,24 @@ class AngiogenesisSimulation : public Simulation {
   const TipCellFinder* GetTipCellFinder() const { return &tip_cell_finder_; }
   void UpdateTipCellFinder() { tip_cell_finder_.Update(); }
 
+  const std::vector<double>& GetVesselPermeability() const {
+    return treatment_.GetVesselPermeability();
+  }
+
+  double GetVesselPermeability(size_t time_step) const {
+    return treatment_.GetVesselPermeability()[time_step];
+  }
+
+  void PrecomputeVesselPermeability(double t_end, double time_step,
+                                    double time_step_ode) {
+    treatment_.PrecomputeVesselPermeability(t_end, time_step, time_step_ode);
+  }
+
+  Treatment& GetTreatment() { return treatment_; }
+
  private:
   TipCellFinder tip_cell_finder_;
+  Treatment treatment_;
 };
 
 }  // namespace bdm
