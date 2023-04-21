@@ -36,14 +36,17 @@ double ComputeProbability_SG2_To_D(const double dox, const double delta_t,
 double ComputeProbability_Q_To_D(const double nutrients, const double tra,
                                  const double dox, const double delta_t,
                                  const SimParam* sparam) {
-  return P_Q_D_N(nutrients, delta_t, sparam) * P_Q_D_TRA(tra, delta_t, sparam) *
-         P_Q_D_DOX(dox, delta_t, sparam);
+  return P_Q_D_N(nutrients, delta_t, sparam) *
+         (1 + sparam->zeta_Q_D_TRA * tra + sparam->zeta_Q_D_DOX * dox +
+          sparam->zeta_Q_D_TRA_DOX * tra * dox);
 };
 
 double ComputeProbability_H_To_D(const double tra, const double dox,
                                  const double delta_t, const SimParam* sparam) {
-  return sparam->base_rate_H_D * delta_t * P_H_D_DOX(dox, delta_t, sparam) *
-         P_H_D_TRA(tra, delta_t, sparam);
+  return sparam->base_rate_H_D * delta_t *
+         (1 + sparam->zeta_H_D_TRA * tra + sparam->zeta_H_D_DOX * dox +
+          sparam->zeta_H_D_TRA_DOX * tra * dox);
+  ;
 };
 
 double P_Q_SG2_N(const double nutrients, const double delta_t,
