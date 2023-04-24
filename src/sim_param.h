@@ -125,6 +125,10 @@ struct SimParam : public ParamGroup {
   // drug TRA
   double zeta_Q_D_TRA{30};
 
+  // Probability parameters for the transition from Q to SG2 modulated by both
+  // drugs DOX and TRA
+  double zeta_Q_D_TRA_DOX{30};
+
   // Probability parameters for the transition from G1 to SG2 modulated by the
   // nutrients N
   double threshold_Q_SG2_N{0.0538};
@@ -154,6 +158,7 @@ struct SimParam : public ParamGroup {
   double base_rate_H_D{0.0001};
   double zeta_H_D_DOX{20};
   double zeta_H_D_TRA{20};
+  double zeta_H_D_TRA_DOX{20};
 
   // -----------------------------------------------------------------------
   // Agent-Continuum interaction parameters
