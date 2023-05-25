@@ -13,6 +13,7 @@
 
 #include "treatment.h"
 #include <cmath>
+#include <fstream>
 
 namespace bdm {
 
@@ -78,5 +79,20 @@ void Treatment::PrecomputeVesselPermeability(double t_end, double time_step,
     vessel_permeability.push_back(x);
   }
 };
+
+void Treatment::SaveTreatmentParametersToJson(
+    const std::string& filename) const {
+  std::ofstream file;
+  file.open(filename);
+  file << "{\n";
+  file << "  \"tra_start_1\": " << tra_start_1_ << ",\n";
+  file << "  \"tra_end_1\": " << tra_end_1_ << ",\n";
+  file << "  \"tra_start_2\": " << tra_start_2_ << ",\n";
+  file << "  \"tra_end_2\": " << tra_end_2_ << ",\n";
+  file << "  \"dox_start\": " << dox_start_ << ",\n";
+  file << "  \"dox_end\": " << dox_end_ << "\n";
+  file << "}\n";
+  file.close();
+}
 
 }  // namespace bdm

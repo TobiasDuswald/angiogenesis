@@ -56,6 +56,9 @@ class Treatment {
     dox_end_ = dox_end;
   }
 
+  // Save the six treatment parameters to a json file.
+  void SaveTreatmentParametersToJson(const std::string& filename) const;
+
  private:
   std::vector<double> vessel_permeability;
 
@@ -69,7 +72,7 @@ class Treatment {
 
   // Vessel permeability parameters
   double vessel_permeability_0_ = 0.0;
-  double max_vessel_permeability_ = 1;
+  double max_vessel_permeability_ = 9;
   double vessel_permeability_decay_ = 10.0 * 60 * 24;
   double vessel_permeability_growth_ = 0.4 * 60 * 24;
 };
