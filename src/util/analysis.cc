@@ -12,7 +12,9 @@
 // --------------------------------------------------------------------------
 
 #include "util/analysis.h"
+#include <fstream>
 #include "TH1D.h"
+#include "angiogenesis_simulation.h"
 #include "modules/tumor_cell.h"
 #include "modules/vessel.h"
 #include "sim_param.h"
@@ -375,7 +377,19 @@ void PlotAndSaveTimeseries() {
       g3.SaveAs(Concat(sim->GetOutputDir(), "/continuum_values_tra"),
                 {".pdf", ".png"});
     }
+    ts->SaveJson(
+        Concat(sim->GetOutputDir(), "/time-series-continua-data.json"));
   }
+
+  // Write the vector of the precomputed permeability values to a file
+  auto *asim = static_cast<AngiogenesisSimulation *>(sim);
+  const auto &permeability_values = asim->GetVesselPermeability();
+  std::ofstream file;
+  file.open(Concat(sim->GetOutputDir(), "/permeability_values.txt"));
+  for (auto &value : permeability_values) {
+    file << value << std::endl;
+  }
+  file.close();
 }
 
 void PlotAndSaveHistogram(const std::vector<double> &data,
