@@ -187,6 +187,12 @@ Double3 TumorCell::CalculateDisplacement(const InteractionForce* force,
   displacement = velocity * param->simulation_time_step *
                  sparam->force_calculation_frequency;
   LimitDisplacementAtBoundary(displacement);
+
+  // Limit dislacement to at most 20
+  if (displacement.Norm() > 20) {
+    displacement *= 20 / displacement.Norm();
+  }
+
   return displacement;
 }
 
