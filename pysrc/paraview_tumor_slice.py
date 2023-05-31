@@ -98,6 +98,10 @@ def visualize(
     # find source
     tumorCells = FindSource("TumorCells")
 
+    # Fix resolution for spheres
+    tumorCells.GlyphType.ThetaResolution = 20
+    tumorCells.GlyphType.PhiResolution = 20
+
     # set active source
     SetActiveSource(tumorCells)
 
