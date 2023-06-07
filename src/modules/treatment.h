@@ -14,6 +14,7 @@
 #ifndef TREATMENT_H_
 #define TREATMENT_H_
 
+#include <string>
 #include <vector>
 
 namespace bdm {
