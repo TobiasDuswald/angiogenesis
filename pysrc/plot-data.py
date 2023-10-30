@@ -73,36 +73,12 @@ def plot_data(N, data, results_dir):
 
     # Hard code treatment times for vertical lines
     treatment = {
-        "1": {
-            "DOX": [],
-            "TRA": [],
-            "SAL": [35,38,39]
-        },
-        "2": {
-            "DOX": [39],
-            "TRA": [],
-            "SAL": [35,38]
-        },
-        "3": {
-            "DOX": [],
-            "TRA": [35, 38],
-            "SAL": [39]
-        },
-        "4": {
-            "DOX": [35],
-            "TRA": [36,39],
-            "SAL": []
-        },
-        "5": {
-            "DOX": [39],
-            "TRA": [35,38],
-            "SAL": []
-        },
-        "6": {
-            "DOX": [35,38],
-            "TRA": [35,38],
-            "SAL": []
-        }
+        "1": {"DOX": [], "TRA": [], "SAL": [35, 38, 39]},
+        "2": {"DOX": [39], "TRA": [], "SAL": [35, 38]},
+        "3": {"DOX": [], "TRA": [35, 38], "SAL": [39]},
+        "4": {"DOX": [35], "TRA": [36, 39], "SAL": []},
+        "5": {"DOX": [39], "TRA": [35, 38], "SAL": []},
+        "6": {"DOX": [35, 38], "TRA": [35, 38], "SAL": []},
     }
 
     # Plot the data
@@ -118,7 +94,13 @@ def plot_data(N, data, results_dir):
         fig.set_dpi(500)
 
         # Plot the data
-        ax.plot(data.index, data["mean_{}".format(i)], label="mean")
+        ax.plot(
+            data.index,
+            data["mean_{}".format(i)],
+            label="mean",
+            marker="o",
+            markersize=3,
+        )
         ax.fill_between(
             data.index,
             data["lower_{}".format(i)],
@@ -129,7 +111,7 @@ def plot_data(N, data, results_dir):
 
         # ax.set_ylim(-10, 510)
 
-        # Plot vertical lines for treatment times: DOX (red, dashed), 
+        # Plot vertical lines for treatment times: DOX (red, dashed),
         # TRA (green, dotted), SAL (orange, dotted-dashed)
         dox_legend_cntr = 0
         tra_legend_cntr = 0
@@ -152,7 +134,7 @@ def plot_data(N, data, results_dir):
                 sal_legend_cntr += 1
             else:
                 ax.axvline(t, color="orange", linestyle="-.")
-        
+
         # Set the labels
         ax.set_xlabel("Days")
         ax.set_ylabel("Tumor volume ($mm^3$)")
@@ -161,11 +143,20 @@ def plot_data(N, data, results_dir):
         # Set the legend
         ax.legend()
 
+        # Set location of the legend to the upper left corner
+        ax.legend(loc="upper left")
+
         # Do not cut off the labels
         fig.tight_layout()
 
+        # Limit the y-axis to 0 and 3000
+        ax.set_ylim(0, 3000)
+
+        # Use transparent background
+        fig.patch.set_alpha(0)
+
         # Save the figure
-        fig.savefig(os.path.join(results_dir, "growth_group_{}.pdf".format(i)))
+        fig.savefig(os.path.join(results_dir, "growth_group_{}.png".format(i)))
 
         # Close the figure
         plt.close(fig)
@@ -183,7 +174,9 @@ if __name__ == "__main__":
     filename = os.path.abspath(filename)
 
     # Define results directory
-    results_dir = os.path.join(dir_path, "..", "results", "data-visualization-2")
+    results_dir = os.path.join(
+        dir_path, "..", "results", "data-visualization-4"
+    )
     results_dir = os.path.abspath(results_dir)
 
     # Read data
