@@ -32,7 +32,7 @@ TEST(RandomField, ZeroStartAndEnd) {
   RandomField rf(4, 10, 0.01, 1, 1, 0, 1, 0);
   std::vector<double> random_field;
   rf.GetRealization(random_field);
-  ASSERT_EQ(random_field.size(), rf.GetNumPoints());
+  ASSERT_EQ(static_cast<int>(random_field.size()), rf.GetNumPoints());
   EXPECT_DOUBLE_EQ(random_field[0], 0);
   EXPECT_DOUBLE_EQ(random_field[rf.GetNumPoints() - 1], 0);
 }

@@ -136,9 +136,9 @@ TEST(VectorOperationsTest, SimultaneousSort) {
   EXPECT_TRUE(is_sorted);
 
   // Additionally check all values.
-  for (int i = 0; i < index_array.size(); i++) {
-    EXPECT_EQ(i, index_array[i]);
-    EXPECT_EQ(i, value_array[i]);
+  for (size_t i = 0; i < index_array.size(); i++) {
+    EXPECT_EQ(static_cast<int>(i), index_array[i]);
+    EXPECT_EQ(static_cast<int>(i), value_array[i]);
   }
 }
 

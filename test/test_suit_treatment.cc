@@ -106,7 +106,7 @@ TEST(Treatment, PrecomputeVesselPermeability) {
   // Iterate over the precomputed vessel permeability and check if the
   // permeability increases if the TRA treatment is applied, and decreases
   // otherwise.
-  for (int i = 1021; i < vessel_permeability.size(); i++) {
+  for (size_t i = 1021; i < vessel_permeability.size(); i++) {
     double t = i * dt * 24 * 60;
     std::cout << i << " " << t << " " << vessel_permeability[i] << std::endl;
     if (t > tra_start_1_ && t <= tra_end_1_) {
@@ -121,7 +121,7 @@ TEST(Treatment, PrecomputeVesselPermeability) {
   // Write the vector to a txt file
   std::ofstream file;
   file.open("vessel_permeability.txt");
-  for (int i = 0; i < vessel_permeability.size(); i++) {
+  for (size_t i = 0; i < vessel_permeability.size(); i++) {
     file << vessel_permeability[i] << std::endl;
   }
 }

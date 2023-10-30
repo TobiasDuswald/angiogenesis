@@ -24,7 +24,7 @@ namespace bdm {
 inline void CompareVectors(const std::vector<double>& v1,
                            const std::vector<double>& v2, double tol) {
   ASSERT_EQ(v1.size(), v2.size());
-  for (int i = 0; i < v1.size(); i++) {
+  for (size_t i = 0; i < v1.size(); i++) {
     EXPECT_NEAR(v1[i], v2[i], tol);
   }
 }

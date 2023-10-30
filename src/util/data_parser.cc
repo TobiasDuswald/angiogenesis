@@ -280,7 +280,7 @@ void ConstructUniquePoints(const std::vector<Double3>& points,
       unique_index = unique_points.size() - 1;
     }
     for (size_t j = 0; j < connectivity.size(); j++) {
-      if (connectivity[j] == i) {
+      if (connectivity[j] == static_cast<int>(i)) {
         unique_connectivity[j] = unique_index;
       }
     }
