@@ -228,7 +228,7 @@ void ApicalGrowth::Run(Agent* agent) {
   if (gradient.Norm() < sparam->vegf_grad_threshold_apical_growth) {
     return;
   }
-  if (gradient.Norm() > 0.016) {
+  if (gradient.Norm() > 0.022) {
     // This indicates that we're now in the tumor region, stop growth. No longer
     // counted as tip cell.
     auto* vessel = dynamic_cast<Vessel*>(agent);
@@ -284,6 +284,12 @@ void LineContinuumInteraction::Run(Agent* agent) {
 
     // Get the pointers to the diffusion grids: nutrients, VEGF, DOX, and TRA
     auto* sim = Simulation::GetActive();
+    // WARNING: This is a bit of a hack. We need to cast the simulation to the
+    // derived class AngiogenesisSimulation to access the tip cell finder.
+    // The simulation is however not polymorphic, so we cannot use dynamic_cast.
+    // We can however use static_cast, because we know that the simulation is
+    // an AngiogenesisSimulation. This is only true for this specific example.
+    auto* asim = static_cast<AngiogenesisSimulation*>(sim);
     const auto* rm = sim->GetResourceManager();
     auto* param = sim->GetParam();
     const double simulation_time_step = param->simulation_time_step;
@@ -351,7 +357,29 @@ void LineContinuumInteraction::Run(Agent* agent) {
     const double surface = vessel->GetSurfaceArea();
     for (int j = 0; j < 4; j++) {
       auto* dg = dg_array[j];
-      const double rate = interaction_rate_[j];
+      double rate = interaction_rate_[j];
+      if (j == 2) {
+        // DOX is only supplied between specific times
+        const double time =
+            Simulation::GetActive()->GetScheduler()->GetSimulatedTime();
+        bool dox_active = asim->GetTreatment().IsDoxApplied(time);
+        // if (time < start_time || time > end_time) {
+        if (!dox_active) {
+          continue;
+        }
+        const auto simulated_time_steps =
+            Simulation::GetActive()->GetScheduler()->GetSimulatedSteps();
+        rate *= (1 + asim->GetVesselPermeability(simulated_time_steps));
+      }
+      if (j == 3) {
+        // TRA is only supplied between specific times
+        const double time =
+            Simulation::GetActive()->GetScheduler()->GetSimulatedTime();
+        bool tra_active = asim->GetTreatment().IsTraApplied(time);
+        if (!tra_active) {
+          continue;
+        }
+      }
       if (rate == 0) {
         continue;
       }

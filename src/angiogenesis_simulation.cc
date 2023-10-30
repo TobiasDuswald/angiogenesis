@@ -323,6 +323,7 @@ int Simulate(int argc, const char** argv) {
     OperationRegistry::GetInstance()->AddOperationImpl(
         "VerifyContinuum", OpComputeTarget::kCpu, new VerifyContinuum());
     auto* verify_continuum = NewOperation("VerifyContinuum");
+    verify_continuum->frequency_ = 20;
     scheduler->ScheduleOp(verify_continuum, OpType::kPostSchedule);
   }
 
@@ -352,12 +353,75 @@ int Simulate(int argc, const char** argv) {
   // Test if correct number of Agents were initialized
   std::cout << "Agents im Simulation: " << rm->GetNumAgents() << "\n";
 
-  // Run simulation for a defined number of timesteps
+  // 12.1 Run simulation for a defined number of timesteps to grow vasculature
   u_int64_t time_steps{static_cast<u_int64_t>(
       ceil(sparam->total_sim_time / param->simulation_time_step))};
+
+  // 12.2 Precompute the vessel's ability to deliver the drugs
+  auto& treatment = simulation.GetTreatment();
+
+  // -------------------------------------------------------------------------
+  // Treatment parameter
+
+  // // TRA TRA DOX
+  double tra_start_1 = 108 * 60 * 24;
+  double tra_end_1 = 109 * 60 * 24;
+  double tra_start_2 = 110 * 60 * 24;
+  double tra_end_2 = 111 * 60 * 24;
+  double dox_start = 112 * 60 * 24;
+  double dox_end = 113 * 60 * 24;
+
+  // DOX
+  // double tra_start_1 = std::numeric_limits<double>::max();
+  // double tra_end_1 = std::numeric_limits<double>::max();
+  // double tra_start_2 = std::numeric_limits<double>::max();
+  // double tra_end_2 = std::numeric_limits<double>::max();
+  // double dox_start = 108 * 60 * 24;
+  // double dox_end = 109 * 60 * 24;
+
+  // // TRA TRA
+  // double tra_start_1 = 108 * 60 * 24;
+  // double tra_end_1 = 109 * 60 * 24;
+  // double tra_start_2 = 110 * 60 * 24;
+  // double tra_end_2 = 111 * 60 * 24;
+  // double dox_start = std::numeric_limits<double>::max();
+  // double dox_end = std::numeric_limits<double>::max();
+
+  // // DOX TRA TRA
+  // double tra_start_1 = 110 * 60 * 24;
+  // double tra_end_1 = 111 * 60 * 24;
+  // double tra_start_2 = 112 * 60 * 24;
+  // double tra_end_2 = 113 * 60 * 24;
+  // double dox_start = 108 * 60 * 24;
+  // double dox_end = 109 * 60 * 24;
+
+  treatment.SetTreatmentParameters(tra_start_1, tra_end_1, tra_start_2,
+                                   tra_end_2, dox_start, dox_end);
+
+  // -------------------------------------------------------------------------
+
+  simulation.PrecomputeVesselPermeability(3 * sparam->total_sim_time,
+                                          param->simulation_time_step,
+                                          param->simulation_time_step / 1000.0);
+
   scheduler->Simulate(time_steps);
+
+  // 12.3 Iterate over all agents and remove sprouting and growth behavior,
+  // i.e. freeze vessels and continue growing tumor
+  rm->ForEachAgent([](Agent* agent) {
+    auto* vessel = dynamic_cast<Vessel*>(agent);
+    if (vessel) {
+      vessel->RemoveBehavior(vessel->GetAllBehaviors()[0]);  // Remove sprouting
+      vessel->RemoveBehavior(vessel->GetAllBehaviors()[0]);  // Remove growth
+    }
+  });
+  scheduler->Simulate(std::ceil(1.3 * time_steps));
   std::cout << "Simulation completed successfully!" << std::endl;
 
+  // Save the treatment parameter
+  std::string filename =
+      Concat(simulation.GetOutputDir(), "/treatment_parameters.json");
+  treatment.SaveTreatmentParametersToJson(filename);
   // Save timeseries data
   PlotAndSaveTimeseries();
 
@@ -481,6 +545,11 @@ double PlaceStraightVessel(
                                         compartment_length);
   vessel_compartment_1->SetDiameter(diameter);
   vessel_compartment_1->ProhibitGrowth();
+  vessel_compartment_1->AddBehavior(new SproutingAngiogenesis());
+  vessel_compartment_1->AddBehavior(new ApicalGrowth());
+  vessel_compartment_1->AddBehavior(new LineContinuumInteraction(
+      sparam->nutrient_supply_rate_vessel, sparam->vegf_consumption_rate_vessel,
+      sparam->dox_supply_rate_vessel, sparam->tra_supply_rate_vessel));
 
   Vessel* vessel_compartment_2{nullptr};
   for (int i = 1; i < n_compartments; i++) {
