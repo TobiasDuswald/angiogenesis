@@ -1,8 +1,11 @@
-# Angiogenesis
+# Bridging Scales
 
 This is the code base for the publication:
 **Bridging scales: A hybrid model to simulate vascular tumor growthand treatment response**
 by Duswald, Lima, Oden, and Wohlmuth (2023) available [here](https://doi.org/10.1016/j.cma.2023.116566).
+
+![05-treatment](https://github.com/TobiasDuswald/angiogenesis/assets/44771875/47f9b105-c7e5-405f-b52b-872b26ae8133)
+
 
 ## Software Stack and Depndencies
 
@@ -16,10 +19,10 @@ by Duswald, Lima, Oden, and Wohlmuth (2023) available [here](https://doi.org/10.
 Building on the BioDynaMo platform, the commands to running the simulations
 assume a functional installation of BioDynaMo and are
 ```
-source <path>/thisbdm.sh
-bdm build
-bdm run
-bdm view
+source <path>/thisbdm.sh  # source biodynamo 
+bdm build                 # compile application code
+bdm run                   # execute application code
+bdm view                  # open results in ParaView
 ```
 
 ## Reproducing the results of the publication
