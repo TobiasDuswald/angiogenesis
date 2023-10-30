@@ -1,3 +1,16 @@
+# -----------------------------------------------------------------------------
+#
+# Copyright (C) 2022 CERN, TUM, and UT Austin. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+#
+# See the LICENSE file distributed with this work for details.
+# See the NOTICE file distributed with this work for additional information
+# regarding copyright ownership.
+#
+# -----------------------------------------------------------------------------
+
 # ParavView script to visualize the tumor. This script visualizes from t=0 to
 # t=max and rotates once around the tumor during the visualization. The script
 # must be used with the paraview python executable. The script in
