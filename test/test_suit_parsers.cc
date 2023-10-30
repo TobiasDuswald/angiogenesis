@@ -13,7 +13,7 @@
 
 #include <gtest/gtest.h>
 #include <array>
-#include <experimental/filesystem>
+#include "core/stdfilesystem.h"
 #include "util/data_parser.h"
 
 #define TEST_NAME typeid(*this).name()
@@ -264,7 +264,7 @@ TEST(VTP_Parser, ReadData) {
 
   // Not part of test, just some debugging
   parser.PostProcessData();
-  parser.PlotHistograms(std::experimental::filesystem::current_path());
+  parser.PlotHistograms(fs::current_path());
 }
 
 }  // namespace bdm
