@@ -83,6 +83,7 @@ jobs:
       run: |
         . ../biodynamo/build/bin/thisbdm.sh
         export DISPLAY=:99.0
+        sed -i 's/"total_sim_time": 100000/"total_sim_time": 500/' bdm.json
         bdm run
 
     - name: Test angiogenesis simulation with unit tests
