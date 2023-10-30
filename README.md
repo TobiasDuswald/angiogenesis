@@ -1,11 +1,10 @@
 # Bridging Scales
 
 This is the code base for the publication:
-**Bridging scales: A hybrid model to simulate vascular tumor growthand treatment response**
+**Bridging scales: A hybrid model to simulate vascular tumor growth and treatment response**
 by Duswald, Lima, Oden, and Wohlmuth (2023) available [here](https://doi.org/10.1016/j.cma.2023.116566).
 
-![05-treatment](https://github.com/TobiasDuswald/angiogenesis/assets/44771875/47f9b105-c7e5-405f-b52b-872b26ae8133)
-
+![05-treatment](https://github.com/TobiasDuswald/angiogenesis/assets/44771875/bb8312a7-0b5d-486b-b28c-d57dd7dd22b7)
 
 ## Software Stack and Depndencies
 
