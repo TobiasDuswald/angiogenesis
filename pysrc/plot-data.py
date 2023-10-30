@@ -113,12 +113,14 @@ def plot_data(N, data, results_dir):
             label="mean",
             marker="o",
             markersize=3,
+            color="#307EC9",
         )
         ax.fill_between(
             data.index,
             data["lower_{}".format(i)],
             data["upper_{}".format(i)],
-            alpha=0.5,
+            color="#307EC9",
+            alpha=0.2,
             label="std",
         )
 
@@ -129,18 +131,20 @@ def plot_data(N, data, results_dir):
         dox_legend_cntr = 0
         tra_legend_cntr = 0
         sal_legend_cntr = 0
-        for t in treatment[str(i)]["DOX"]:
-            if dox_legend_cntr == 0:
-                ax.axvline(t, color="red", linestyle="--", label="DOX")
-                dox_legend_cntr += 1
-            else:
-                ax.axvline(t, color="red", linestyle="--")
         for t in treatment[str(i)]["TRA"]:
             if tra_legend_cntr == 0:
-                ax.axvline(t, color="green", linestyle=":", label="TRA")
+                ax.axvline(t, color="fuchsia", linestyle="--", label="TRA")
                 tra_legend_cntr += 1
             else:
-                ax.axvline(t, color="green", linestyle=":")
+                ax.axvline(t, color="fuchsia", linestyle="--")
+        for t in treatment[str(i)]["DOX"]:
+            if dox_legend_cntr == 0:
+                ax.axvline(
+                    t, color="lightseagreen", linestyle=":", label="DOX"
+                )
+                dox_legend_cntr += 1
+            else:
+                ax.axvline(t, color="lightseagreen", linestyle=":")
         for t in treatment[str(i)]["SAL"]:
             if sal_legend_cntr == 0:
                 ax.axvline(t, color="orange", linestyle="-.", label="SAL")
@@ -149,7 +153,7 @@ def plot_data(N, data, results_dir):
                 ax.axvline(t, color="orange", linestyle="-.")
 
         # Set the labels
-        ax.set_xlabel("Days")
+        ax.set_xlabel("Time (Days)")
         ax.set_ylabel("Tumor volume ($mm^3$)")
         # ax.set_title("Group {}".format(i))
 
@@ -158,6 +162,8 @@ def plot_data(N, data, results_dir):
 
         # Set location of the legend to the upper left corner
         ax.legend(loc="upper left")
+        # Set ylim to 0, 3000
+        ax.set_ylim(0, 3000)
 
         # Do not cut off the labels
         fig.tight_layout()
@@ -188,7 +194,7 @@ if __name__ == "__main__":
 
     # Define results directory
     results_dir = os.path.join(
-        dir_path, "..", "results", "data-visualization-4"
+        dir_path, "..", "results", "data-visualization-2"
     )
     results_dir = os.path.abspath(results_dir)
 
